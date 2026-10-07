@@ -189,6 +189,9 @@ export class ProfileManagerModal extends BaseComponent {
                     <div>
                         <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Or Start from a Built-in Sample Preset</label>
                         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <button type="button" class="btn-load-sample-preset btn btn-secondary" data-file="Sample_FamilyScenario.json" data-default-name="Sample Household (Family of 4)" style="width: 100%; font-size: 0.85rem; text-align: left; padding: 0.6rem 0.8rem;">
+                                👨‍👩‍👧‍👦 Family of 4 ($180k, Age 45/41, $1.5M at 52)
+                            </button>
                             <button type="button" class="btn-load-sample-preset btn btn-secondary" data-file="Sample_BaseCase.json" data-default-name="Standard Retirement (Sample)" style="width: 100%; font-size: 0.85rem; text-align: left; padding: 0.6rem 0.8rem;">
                                 📊 Standard Retirement (Sample)
                             </button>

@@ -17,7 +17,7 @@
     <!-- chartjs-plugin-annotation v2.1.0: https://github.com/chartjs/chartjs-plugin-annotation/releases/tag/v2.1.0 -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0/dist/chartjs-plugin-annotation.min.js" integrity="sha384-dB7WWqy9+vERwKo2atAKw+KLNhfY0RX5ZjV1l4HHMBZz5wfSvX/GsytIpOyBY8dG" crossorigin="anonymous"></script>
 
-    <link rel="stylesheet" href="styles/main.css?v=1791344512139">
+    <link rel="stylesheet" href="styles/main.css?v=1791345735438">
 </head>
 
 <body>
@@ -46,6 +46,10 @@
                     scenario modeling.</p>
             </div>
             <div class="header-actions" style="display: flex; align-items: center; gap: 0.5rem;">
+                <button id="btn-load-sample" class="btn btn-secondary" title="Load Sample Household Profile (Couple 45 & 41, 2 Kids, $180k Income, $1.5M at 52)"
+                    style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; padding: 0.45rem 0.85rem; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.06); color: var(--text-color); white-space: nowrap; transition: background 0.2s ease;">
+                    <span>📊 Load Sample</span>
+                </button>
                 <select id="profile-select"
                     style="margin: 0; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-color); font-weight: bold;"></select>
                 <button id="btn-add-profile" class="btn btn-icon" title="Add Profile"
@@ -250,7 +254,7 @@
     <!-- FIRE Milestones Drawer Component -->
     <fire-drawer id="fire-drawer"></fire-drawer>
 
-    <script type="module" src="src/app.js?v=1791344512139"></script>
+    <script type="module" src="src/app.js?v=1791345735438"></script>
 </body>
 
 </html>

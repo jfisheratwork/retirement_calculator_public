@@ -1,4 +1,5 @@
 import { getState, getProfiles, getActiveProfileId, switchProfile, replaceProfileData, initState } from './services/state.js';
+import { loadSampleHouseholdProfile } from './services/sample-profile.js';
 import { renderCharts, setPinnedYearIndex, getPinnedYearIndex } from './components/charts.js';
 import { renderInputPanel } from './components/input-panel.js';
 import { initNerdAdvisor, renderNerdDetails } from './components/nerd-advisor.js';
@@ -14,6 +15,7 @@ import { renderFireIndicator } from './components/fire-indicator.js';
 import './components/fire-drawer.js';
 
 // DOM Elements
+let btnLoadSample;
 let profileSelect;
 let focusYearSelect;
 let btnAddProfile;
@@ -37,6 +39,7 @@ function bootstrap() {
     initGlobalTooltips();
     
     // Select DOM nodes
+    btnLoadSample = document.getElementById('btn-load-sample');
     profileSelect = document.getElementById('profile-select');
     focusYearSelect = document.getElementById('focus-year-select');
     btnAddProfile = document.getElementById('btn-add-profile');
@@ -66,6 +69,21 @@ function bootstrap() {
 }
 
 function bindProfileEvents() {
+    if (btnLoadSample) {
+        btnLoadSample.addEventListener('click', async () => {
+            btnLoadSample.textContent = '⏳ Loading...';
+            btnLoadSample.disabled = true;
+            try {
+                await loadSampleHouseholdProfile();
+                updateProfileSelect();
+                updateApp(true);
+            } finally {
+                btnLoadSample.innerHTML = '<span>📊 Load Sample</span>';
+                btnLoadSample.disabled = false;
+            }
+        });
+    }
+
     if (profileSelect) {
         profileSelect.addEventListener('change', (passedEvent) => {
             switchProfile(passedEvent.target.value);
