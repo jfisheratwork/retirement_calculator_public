@@ -101,7 +101,7 @@ export class PortfolioManager {
             const shiftRate = Number(assumptions.conservativeShift.returnRate || 5.5);
             events.push({
                 year,
-                label: `Conservative Shift (${shiftRate}% Return)`,
+                label: `Conservative Shift (${shiftRate}%)`,
                 type: 'conservative_shift',
                 color: '#74b9ff'
             });
@@ -137,7 +137,7 @@ export class PortfolioManager {
             const shiftRate = Number(assumptions.conservativeShift.returnRate || 5.5);
             events.push({
                 year,
-                label: `Conservative Shift (${shiftRate}% Return)`,
+                label: `Conservative Shift (${shiftRate}%)`,
                 type: 'conservative_shift',
                 color: '#74b9ff'
             });

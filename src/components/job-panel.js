@@ -1,5 +1,4 @@
 import { BaseComponent } from './base-component.js';
-import { getState } from '../services/state.js';
 import { escapeHtml } from '../utils/sanitize.js';
 
 export class JobPanel extends BaseComponent {
@@ -65,13 +64,27 @@ export class JobPanel extends BaseComponent {
         const currentJobIndex = parseInt(this.itemIndex, 10);
         const linkedOptions = this._getLinkedAccountOptions(spouseObj, currentJobIndex);
 
+        const hasBonusData = Boolean(
+            (job.bonusAmount && Number(job.bonusAmount) > 0) ||
+            (job.ltiAmount && Number(job.ltiAmount) > 0) ||
+            job.hasBonus === true
+        );
+
         let out = `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">`;
         out += this._input(`Base Salary ($)`, `${jobPrefix}.baseSalary`, 'number', job.baseSalary || 0);
         out += this._input(`Start Date`, `${jobPrefix}.startDate`, 'date', job.startDate || `${new Date().getFullYear()}-01`, 'The month and year this job position starts.');
+
+        out += `<div style="grid-column: 1 / -1; margin-top: 0.25rem;">`;
+        out += this._checkbox(`Include Annual Bonus & Equity / LTI`, `${jobPrefix}.hasBonus`, hasBonusData, 'Show inputs for annual performance bonus and long-term incentive (LTI) equity vesting.');
+        out += `</div>`;
+
+        out += `<div class="job-bonus-container" style="grid-column: 1 / -1; display: ${hasBonusData ? 'grid' : 'none'}; grid-template-columns: 1fr 1fr; gap: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 0.25rem;">`;
         out += this._input(`Bonus Amount ($)`, `${jobPrefix}.bonusAmount`, 'number', job.bonusAmount || 0, 'Annual cash performance bonus.');
         out += this._select(`Bonus Month`, `${jobPrefix}.bonusMonth`, monthOptions, bonusMonthVal, 'The calendar month when the annual bonus pays out.');
         out += this._input(`LTI Vest Amount ($)`, `${jobPrefix}.ltiAmount`, 'number', job.ltiAmount || 0, 'Annual equity or long-term incentive vesting amount.');
         out += this._select(`LTI Vest Month`, `${jobPrefix}.ltiMonth`, monthOptions, ltiMonthVal, 'The calendar month when equity shares or long-term incentives vest.');
+        out += `</div>`;
+
         out += `<div style="grid-column: 1 / -1;">`;
         out += this._select(`Linked 401k/403b`, `${jobPrefix}.linked401kAccountId`, linkedOptions, job.linked401kAccountId || '', 'Select a 401k/403b account to receive this job\'s contributions.');
         out += `</div>`;
@@ -93,7 +106,9 @@ export class JobPanel extends BaseComponent {
 
     getTemplate() {
         if (!this.spousePrefix || this.itemIndex === null) return '';
-        this.state = this.getEffectiveState();
+        if (!this.state || Object.keys(this.state).length === 0) {
+            this.state = this.getEffectiveState();
+        }
         const keys = this.spousePrefix.split('.');
         let spouseObj = this.state;
         for (const k of keys) { spouseObj = spouseObj[k]; }
@@ -146,10 +161,23 @@ export class JobPanel extends BaseComponent {
                     summarySpan.innerHTML = `${escapeHtml(title)} - $${salary} ${startBadge}`;
                 }
             }
+            const isBonusOrLti = path && (path.endsWith('.bonusAmount') || path.endsWith('.ltiAmount'));
+            if (isBonusOrLti && Number(e.target.value) > 0) {
+                const chk = this.querySelector(`input[data-path="${this.spousePrefix}.jobs.${this.itemIndex}.hasBonus"]`);
+                const container = this.querySelector('.job-bonus-container');
+                if (chk) chk.checked = true;
+                if (container) container.style.display = 'grid';
+            }
         });
 
         this.addEvent('input, select', 'change', (e) => {
             const path = e.target.getAttribute('data-path');
+            if (path && path.endsWith('.hasBonus')) {
+                const bonusContainer = this.querySelector('.job-bonus-container');
+                if (bonusContainer) {
+                    bonusContainer.style.display = e.target.checked ? 'grid' : 'none';
+                }
+            }
             if (path && path.endsWith('.linked401kAccountId')) {
                 const contContainer = this.querySelector('.linked-contributions-container');
                 if (contContainer) {

@@ -224,7 +224,7 @@ export class SimulationEngine {
         this.events.push({
             year,
             month,
-            label: `Downsized Home (+$${Math.round(downsizeResult.netCashProceeds).toLocaleString()} Cash)`,
+            label: 'Downsized Home',
             type: 'downsize',
             color: '#0984e3'
         });
@@ -437,7 +437,7 @@ export class SimulationEngine {
         this.events.push({
             year,
             month,
-            label: `${spouse.name || 'Spouse'} Rule 72(t) SEPP Began ($${Math.round(spouse.rule72tAnnualPayment).toLocaleString()}/yr on $${Math.round(inceptionBalance).toLocaleString()} Balance)`,
+            label: `${spouse.name || 'Spouse'} 72(t) SEPP`,
             type: 'income_72t',
             color: '#10b981'
         });
@@ -594,7 +594,7 @@ export class SimulationEngine {
         this.events.push({
             year,
             month,
-            label: `${spouse.name || 'Spouse'} Rollover (${acc.name || '401k'} ➔ ${targetAcc.name || 'IRA'})`,
+            label: `${spouse.name || 'Spouse'} Rollover`,
             type: 'rollover'
         });
     }
@@ -625,7 +625,7 @@ export class SimulationEngine {
             sourceAcc.yearWithdrawals = (sourceAcc.yearWithdrawals || 0) + transferAmount;
             targetAcc.balance += transferAmount;
             targetAcc.yearRolloverIn = (targetAcc.yearRolloverIn || 0) + transferAmount;
-            this.events.push({ year, month, label: `${spouse.name || (spouse.key === 's1' ? 'S1' : 'S2')} Rollover (${sourceAcc.name || '401k'} ➔ ${targetAcc.name || 'IRA'})`, type: 'rollover' });
+            this.events.push({ year, month, label: `${spouse.name || (spouse.key === 's1' ? 'S1' : 'S2')} Rollover`, type: 'rollover' });
         }
     }
 
@@ -729,13 +729,15 @@ export class SimulationEngine {
         });
 
         this.taxableIncome += ordinaryW2Taxable + taxableSsn;
+        this._recordRetirementMilestones(year);
+    }
 
-        // Retirement Milestones
-        if (this.s1.getAge(year) === this.s1.targetRetirementAge && !this.events.find(eventItem => eventItem.type === 's1_retire')) {
-            this.events.push({ year, label: `${this.s1.name} Retires`, type: 's1_retire', color: '#00b894' });
+    _recordRetirementMilestones(year) {
+        if (this.s1.getAge(year) === this.s1.targetRetirementAge && !this.events.find(e => e.type === 's1_retire')) {
+            this.events.push({ year, label: `${this.s1.name} (${this.s1.getAge(year)}) Retires`, type: 's1_retire', color: '#00b894' });
         }
-        if (this.s2.getAge(year) === this.s2.targetRetirementAge && !this.events.find(eventItem => eventItem.type === 's2_retire')) {
-            this.events.push({ year, label: `${this.s2.name} Retires`, type: 's2_retire', color: '#00b894' });
+        if (this.s2.getAge(year) === this.s2.targetRetirementAge && !this.events.find(e => e.type === 's2_retire')) {
+            this.events.push({ year, label: `${this.s2.name} (${this.s2.getAge(year)}) Retires`, type: 's2_retire', color: '#00b894' });
         }
     }
 
