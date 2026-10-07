@@ -13,6 +13,7 @@ import { aiAssistant } from './services/AIAssistant.js';
 import { FireMilestoneCalculator } from './services/FireMilestoneCalculator.js';
 import { renderFireIndicator } from './components/fire-indicator.js';
 import './components/fire-drawer.js';
+import './components/what-if-drawer.js';
 
 // DOM Elements
 let btnLoadSample;
@@ -23,6 +24,7 @@ let btnRenameProfile;
 let btnDeleteProfile;
 let btnEditParams;
 let btnOpenAi;
+let btnOpenWhatIf;
 let parkedDrawer;
 let paramsModal;
 let btnCloseModal;
@@ -32,6 +34,7 @@ let inputPanelInstance = null;
 let settingsModalInstance;
 let profileManagerModalInstance;
 let aiAdvisorInstance;
+let whatIfDrawerInstance;
 
 function bootstrap() {
     initState();
@@ -47,6 +50,7 @@ function bootstrap() {
     btnDeleteProfile = document.getElementById('btn-delete-profile');
     btnEditParams = document.getElementById('btn-edit-params');
     btnOpenAi = document.getElementById('btn-open-ai');
+    btnOpenWhatIf = document.getElementById('btn-open-whatif');
     parkedDrawer = document.getElementById('parked-drawer');
     paramsModal = document.getElementById('params-modal');
     btnCloseModal = document.getElementById('btn-close-modal');
@@ -56,6 +60,7 @@ function bootstrap() {
     settingsModalInstance = document.querySelector('settings-modal');
     profileManagerModalInstance = document.querySelector('profile-manager-modal');
     aiAdvisorInstance = document.querySelector('ai-advisor-drawer');
+    whatIfDrawerInstance = document.querySelector('what-if-drawer');
 
     bindEvents();
     updateProfileSelect();
@@ -214,6 +219,12 @@ function bindDrawerEvents() {
     if (btnOpenAi && aiAdvisorInstance) {
         btnOpenAi.addEventListener('click', () => {
             aiAdvisorInstance.open();
+        });
+    }
+
+    if (btnOpenWhatIf && whatIfDrawerInstance) {
+        btnOpenWhatIf.addEventListener('click', () => {
+            whatIfDrawerInstance.toggle();
         });
     }
 }
@@ -375,10 +386,14 @@ function updateApp(forceInputPanelRedraw = false) {
         }
     }
     
-    // Sync external DOM elements
     const sorrSelect = document.getElementById('sorr-scenario-select');
     if (sorrSelect) {
         sorrSelect.value = currentState.strategies.sorrScenario || 'average';
+    }
+
+    // Refresh What-If drawer if currently open
+    if (whatIfDrawerInstance && whatIfDrawerInstance.isOpen) {
+        whatIfDrawerInstance.render();
     }
 }
 

@@ -706,7 +706,7 @@ main {
 /* Dashboard Sidebar Tooltip Layout */
 .dashboard-layout {
     display: grid;
-    grid-template-columns: 1fr 340px;
+    grid-template-columns: 1fr 21.25rem;
     gap: 1.5rem;
     align-items: start;
     width: 100%;
@@ -717,7 +717,7 @@ main {
     width: 100%;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 75rem) {
     .dashboard-layout {
         grid-template-columns: 1fr;
     }
@@ -1195,7 +1195,248 @@ body.ai-advisor-open #stress-test-alerts {
     border-radius: 6px;
 }
 
+/* ==========================================================================
+   What-If Sandbox Docked Sidebar & Layout Squish (rem responsive sizing)
+   ========================================================================== */
 
+.what-if-dock {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 23.75rem; /* Compact 380px width via rems */
+    max-width: 90vw;
+    height: 100vh;
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    background: rgba(15, 23, 42, 0.98);
+    backdrop-filter: blur(1.5rem);
+    -webkit-backdrop-filter: blur(1.5rem);
+    border-left: 0.0625rem solid rgba(234, 179, 8, 0.4);
+    box-shadow: -0.625rem 0 2.5rem rgba(0, 0, 0, 0.6);
+    transform: translateX(0);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+    padding: 1.25rem;
+    color: var(--text-main);
+    box-sizing: border-box;
+}
+
+.what-if-dock.hidden {
+    transform: translateX(100%);
+    pointer-events: none;
+}
+
+/* Squish main dashboard layout to the left so charts remain visible side-by-side with drawer */
+body.what-if-open .dashboard-layout,
+body.what-if-open header,
+body.what-if-open #stress-test-alerts {
+    margin-right: 24.25rem;
+    transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 80rem) {
+    body.what-if-open .dashboard-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 56rem) {
+    .what-if-dock {
+        width: 100vw;
+        max-width: 100vw;
+    }
+    body.what-if-open .dashboard-layout,
+    body.what-if-open header,
+    body.what-if-open #stress-test-alerts {
+        margin-right: 0;
+    }
+}
+
+.what-if-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 0.75rem;
+    flex-shrink: 0;
+}
+
+.what-if-wip-pill {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: 9999px;
+    letter-spacing: 0.05em;
+    background: rgba(234, 179, 8, 0.2);
+    color: #fde047;
+    border: 1px solid rgba(234, 179, 8, 0.4);
+    margin-top: 0.15rem;
+}
+
+.what-if-warning-banner {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.18), rgba(202, 138, 4, 0.12));
+    border: 1.5px solid #eab308;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.85rem;
+    box-shadow: 0 0.25rem 0.85rem rgba(234, 179, 8, 0.15);
+    flex-shrink: 0;
+}
+
+.what-if-body {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding-right: 0.25rem;
+}
+
+.what-if-section {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.5rem;
+    padding: 0.85rem;
+    transition: border-color 0.2s ease;
+}
+
+.what-if-section:hover {
+    border-color: rgba(234, 179, 8, 0.3);
+}
+
+.what-if-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.25rem;
+}
+
+.what-if-section-header h4 {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.what-if-section-desc {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin: 0 0 0.65rem 0;
+    line-height: 1.35;
+}
+
+.what-if-control-group {
+    margin-bottom: 0.4rem;
+}
+
+.what-if-value-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fde047;
+    background: rgba(234, 179, 8, 0.15);
+    padding: 0.15rem 0.45rem;
+    border-radius: 0.25rem;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.what-if-slider {
+    width: 100%;
+    accent-color: #eab308;
+    cursor: pointer;
+    margin: 0.25rem 0;
+}
+
+.what-if-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.65rem;
+}
+
+.what-if-chip {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 0.3rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.what-if-chip:hover {
+    background: rgba(234, 179, 8, 0.15);
+    border-color: rgba(234, 179, 8, 0.4);
+    color: #fde047;
+}
+
+.what-if-chip.active {
+    background: rgba(234, 179, 8, 0.25);
+    border-color: #eab308;
+    color: #fef08a;
+}
+
+.what-if-budget-card {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.35rem;
+    padding: 0.6rem;
+}
+
+.what-if-child-card {
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0.35rem;
+    padding: 0.6rem;
+    margin-bottom: 0.5rem;
+}
+
+.what-if-college-status {
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.74rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.what-if-college-status.funded {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.what-if-college-status.gap {
+    background: rgba(234, 179, 8, 0.15);
+    color: #fde047;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.what-if-diagnostic-card {
+    display: flex;
+    gap: 0.6rem;
+    padding: 0.65rem;
+    border-radius: 0.4rem;
+    align-items: flex-start;
+}
+
+.what-if-diagnostic-card.healthy {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #a7f3d0;
+}
+
+.what-if-diagnostic-card.warning {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #fde68a;
+}
 
 /* Settings Tabs */
 .tabs {

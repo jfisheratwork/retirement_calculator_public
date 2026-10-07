@@ -51,9 +51,9 @@ export const SAMPLE_FAMILY_DATA = {
             {
                 id: 'job-alex-1',
                 title: 'Operations Director',
-                baseSalary: 105000,
+                baseSalary: 89250,
                 startDate: '2026-01',
-                bonusAmount: 5000,
+                bonusAmount: 4250,
                 bonusMonth: '03',
                 ltiAmount: 0,
                 ltiMonth: '',
@@ -68,7 +68,7 @@ export const SAMPLE_FAMILY_DATA = {
                 id: 'acc-alex-401k',
                 name: 'Alex 401(k)',
                 type: 'traditional401k',
-                balance: 235000,
+                balance: 163000,
                 expectedReturn: 7,
                 isActiveContributor: true,
                 isSweepAccount: false
@@ -77,7 +77,7 @@ export const SAMPLE_FAMILY_DATA = {
                 id: 'acc-alex-ira',
                 name: 'Alex Traditional IRA',
                 type: 'standardIra',
-                balance: 65000,
+                balance: 45000,
                 expectedReturn: 7,
                 isActiveContributor: false,
                 isSweepAccount: false
@@ -86,8 +86,8 @@ export const SAMPLE_FAMILY_DATA = {
                 id: 'acc-alex-roth',
                 name: 'Alex Roth IRA',
                 type: 'rothIra',
-                balance: 50000,
-                principle: 35000,
+                balance: 34500,
+                principle: 24000,
                 expectedReturn: 7,
                 isActiveContributor: false,
                 isSweepAccount: false
@@ -96,7 +96,7 @@ export const SAMPLE_FAMILY_DATA = {
                 id: 'acc-joint-brokerage',
                 name: 'Joint Brokerage',
                 type: 'taxableBrokerage',
-                balance: 55000,
+                balance: 38000,
                 expectedReturn: 7,
                 isActiveContributor: false,
                 isSweepAccount: true
@@ -105,7 +105,7 @@ export const SAMPLE_FAMILY_DATA = {
                 id: 'acc-emergency-hysa',
                 name: 'Emergency HYSA',
                 type: 'hysa',
-                balance: 25000,
+                balance: 17500,
                 expectedReturn: 4,
                 isActiveContributor: false,
                 isSweepAccount: false
@@ -145,7 +145,7 @@ export const SAMPLE_FAMILY_DATA = {
             {
                 id: 'job-jordan-1',
                 title: 'Marketing Lead',
-                baseSalary: 70000,
+                baseSalary: 59500,
                 startDate: '2026-01',
                 bonusAmount: 0,
                 bonusMonth: '',
@@ -162,7 +162,7 @@ export const SAMPLE_FAMILY_DATA = {
                 id: 'acc-jordan-401k',
                 name: 'Jordan 401(k)',
                 type: 'traditional401k',
-                balance: 120000,
+                balance: 83000,
                 expectedReturn: 7,
                 isActiveContributor: true,
                 isSweepAccount: false
@@ -171,7 +171,7 @@ export const SAMPLE_FAMILY_DATA = {
                 id: 'acc-jordan-ira',
                 name: 'Jordan Traditional IRA',
                 type: 'standardIra',
-                balance: 38000,
+                balance: 26000,
                 expectedReturn: 7,
                 isActiveContributor: false,
                 isSweepAccount: false
@@ -180,8 +180,8 @@ export const SAMPLE_FAMILY_DATA = {
                 id: 'acc-jordan-roth',
                 name: 'Jordan Roth IRA',
                 type: 'rothIra',
-                balance: 27000,
-                principle: 18000,
+                balance: 18500,
+                principle: 12500,
                 expectedReturn: 7,
                 isActiveContributor: false,
                 isSweepAccount: false
