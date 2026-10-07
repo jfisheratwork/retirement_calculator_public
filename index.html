@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+    <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet">
+    <title>Detailed Retirement Calculator</title>
+    <!-- Modern Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- External Libraries (Rule 6: Explicit Versioning & Release Notes Comments) -->
+    <!-- Chart.js v4.4.7: https://github.com/chartjs/Chart.js/releases/tag/v4.4.7 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous"></script>
+    <!-- chartjs-plugin-annotation v2.1.0: https://github.com/chartjs/chartjs-plugin-annotation/releases/tag/v2.1.0 -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0/dist/chartjs-plugin-annotation.min.js" integrity="sha384-dB7WWqy9+vERwKo2atAKw+KLNhfY0RX5ZjV1l4HHMBZz5wfSvX/GsytIpOyBY8dG" crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="styles/main.css?v=1791344275501">
+</head>
+
+<body>
+    <!-- Parked Drawer -->
+    <div id="parked-drawer" title="Open Parameters">
+        <span>Retirement Details</span>
+    </div>
+
+    <!-- Explain Parked Drawer -->
+    <div id="explain-parked-drawer" title="Open Calculations Explanation">
+        <span>Explain Calculations</span>
+    </div>
+
+    <!-- Chart Inspector (Custom Tooltip) - Moved to dashboard sidebar -->
+
+    <!-- Web Component Modals -->
+    <settings-modal></settings-modal>
+    <profile-manager-modal></profile-manager-modal>
+    <cost-basis-modal></cost-basis-modal>
+
+    <div class="app-container">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <div>
+                <h1 style="margin: 0; font-size: 2rem; color: var(--primary);">Detailed Retirement Calculator</h1>
+                <p style="margin: 0; color: var(--text-muted);">Optimize your early retirement strategy with detailed
+                    scenario modeling.</p>
+            </div>
+            <div class="header-actions" style="display: flex; align-items: center; gap: 0.5rem;">
+                <select id="profile-select"
+                    style="margin: 0; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-color); font-weight: bold;"></select>
+                <button id="btn-add-profile" class="btn btn-icon" title="Add Profile"
+                    style="font-size: 1.2rem; background: none; border: none; cursor: pointer;">➕</button>
+                <button id="btn-rename-profile" class="btn btn-icon" title="Rename Profile"
+                    style="font-size: 1.2rem; background: none; border: none; cursor: pointer;">✏️</button>
+                <button id="btn-delete-profile" class="btn btn-icon" title="Delete Profile"
+                    style="font-size: 1.2rem; background: none; border: none; cursor: pointer;">🗑️</button>
+                <div style="width: 1px; height: 24px; background: var(--border); margin: 0 0.5rem;"></div>
+                <button id="btn-open-ai" class="btn btn-primary" title="Open AI Financial Advisor"
+                    style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; padding: 0.45rem 0.9rem; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none; border-radius: 6px; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35); cursor: pointer;">
+                    <span>✨ AI Advisor</span>
+                </button>
+                <button id="btn-edit-params" class="btn btn-icon" title="Settings"
+                    style="font-size: 1.5rem; background: none; border: none; cursor: pointer;">⚙️</button>
+            </div>
+        </header>
+
+
+
+        <div class="dashboard-layout">
+            <main class="main-content">
+                <div class="dashboard-status-strip">
+                    <div id="fire-indicator-container"></div>
+                    <div id="stress-test-alerts"></div>
+                </div>
+
+                <section class="top-kpis">
+                    <div class="chart-card glass-panel">
+                        <h3>Portfolio Value Over Time</h3>
+                        <div class="chart-container">
+                            <canvas id="portfolioChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card glass-panel">
+                        <h3>Income vs Expenses </h3>
+                        <div class="chart-container">
+                            <canvas id="incomeChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <div style="display: flex; justify-content: center; margin-top: 1.5rem;">
+                    <div
+                        style="display: flex; align-items: center; gap: 0.5rem; background: var(--glass-bg); padding: 0.75rem 1.5rem; border-radius: 8px; border: 1px solid var(--accent); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                        <label for="focus-year-select"
+                            style="font-weight: bold; margin: 0; color: var(--accent); font-size: 1.1rem;">📊 Financial
+                            Details - Focus on Year:</label>
+                        <select id="focus-year-select"
+                            style="padding: 0.4rem 0.8rem; border-radius: 4px; border: 1px solid var(--glass-border); background: var(--bg-color); color: var(--text-color); font-size: 1rem; font-weight: bold;">
+                            <option value="">-- Select Year --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Financial Details Inspector Component -->
+                <nerd-advisor id="nerd-advisor-container"></nerd-advisor>
+
+                <!-- Sequence of Returns Risk (SORR) Relocated Directly Below Financial Details -->
+                <section style="margin-top: 1.5rem;">
+                    <details class="chart-card glass-panel" style="cursor: pointer;" open>
+                        <summary style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="display: inline-block; margin: 0;">📉 Sequence of Returns Risk (SORR) & Stress Testing</h3>
+                            <select id="sorr-scenario-select" style="margin-bottom: 0; margin-top: -2px;"
+                                onclick="event.stopPropagation()">
+                                <option value="average">General Average Returns</option>
+                                <option value="2000-2009">Lost Decade (2000-2009)</option>
+                                <option value="2015-2024">Tech Boom (2015-2024)</option>
+                                <option value="1987-1996">Post-Crash Recovery (1987-1996)</option>
+                                <option value="1990-1999">The 90s Bull (1990-1999)</option>
+                                <option value="1973-1982">Stagflation (1973-1982)</option>
+                                <option value="2008-2017">GFC & ZIRP Bull (2008-2017)</option>
+                                <option value="1968-1977">Go-Go 60s & Nifty Fifty (1968-1977)</option>
+                                <option value="1929-1938">The Great Crash of 1929 (1929-1938)</option>
+                            </select>
+                        </summary>
+                        <div class="chart-container" style="height: 450px; margin-top: 1rem;">
+                            <canvas id="sorrChart"></canvas>
+                        </div>
+                    </details>
+                </section>
+
+                <section class="dashboard-grid" style="margin-top: 1.5rem;">
+                    <details class="chart-card glass-panel" style="cursor: pointer;">
+                        <summary>
+                            <h3 style="display: inline-block; margin: 0;">Inflows vs Outflows (Cashflow)</h3>
+                        </summary>
+                        <div class="chart-container" style="margin-top: 1rem;">
+                            <canvas id="cashflowChart"></canvas>
+                        </div>
+                    </details>
+                    <details class="chart-card glass-panel" style="cursor: pointer;">
+                        <summary>
+                            <h3 style="display: inline-block; margin: 0;">Liquid Assets vs Net Worth</h3>
+                        </summary>
+                        <div class="chart-container" style="height: 400px; margin-top: 1rem;">
+                            <canvas id="netWorthChart"></canvas>
+                        </div>
+                    </details>
+                    <details class="chart-card glass-panel" style="cursor: pointer;">
+                        <summary>
+                            <h3 style="display: inline-block; margin: 0;">Tax Burden Over Time</h3>
+                        </summary>
+                        <div class="chart-container" style="height: 400px; margin-top: 1rem;">
+                            <canvas id="taxChart"></canvas>
+                        </div>
+                    </details>
+                </section>
+
+
+                <section class="advisor-insights" style="margin-top: 2rem;">
+                    <div class="glass-panel" style="padding: 1.5rem; border-left: 4px solid var(--accent);">
+                        <h2
+                            style="margin-top: 0; color: var(--accent); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                            <span>💡</span> Advisor Insights
+                        </h2>
+
+                        <div class="static-advice">
+                            <details
+                                style="margin-bottom: 1rem; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; cursor: pointer;">
+                                <summary style="font-weight: 600; color: var(--primary);">Rule of 55 (Penalty-Free 401k
+                                    Withdrawals)</summary>
+                                <p style="margin-top: 0.5rem; line-height: 1.5; color: var(--text-muted);">If you leave
+                                    your job in or after the year you turn 55, you can pull funds from <strong>that
+                                        specific employer's 401k</strong> without paying the standard 10% early
+                                    withdrawal penalty. This is a great way to bridge the gap if you retire slightly
+                                    before 59.5, without locking yourself into a rigid 72(t) schedule.</p>
+                            </details>
+                            <details
+                                style="margin-bottom: 1rem; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; cursor: pointer;">
+                                <summary style="font-weight: 600; color: var(--primary);">72(t) SEPP (Substantially
+                                    Equal Periodic Payments)</summary>
+                                <p style="margin-top: 0.5rem; line-height: 1.5; color: var(--text-muted);">IRS Rule
+                                    72(t) allows you to avoid the 10% early withdrawal penalty on retirement accounts
+                                    prior to age 59.5 by taking a series of substantially equal periodic payments
+                                    (SEPP). Once started, these payments must continue for at least 5 years or until you
+                                    reach 59.5, whichever is later. Breaking this schedule triggers retroactive
+                                    penalties!</p>
+                            </details>
+                            <details
+                                style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; cursor: pointer;">
+                                <summary style="font-weight: 600; color: var(--primary);">Sequence of Returns Risk &
+                                    Cash Buffers</summary>
+                                <p style="margin-top: 0.5rem; line-height: 1.5; color: var(--text-muted);">Selling
+                                    investments during a market downturn early in retirement can permanently damage your
+                                    portfolio (Sequence of Returns Risk). Building a "Cash Cushion" or CD Ladder (e.g.,
+                                    3-5 years of expenses) allows you to spend down cash during bear markets and gives
+                                    your portfolio time to recover.</p>
+                            </details>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <aside class="dashboard-sidebar">
+                <!-- Chart Inspector (Custom Tooltip) -->
+                <div id="chart-inspector" class="hidden">
+                    <h3 id="inspector-year">Year</h3>
+                    <div id="inspector-content">Hover over a chart to inspect data.</div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Drawer for Parameters -->
+    <div id="params-modal" class="drawer-overlay hidden">
+        <div class="drawer-content glass-panel">
+            <div class="drawer-header">
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <h2>Settings & Parameters</h2>
+                </div>
+                <div class="drawer-header-actions" style="display: flex; align-items: center; gap: 0.75rem;">
+                    <button type="button" id="btn-save-params" class="btn btn-save-params" disabled title="No unsaved changes">
+                        💾 Save
+                    </button>
+                    <button id="btn-close-modal" class="btn-close" title="Close and Save">&times;</button>
+                </div>
+            </div>
+            <form id="input-form">
+                <!-- Dynamic inputs will be injected here by input-panel.js -->
+                <div id="input-container"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Explain Calculations Modal -->
+    <div id="explain-modal" class="drawer-overlay hidden drawer-right-overlay">
+        <div class="drawer drawer-right">
+            <div class="drawer-header">
+                <h2>Under the Hood</h2>
+                <button id="btn-close-explain" class="btn-close">&times;</button>
+            </div>
+            <div class="drawer-content" id="explain-content" style="line-height: 1.6; color: var(--text-color);">
+                <!-- Dynamic content injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Advisor Drawer Component -->
+    <ai-advisor-drawer id="ai-advisor-drawer"></ai-advisor-drawer>
+
+    <!-- FIRE Milestones Drawer Component -->
+    <fire-drawer id="fire-drawer"></fire-drawer>
+
+    <script type="module" src="src/app.js?v=1791344275501"></script>
+</body>
+
+</html>

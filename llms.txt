@@ -1,0 +1,10 @@
+# llms.txt - AI & Large Language Model Policy
+
+## Status
+All rights reserved. Copyright (c) 2026 Jacob Fisher.
+
+## Directives
+1. **No Automated Data Collection:** Automated scraping, crawling, downloading, or harvesting of content, code, or assets from this site and repository is strictly prohibited.
+2. **No Model Training:** No content, source code, data fixtures, or calculations from this site or repository may be used to train, fine-tune, benchmark, or validate machine learning models, foundation models, or large language models without prior explicit written permission from the copyright owner.
+3. **No Retrieval-Augmented Indexing:** Indexing or embedding this repository's content for public search, generative question answering, or third-party retrieval systems is not permitted.
+4. **Reference to robots.txt:** All automated agents and web scrapers must respect the directives in `/robots.txt` (`Disallow: /`).
