@@ -4,9 +4,10 @@
   "primarySpouse": {
     "name": "Alex",
     "yearOfBirth": 1981,
-    "targetRetirementAge": 52,
+    "targetRetirementAge": 62,
     "socialSecurityStartAge": 67,
-    "socialSecurityAnnualBenefit": 28000,
+    "socialSecurityMonthlyBenefit": 3200,
+    "socialSecurityAnnualBenefit": 38400,
     "totalYearsWorked": 20,
     "estimatedLifeExpectancy": 88,
     "rothConversion": {
@@ -50,7 +51,7 @@
         "id": "acc-alex-401k",
         "name": "Alex 401(k)",
         "type": "traditional401k",
-        "balance": 305000,
+        "balance": 235000,
         "expectedReturn": 7,
         "isActiveContributor": true,
         "isSweepAccount": false
@@ -97,9 +98,10 @@
   "secondarySpouse": {
     "name": "Jordan",
     "yearOfBirth": 1985,
-    "targetRetirementAge": 48,
+    "targetRetirementAge": 62,
     "socialSecurityStartAge": 67,
-    "socialSecurityAnnualBenefit": 22000,
+    "socialSecurityMonthlyBenefit": 2500,
+    "socialSecurityAnnualBenefit": 30000,
     "totalYearsWorked": 16,
     "estimatedLifeExpectancy": 88,
     "rothConversion": {
@@ -199,10 +201,10 @@
   },
   "primaryResidenceMortgage": {
     "enabled": true,
-    "currentBalance": 260000,
-    "interestRate": 3.5,
-    "originationDate": "2021-06-01",
-    "originationAmount": 300000,
+    "currentBalance": 275000,
+    "interestRate": 5.0,
+    "originationDate": "2015-06-01",
+    "originationAmount": 350000,
     "termYears": 30,
     "yearlyInsurance": 1500,
     "yearlyTaxes": 4200,
@@ -211,7 +213,7 @@
   "primaryResidenceEquity": {
     "enabled": true,
     "reverseMortgageEnabled": false,
-    "currentValue": 520000,
+    "currentValue": 550000,
     "annualGrowthRate": 3,
     "reverseMortgageStartAge": 65
   },

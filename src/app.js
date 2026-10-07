@@ -78,7 +78,7 @@ function bindProfileEvents() {
                 updateProfileSelect();
                 updateApp(true);
             } finally {
-                btnLoadSample.innerHTML = '<span>📊 Load Sample</span>';
+                btnLoadSample.innerHTML = '<span>📊 Load Sample Profile</span>';
                 btnLoadSample.disabled = false;
             }
         });
