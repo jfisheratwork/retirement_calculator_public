@@ -286,7 +286,7 @@ export async function loadSampleHouseholdProfile() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
             // Fetch API documentation: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
-            const res = await fetch('./Scenarios/Sample_FamilyScenario.json', { signal: controller.signal });
+            const res = await fetch(`./Scenarios/Sample_FamilyScenario.json?v=${Date.now()}`, { signal: controller.signal });
             clearTimeout(timeoutId);
             if (res.ok) {
                 profileData = await res.json();

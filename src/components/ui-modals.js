@@ -277,7 +277,7 @@ export class ProfileManagerModal extends BaseComponent {
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 5000);
                     // Fetch API documentation: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
-                    const res = await fetch(`./Scenarios/${file}`, { signal: controller.signal });
+                    const res = await fetch(`./Scenarios/${file}?v=${Date.now()}`, { signal: controller.signal });
                     clearTimeout(timeoutId);
                     if (!res.ok) {
                         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
