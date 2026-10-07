@@ -3,7 +3,7 @@
  *
  * Provides a realistic, curated upper-middle-class household scenario:
  * - Couple: Alex (Age 45, born 1981) and Jordan (Age 41, born 1985)
- * - 2 Children: Lucas (10, born 2016) and Emma (7, born 2019) with 529 savings
+ * - 2 Children: Jon (14, born 2012) and Jane (11, born 2015) with 529 savings
  * - Household Income: $180,000 W-2 ($105k base + $5k bonus for Alex, $70k base for Jordan)
  * - Accounts & Compounding: Engineered starting balances across 401(k), IRA, Roth, Brokerage, and HYSA
  *   that hit $1.50M liquid portfolio balance at Age 52 (Year 2033).
@@ -67,7 +67,7 @@ export const SAMPLE_FAMILY_DATA = {
                 id: 'acc-alex-401k',
                 name: 'Alex 401(k)',
                 type: 'traditional401k',
-                balance: 280000,
+                balance: 305000,
                 expectedReturn: 7,
                 isActiveContributor: true,
                 isSweepAccount: false
@@ -189,16 +189,16 @@ export const SAMPLE_FAMILY_DATA = {
     dependents: [
         {
             id: 'dep-1',
-            name: 'Lucas',
-            yearOfBirth: 2016,
+            name: 'Jon',
+            yearOfBirth: 2012,
             annualCollegeCost: 15000,
             currentCollegeSavingsBalance: 25000,
             expectedReturn: 5.5
         },
         {
             id: 'dep-2',
-            name: 'Emma',
-            yearOfBirth: 2019,
+            name: 'Jane',
+            yearOfBirth: 2015,
             annualCollegeCost: 15000,
             currentCollegeSavingsBalance: 20000,
             expectedReturn: 5.5

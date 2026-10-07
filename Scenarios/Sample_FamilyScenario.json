@@ -50,7 +50,7 @@
         "id": "acc-alex-401k",
         "name": "Alex 401(k)",
         "type": "traditional401k",
-        "balance": 280000,
+        "balance": 305000,
         "expectedReturn": 7,
         "isActiveContributor": true,
         "isSweepAccount": false
@@ -172,16 +172,16 @@
   "dependents": [
     {
       "id": "dep-1",
-      "name": "Lucas",
-      "yearOfBirth": 2016,
+      "name": "Jon",
+      "yearOfBirth": 2012,
       "annualCollegeCost": 15000,
       "currentCollegeSavingsBalance": 25000,
       "expectedReturn": 5.5
     },
     {
       "id": "dep-2",
-      "name": "Emma",
-      "yearOfBirth": 2019,
+      "name": "Jane",
+      "yearOfBirth": 2015,
       "annualCollegeCost": 15000,
       "currentCollegeSavingsBalance": 20000,
       "expectedReturn": 5.5
