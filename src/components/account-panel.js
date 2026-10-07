@@ -39,10 +39,11 @@ export class AccountPanel extends BaseComponent {
             {value: 'trad403b', label: 'Traditional 403b'},
             {value: 'standardIra', label: 'Standard IRA'},
             {value: 'rothIra', label: 'Roth IRA'},
+            {value: 'hsa', label: 'Health Savings Account (HSA)'},
             {value: 'taxableBrokerage', label: 'Taxable Brokerage'},
             {value: 'hysa', label: 'High-Yield Savings (HYSA)'},
             {value: 'cd', label: 'Certificate of Deposit (CD)'}
-        ], acc.type, 'Account tax classification. Pre-tax (401k, 403b, IRA) defer taxes until withdrawal (taxed as ordinary income, 10% penalty before 59.5). Roth IRAs provide tax-free growth with penalty-free withdrawal of Roth Principal at any age. 403(b) plans frequently impose strict in-service withdrawal restrictions prior to age 60.');
+        ], acc.type, 'Account tax classification. Pre-tax (401k, 403b, IRA) defer taxes until withdrawal. Roth IRAs provide tax-free growth with penalty-free withdrawal of Roth Principal at any age. HSAs offer triple tax advantages (exempt from Federal, State, and FICA taxes). 403(b) plans frequently impose strict in-service withdrawal restrictions prior to age 60.');
         
         if (['taxableBrokerage', 'hysa'].includes(acc.type)) {
             out += this._checkbox('Designated Sweep Account', `${accPrefix}.isSweepAccount`, acc.isSweepAccount, 'Designates this account to automatically receive 100% of unallocated annual household cash surplus.');
@@ -83,8 +84,26 @@ export class AccountPanel extends BaseComponent {
         if (['traditional401k', 'trad403b'].includes(acc.type)) {
             out += this._render401kRollover(acc, accPrefix, spouseObj);
         }
+        if (acc.type === 'hsa') {
+            out += this._select(`Coverage Tier`, `${accPrefix}.coverageTier`, [
+                { value: 'single', label: 'Single ($4,300 statutory cap)' },
+                { value: 'family', label: 'Family ($8,550 statutory cap)' }
+            ], acc.coverageTier || 'single', 'IRS coverage tier. Single ($4,300/yr) or Family ($8,550/yr). Additional $1,000 catch-up applies automatically at age 55+.');
+            out += this._input(`Annual Contribution Target ($)`, `${accPrefix}.annualContribution`, 'number', acc.annualContribution !== undefined ? acc.annualContribution : (acc.coverageTier === 'family' ? 8550 : 4300), 'Annual HSA target contribution. Triple tax-free: payroll deductions bypass Federal income tax, State income tax, and FICA payroll tax (7.65%). Contributions automatically stop at Medicare enrollment (Age 65).');
+            out += this._input(`Expected Return (%)`, `${accPrefix}.expectedReturn`, 'number', acc.expectedReturn !== undefined ? acc.expectedReturn : 7, 'Expected annual investment growth rate for invested HSA balances.');
+        }
         if (acc.type === 'rothIra') {
             out += this._input(`Roth Principal ($)`, `${accPrefix}.principle`, 'number', acc.principle || 0, 'Total cumulative post-tax contributions (Roth Principal). Withdrawable at ANY age with 0% tax and 0% penalty, acting as your primary early retirement bridge before age 59.5.');
+            out += `<div style="grid-column: span 2; padding: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 0.5rem;">`;
+            out += `<div class="pane-section-header" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">💰 Annual Roth IRA Contribution</div>`;
+            out += this._checkbox('Auto-contribute annually while eligible', `${accPrefix}.autoContribute`, Boolean(acc.autoContribute), 'Automatically contributes up to the statutory limit ($7,000/yr or $8,000/yr for age 50+) each year you have earned income and your household Modified AGI remains below IRS phaseout limits ($150k–$165k Single, $236k–$246k MFJ).');
+            
+            const isAuto = Boolean(acc.autoContribute);
+            out += `<div class="roth-auto-subfields-container" style="display: ${isAuto ? 'grid' : 'none'}; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">`;
+            out += this._input(`Annual Contribution Target ($)`, `${accPrefix}.annualContribution`, 'number', acc.annualContribution || 7000, 'Target annual contribution (capped by statutory limits $7,000 / $8,000 if 50+ and household MAGI eligibility).');
+            out += this._input(`Start Year`, `${accPrefix}.startYear`, 'number', acc.startYear || '', 'Optional year to begin automatic contributions (e.g. start next year). Leave blank to start immediately.');
+            out += this._input(`Stop Year`, `${accPrefix}.stopYear`, 'number', acc.stopYear || '', 'Optional final year to contribute (e.g. contribute for 3 or 5 years only). Leave blank to continue until retirement.');
+            out += `</div></div>`;
         }
         if (acc.type === 'taxableBrokerage') {
             const defaultCostBasis = acc.costBasis !== undefined ? acc.costBasis : Math.round((acc.balance || 0) * 0.5);
@@ -105,6 +124,7 @@ export class AccountPanel extends BaseComponent {
             'trad403b': '403b',
             'standardIra': 'Standard IRA',
             'rothIra': 'Roth IRA',
+            'hsa': 'HSA',
             'taxableBrokerage': 'Taxable Brokerage',
             'hysa': 'HYSA',
             'cd': 'CD'
@@ -180,7 +200,10 @@ export class AccountPanel extends BaseComponent {
     }
 
     _handleDynamicVisibility(path, target) {
-        if (path.endsWith('.rollover.enabled')) {
+        if (path.endsWith('.autoContribute')) {
+            const sub = this.querySelector('.roth-auto-subfields-container');
+            if (sub) sub.style.display = target.checked ? 'grid' : 'none';
+        } else if (path.endsWith('.rollover.enabled')) {
             const sub = this.querySelector('.rollover-subfields-container');
             if (sub) sub.style.display = target.checked ? 'block' : 'none';
         } else if (path.endsWith('.rollover.timing')) {

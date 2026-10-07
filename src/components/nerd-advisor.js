@@ -255,6 +255,19 @@ export class NerdAdvisor extends BaseComponent {
         return html;
     }
 
+    _getRothStatusBadge(magi, filingStatus) {
+        const isSingle = (filingStatus || '').toLowerCase().includes('single');
+        const floor = isSingle ? 150000 : 236000;
+        const ceiling = isSingle ? 165000 : 246000;
+        if (magi <= floor) {
+            return `<span style="background: #00b894; color: #fff; font-size: 0.65rem; font-weight: bold; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">Eligible</span>`;
+        }
+        if (magi < ceiling) {
+            return `<span style="background: #fdcb6e; color: #2d3436; font-size: 0.65rem; font-weight: bold; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">Phaseout</span>`;
+        }
+        return `<span style="background: #d63031; color: #fff; font-size: 0.65rem; font-weight: bold; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">Ineligible</span>`;
+    }
+
     _renderNerdTaxes(tax, snap) {
         const ficaTax = snap.taxDetails?.ficaTax || 0;
         const ltcgTax = snap.taxDetails?.capitalGainsTax || 0;
@@ -262,7 +275,11 @@ export class NerdAdvisor extends BaseComponent {
         const fedIncomeTax = snap.taxDetails?.federalTax || 0;
         const stateTax = snap.taxDetails?.stateTax || 0;
         const irmaaExp = snap.expenseBreakdown?.irmaa || 0;
+        const magi = snap.taxDetails?.magi ?? tax.magi ?? 0;
+        const hsaDeduction = snap.taxDetails?.hsaDeduction ?? tax.hsaDeduction ?? 0;
         const totalStatutoryTaxes = (snap.taxDetails?.totalTax || snap.taxes || 0) + ficaTax;
+        const rothBadge = this._getRothStatusBadge(magi, tax.filingStatus);
+        const magiTooltip = escapeHtml(`Modified AGI determines statutory Roth IRA eligibility. Phases out between $150k–$165k (Single) and $236k–$246k (MFJ). Pre-tax 401(k) and workplace HSA contributions reduce MAGI.`);
 
         return `
             <div style="margin-bottom: 12px;">
@@ -271,8 +288,10 @@ export class NerdAdvisor extends BaseComponent {
                 <div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Top Ordinary Bracket</span><span class="inspector-value">${tax.topBracketPct}%</span></div>
                 <div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Remaining Room</span><span class="inspector-value" style="color: var(--success);">${this._fmt(tax.bracketRoom)}</span></div>
                 <div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Effective Federal Rate</span><span class="inspector-value">${tax.effectiveRate}%</span></div>
+                <div class="inspector-row" style="font-size: 0.85rem;" title="${magiTooltip}"><span class="inspector-label">Modified AGI (MAGI) ℹ️</span><span class="inspector-value" style="font-weight: 600;">${this._fmt(magi)} ${rothBadge}</span></div>
                 
                 <div style="margin-top: 6px; padding-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                    ${hsaDeduction > 0 ? `<div class="inspector-row" style="font-size: 0.82rem; color: #00cec9;"><span class="inspector-label">↳ HSA Pre-Tax Payroll Deduction</span><span class="inspector-value" style="color: #00cec9;">-${this._fmt(hsaDeduction)}</span></div>` : ''}
                     ${fedIncomeTax > 0 ? `<div class="inspector-row" style="font-size: 0.82rem;"><span class="inspector-label">↳ Federal Income Tax</span><span class="inspector-value">${this._fmt(fedIncomeTax)}</span></div>` : ''}
                     ${ficaTax > 0 ? `<div class="inspector-row" style="font-size: 0.82rem; color: #fdcb6e;"><span class="inspector-label">↳ FICA Payroll (OASDI + Medicare)</span><span class="inspector-value">${this._fmt(ficaTax)}</span></div>` : ''}
                     ${ltcgTax > 0 ? `<div class="inspector-row" style="font-size: 0.82rem; color: #74b9ff;"><span class="inspector-label">↳ Long-Term Capital Gains Tax</span><span class="inspector-value">${this._fmt(ltcgTax)}</span></div>` : ''}

@@ -463,6 +463,7 @@ function buildPortfolioConfig(yearlyData, state, labels, annotations, s1Name, s2
         { label: 'Cash Cushion', data: mapData(yearlyData, state, d => d.balances.cashCushion), borderColor: '#00b894', backgroundColor: '#00b894', fill: false, tension: 0.4 },
         { label: 'High-Yield Savings (HYSA)', data: mapData(yearlyData, state, d => d.balances.s1Hysa + d.balances.s2Hysa), borderColor: '#10ac84', backgroundColor: '#10ac84', fill: false, tension: 0.4 },
         { label: 'Certificates of Deposit (CD)', data: mapData(yearlyData, state, d => (d.balances.s1Cd || 0) + (d.balances.s2Cd || 0)), borderColor: '#1dd1a1', backgroundColor: '#1dd1a1', fill: false, tension: 0.4, hidden: !yearlyData.some(d => (d.balances.s1Cd || 0) > 0 || (d.balances.s2Cd || 0) > 0) },
+        { label: 'Health Savings Account (HSA)', data: mapData(yearlyData, state, d => (d.balances.s1Hsa || 0) + (d.balances.s2Hsa || 0)), borderColor: '#2bcbba', backgroundColor: '#2bcbba', fill: false, tension: 0.4, hidden: !yearlyData.some(d => (d.balances.s1Hsa || 0) > 0 || (d.balances.s2Hsa || 0) > 0) },
         { label: 'Joint Brokerage', data: mapData(yearlyData, state, d => d.balances.s1Brokerage + d.balances.s2Brokerage), borderColor: '#0984e3', backgroundColor: '#0984e3', fill: false, tension: 0.4 },
         { label: `${s1Name} Roth IRA`, data: mapData(yearlyData, state, d => d.balances.s1RothIra), borderColor: '#6c5ce7', backgroundColor: '#6c5ce7', fill: false, tension: 0.4 },
         { label: `${s2Name} Roth IRA`, data: mapData(yearlyData, state, d => d.balances.s2RothIra), borderColor: '#a29bfe', backgroundColor: '#a29bfe', fill: false, tension: 0.4 },
@@ -698,6 +699,8 @@ function buildNetWorthConfig(yearlyData, state, labels, annotations) {
     const liquidAssets = mapData(yearlyData, state, d => 
         (d.balances.s1Brokerage || 0) + (d.balances.s2Brokerage || 0) + 
         (d.balances.s1Hysa || 0) + (d.balances.s2Hysa || 0) + 
+        (d.balances.s1Cd || 0) + (d.balances.s2Cd || 0) + 
+        (d.balances.s1Hsa || 0) + (d.balances.s2Hsa || 0) + 
         (d.balances.s1RothIra || 0) + (d.balances.s2RothIra || 0) + 
         (d.balances.s1Trad401k || 0) + (d.balances.s2Trad401k || 0) + 
         (d.balances.s1Trad403b || 0) + (d.balances.s2Trad403b || 0) + 

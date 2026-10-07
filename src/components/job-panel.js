@@ -57,6 +57,22 @@ export class JobPanel extends BaseComponent {
         return linkedOptions;
     }
 
+    _getLinkedHsaOptions(spouseObj) {
+        const accounts = spouseObj.accounts || [];
+        const options = [{ value: '', label: '-- None / Not Enrolled --', disabled: false }];
+        accounts.forEach(acc => {
+            if (acc.type === 'hsa') {
+                const tier = acc.coverageTier === 'family' ? 'Family' : 'Single';
+                options.push({
+                    value: acc.id || acc.name || acc.type,
+                    label: `${acc.name || 'HSA'} (${tier})`,
+                    disabled: false
+                });
+            }
+        });
+        return options;
+    }
+
     _renderJobInputs(jobPrefix, job, spouseObj) {
         const monthOptions = this._getMonthOptions();
         const bonusMonthVal = job.bonusMonth ? String(parseInt(job.bonusMonth, 10)) : '';
@@ -99,6 +115,20 @@ export class JobPanel extends BaseComponent {
         out += this._input(`Employer Bonus Match (%)`, `${jobPrefix}.employerMatchBonusPercentage`, 'number', job.employerMatchBonusPercentage || 0, 'Employer matching percentage applied directly to annual employee cash bonuses.');
         out += `</div>`;
         out += `</div>`;
+
+        const hsaOptions = this._getLinkedHsaOptions(spouseObj);
+        out += `<div style="grid-column: 1 / -1;">`;
+        out += this._select(`Linked HSA`, `${jobPrefix}.linkedHsaAccountId`, hsaOptions, job.linkedHsaAccountId || '', 'Select a Health Savings Account (HSA) to receive workplace payroll contributions.');
+        out += `</div>`;
+
+        const hasLinkedHsa = Boolean(job.linkedHsaAccountId);
+        out += `<div class="linked-hsa-container" style="grid-column: 1 / -1; display: ${hasLinkedHsa ? 'block' : 'none'}; padding: 0.5rem; background: rgba(0, 206, 201, 0.05); border: 1px solid rgba(0, 206, 201, 0.3); border-radius: 4px; margin-top: 0.25rem;">`;
+        out += `<div class="pane-section-header" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem; color: #00cec9;">🏥 Workplace HSA Payroll Deductions (Triple Tax-Free)</div>`;
+        out += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">`;
+        out += this._input(`Annual HSA Contribution ($)`, `${jobPrefix}.hsaAnnualContribution`, 'number', job.hsaAnnualContribution !== undefined ? job.hsaAnnualContribution : '', 'Annual payroll contribution (defaults to statutory cap $4,300 single / $8,550 family + $1,000 if 55+). Pre-tax deduction saves Federal, State, and FICA 7.65% taxes.');
+        out += this._input(`HSA Start Year`, `${jobPrefix}.hsaStartYear`, 'number', job.hsaStartYear || '', 'Calendar year to begin HSA contributions at this job (e.g. start next year or 3 years from now). Leave blank to start immediately with job.');
+        out += this._input(`HSA Stop Year`, `${jobPrefix}.hsaEndYear`, 'number', job.hsaEndYear || '', 'Optional final calendar year to contribute (e.g. contribute for 5 years). Contributions end when job ends or at Medicare Age 65.');
+        out += `</div></div>`;
 
         out += `</div>`;
         return out;
@@ -182,6 +212,12 @@ export class JobPanel extends BaseComponent {
                 const contContainer = this.querySelector('.linked-contributions-container');
                 if (contContainer) {
                     contContainer.style.display = e.target.value ? 'block' : 'none';
+                }
+            }
+            if (path && path.endsWith('.linkedHsaAccountId')) {
+                const hsaContainer = this.querySelector('.linked-hsa-container');
+                if (hsaContainer) {
+                    hsaContainer.style.display = e.target.value ? 'block' : 'none';
                 }
             }
             this.dispatchEvent(new CustomEvent('stateChange', {

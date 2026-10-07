@@ -1,10 +1,10 @@
-import { Trad401k, Trad403b, StandardIra, TaxableBrokerage, Hysa, CdAccount, RothIra } from './Account.js';
+import { Trad401k, Trad403b, StandardIra, TaxableBrokerage, Hysa, CdAccount, RothIra, Hsa } from './Account.js';
 import { RolloverEvent, RothConversionSchedule } from './FinancialEvent.js';
 import { parseDateParts } from '../utils/date.js';
 
-// MODEL_VERSION: 5
+// MODEL_VERSION: 6
 // IMPORTANT: Update this MODEL_VERSION whenever you change the properties or structure of Person or Account classes.
-export const MODEL_VERSION = 5;
+export const MODEL_VERSION = 6;
 
 function isConfiguredJob(job) {
     if (!job) return false;
@@ -90,8 +90,19 @@ function createAccountInstance(accState) {
             sweepTargetAccountId: accState.sweepTargetAccountId,
             rolloverCount: accState.rolloverCount
         });
+    } else if (accState.type === 'hsa') {
+        acc = new Hsa(accId, accState.name, accState.balance, accState.expectedReturn, accState.contributionPercentage, {
+            coverageTier: accState.coverageTier,
+            annualContribution: accState.annualContribution,
+            employerContribution: accState.employerContribution
+        });
     } else if (accState.type === 'rothIra') {
-        acc = new RothIra(accId, accState.name, accState.balance, accState.expectedReturn, accState.contributionPercentage);
+        acc = new RothIra(accId, accState.name, accState.balance, accState.expectedReturn, accState.contributionPercentage, {
+            annualContribution: accState.annualContribution,
+            autoContribute: accState.autoContribute,
+            startYear: accState.startYear,
+            stopYear: accState.stopYear
+        });
         acc.principle = accState.principle || 0;
     }
     if (acc) {
@@ -249,6 +260,7 @@ export class Person {
         defineGetter('taxableBrokerage', 'taxableBrokerage');
         defineGetter('hysa', 'hysa');
         defineGetter('cd', 'cd');
+        defineGetter('hsa', 'hsa');
     }
 
     getAccount(identifier) {
@@ -312,6 +324,11 @@ export class Person {
                 jobMap.set(jobId, {
                     id: activeJob.id,
                     linked401kAccountId: activeJob.linked401kAccountId,
+                    linkedHsaAccountId: activeJob.linkedHsaAccountId,
+                    hsaAnnualContribution: activeJob.hsaAnnualContribution,
+                    hsaStartYear: activeJob.hsaStartYear,
+                    hsaEndYear: activeJob.hsaEndYear,
+                    startDate: activeJob.startDate,
                     title: activeJob.title || 'Job',
                     contributionPercentage: activeJob.contributionPercentage,
                     employer100PercentMatchOnTheFirstXPercent: activeJob.employer100PercentMatchOnTheFirstXPercent,
@@ -355,6 +372,11 @@ export class Person {
             return {
                 id: r.id,
                 linked401kAccountId: r.linked401kAccountId,
+                linkedHsaAccountId: r.linkedHsaAccountId,
+                hsaAnnualContribution: r.hsaAnnualContribution,
+                hsaStartYear: r.hsaStartYear,
+                hsaEndYear: r.hsaEndYear,
+                startDate: r.startDate,
                 title: r.title,
                 contributionPercentage: r.contributionPercentage,
                 employer100PercentMatchOnTheFirstXPercent: r.employer100PercentMatchOnTheFirstXPercent,

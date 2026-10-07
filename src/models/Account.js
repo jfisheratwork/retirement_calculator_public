@@ -150,8 +150,14 @@ export class CdAccount extends Account {
 }
 
 export class RothIra extends Account {
-    constructor(id, name, balance, expectedReturn, contributionPercentage) {
+    constructor(id, name, balance, expectedReturn, contributionPercentage = 0, config = {}) {
         super(id, name, balance, expectedReturn, contributionPercentage);
+        this.annualContribution = (config.annualContribution !== undefined && config.annualContribution !== null && config.annualContribution !== '')
+            ? Number(config.annualContribution)
+            : 7000;
+        this.autoContribute = Boolean(config.autoContribute);
+        this.startYear = config.startYear ? Number(config.startYear) : null;
+        this.stopYear = config.stopYear ? Number(config.stopYear) : null;
         this.cohorts = [];
         if (this.balance > 0) {
             this.cohorts.push({
@@ -288,5 +294,16 @@ export class RothIra extends Account {
             events.push({ type: 'withdrawal_shortfall', account: accountName || this.name, requested: amount, fulfilled: totalDrawn, reason: reasons.join(' ') });
         }
         return totalDrawn;
+    }
+}
+
+export class Hsa extends Account {
+    constructor(id, name, balance = 0, expectedReturn = 6, contributionPercentage = 0, config = {}) {
+        super(id, name, balance, expectedReturn, contributionPercentage);
+        this.coverageTier = config.coverageTier || 'single';
+        this.annualContribution = (config.annualContribution !== undefined && config.annualContribution !== null && config.annualContribution !== '')
+            ? Number(config.annualContribution)
+            : null;
+        this.employerContribution = Number(config.employerContribution) || 0;
     }
 }

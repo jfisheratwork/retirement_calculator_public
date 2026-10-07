@@ -194,6 +194,8 @@ export class SimulationEngine {
             s2Brokerage: this.s2.accounts.taxableBrokerage ? this.s2.accounts.taxableBrokerage.balance : 0,
             s1RothIra: this.s1.accounts.rothIra ? this.s1.accounts.rothIra.balance : 0,
             s2RothIra: this.s2.accounts.rothIra ? this.s2.accounts.rothIra.balance : 0,
+            s1Hsa: this.s1.accounts.hsa ? this.s1.accounts.hsa.balance : 0,
+            s2Hsa: this.s2.accounts.hsa ? this.s2.accounts.hsa.balance : 0,
             cashCushion: this.cashCushion,
             byAccount: {}
         };
@@ -649,15 +651,19 @@ export class SimulationEngine {
         snapshot.income.s1.jobs = this.s1.getJobBreakdown(year, w2RaiseMultiplier, firstActiveMonth);
         snapshot.income.s2.jobs = this.s2.getJobBreakdown(year, w2RaiseMultiplier, firstActiveMonth);
 
-        const s1Contribs = ContributionCalculator.calculate({ spouse: this.s1, w2Gross: s1W2, jobs: snapshot.income.s1.jobs, year });
-        const s2Contribs = ContributionCalculator.calculate({ spouse: this.s2, w2Gross: s2W2, jobs: snapshot.income.s2.jobs, year });
-
         const filingStatus = this.getFilingStatus(year);
+        const s1PreTaxEst = ContributionCalculator.calculatePreTaxDeductionsEstimate({ spouse: this.s1, jobs: snapshot.income.s1.jobs, year });
+        const s2PreTaxEst = ContributionCalculator.calculatePreTaxDeductionsEstimate({ spouse: this.s2, jobs: snapshot.income.s2.jobs, year });
+        const householdMagi = Math.max(0, (s1W2 + s2W2) - (s1PreTaxEst + s2PreTaxEst));
+
+        const s1Contribs = ContributionCalculator.calculate({ spouse: this.s1, w2Gross: s1W2, jobs: snapshot.income.s1.jobs, year, filingStatus, householdMagi });
+        const s2Contribs = ContributionCalculator.calculate({ spouse: this.s2, w2Gross: s2W2, jobs: snapshot.income.s2.jobs, year, filingStatus, householdMagi });
+
         const currentTaxData = this.taxTables[yearsFromStart] || this.taxTables[this.taxTables.length - 1];
         const oasdiLimit = currentTaxData?.oasdiLimit || 168600;
 
-        const s1Fica = calculateFicaTax(s1W2, oasdiLimit, filingStatus);
-        const s2Fica = calculateFicaTax(s2W2, oasdiLimit, filingStatus);
+        const s1Fica = calculateFicaTax(Math.max(0, s1W2 - (s1Contribs.hsaPreTaxDeduction || 0)), oasdiLimit, filingStatus);
+        const s2Fica = calculateFicaTax(Math.max(0, s2W2 - (s2Contribs.hsaPreTaxDeduction || 0)), oasdiLimit, filingStatus);
         const totalFica = s1Fica.totalFica + s2Fica.totalFica;
 
         snapshot.taxDetails = snapshot.taxDetails || {};
@@ -729,6 +735,10 @@ export class SimulationEngine {
         });
 
         this.taxableIncome += ordinaryW2Taxable + taxableSsn;
+        snapshot.taxDetails.magi = Math.round(ordinaryW2Taxable + taxableSsn);
+        snapshot.taxDetails.hsaDeduction = (s1Contribs.hsaPreTaxDeduction || 0) + (s2Contribs.hsaPreTaxDeduction || 0);
+        snapshot.taxDetails.s1HsaDeduction = s1Contribs.hsaPreTaxDeduction || 0;
+        snapshot.taxDetails.s2HsaDeduction = s2Contribs.hsaPreTaxDeduction || 0;
         this._recordRetirementMilestones(year);
     }
 
@@ -942,6 +952,8 @@ export class SimulationEngine {
             s2Brokerage: getBal(this.s2, 'taxableBrokerage'),
             s1RothIra: getBal(this.s1, 'rothIra'),
             s2RothIra: getBal(this.s2, 'rothIra'),
+            s1Hsa: getBal(this.s1, 'hsa'),
+            s2Hsa: getBal(this.s2, 'hsa'),
             cashCushion: this.cashCushion,
             college529: snapshot.college529?.totalBalance || 0,
             primaryResidenceEquity: endEquity,
@@ -967,6 +979,8 @@ export class SimulationEngine {
             s2Brokerage: getGrowth(this.s2, 'taxableBrokerage'),
             s1RothIra: getGrowth(this.s1, 'rothIra'),
             s2RothIra: getGrowth(this.s2, 'rothIra'),
+            s1Hsa: getGrowth(this.s1, 'hsa'),
+            s2Hsa: getGrowth(this.s2, 'hsa'),
             college529: {
                 interest: snapshot.college529?.totalInterest || 0,
                 contributions: 0,
@@ -986,6 +1000,7 @@ export class SimulationEngine {
             getBal(this.s1, 'cd') + getBal(this.s2, 'cd') +
             getBal(this.s1, 'taxableBrokerage') + getBal(this.s2, 'taxableBrokerage') +
             getBal(this.s1, 'rothIra') + getBal(this.s2, 'rothIra') +
+            getBal(this.s1, 'hsa') + getBal(this.s2, 'hsa') +
             this.cashCushion;
 
         if (this.initialPortfolioValue === null) this.initialPortfolioValue = totalPortfolio;

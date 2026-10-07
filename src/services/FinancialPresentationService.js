@@ -222,6 +222,8 @@ export class FinancialPresentationService {
             niitTax,
             stateTax,
             irmaa,
+            magi: snap.taxDetails?.magi ?? 0,
+            hsaDeduction: snap.taxDetails?.hsaDeduction ?? 0,
             totalTaxLiabilities
         };
     }

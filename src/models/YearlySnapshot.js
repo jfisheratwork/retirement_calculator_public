@@ -67,6 +67,8 @@ export class YearlySnapshot {
             s2Brokerage: p2 ? p2.accounts.taxableBrokerage.balance : 0,
             s1RothIra: p1 && p1.accounts.rothIra ? p1.accounts.rothIra.balance : 0,
             s2RothIra: p2 && p2.accounts.rothIra ? p2.accounts.rothIra.balance : 0,
+            s1Hsa: p1 && p1.accounts.hsa ? p1.accounts.hsa.balance : 0,
+            s2Hsa: p2 && p2.accounts.hsa ? p2.accounts.hsa.balance : 0,
             cashCushion: cushion,
             primaryResidenceEquity: equity,
             homeValue: typeof yearOrOptions === 'object' && yearOrOptions?.homeValue ? yearOrOptions.homeValue : 0,

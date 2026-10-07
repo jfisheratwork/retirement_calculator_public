@@ -23,6 +23,10 @@ export class TaxManager {
                 ltcgTax: 0,
                 niitTax: 0,
                 ficaTax: snapshot.taxDetails?.ficaTax || 0,
+                magi: snapshot.taxDetails?.magi ?? 0,
+                hsaDeduction: snapshot.taxDetails?.hsaDeduction ?? 0,
+                s1HsaDeduction: snapshot.taxDetails?.s1HsaDeduction ?? 0,
+                s2HsaDeduction: snapshot.taxDetails?.s2HsaDeduction ?? 0,
                 filingStatus
             };
             return;
@@ -58,6 +62,10 @@ export class TaxManager {
         taxResults.s1W2Tax = snapshot.taxDetails?.s1W2Tax || 0;
         taxResults.s2W2Tax = snapshot.taxDetails?.s2W2Tax || 0;
         taxResults.totalW2Tax = snapshot.taxDetails?.totalW2Tax || 0;
+        taxResults.magi = snapshot.taxDetails?.magi ?? 0;
+        taxResults.hsaDeduction = snapshot.taxDetails?.hsaDeduction ?? 0;
+        taxResults.s1HsaDeduction = snapshot.taxDetails?.s1HsaDeduction ?? 0;
+        taxResults.s2HsaDeduction = snapshot.taxDetails?.s2HsaDeduction ?? 0;
         taxResults.filingStatus = filingStatus;
         taxResults.topBracketRate = taxResults.topBracketRate || 0;
         taxResults.topBracket = taxResults.topBracketRate;
