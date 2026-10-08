@@ -304,6 +304,21 @@ function normalizeState(state) {
         state.primaryResidenceMortgage.originationDate = normalizeDateStr(state.primaryResidenceMortgage.originationDate);
     }
 
+    if (Array.isArray(state.dependents)) {
+        state.dependents.forEach(dep => {
+            if (!dep || typeof dep !== 'object') return;
+            if (dep.contributionMode === undefined) {
+                dep.contributionMode = 'fixed';
+            }
+            if (dep.annualContribution === undefined) {
+                dep.annualContribution = 0;
+            }
+            if (dep.targetCollegeSavingsBalance === undefined) {
+                dep.targetCollegeSavingsBalance = 0;
+            }
+        });
+    }
+
     return state;
 }
 

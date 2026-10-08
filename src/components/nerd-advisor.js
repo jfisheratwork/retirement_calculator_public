@@ -392,10 +392,11 @@ export class NerdAdvisor extends BaseComponent {
         if (!Array.isArray(children)) return '';
         let out = '';
         children.forEach(c => {
-            if (c.balance > 0 || c.interest > 0 || c.drawn > 0) {
+            if (c.balance > 0 || c.interest > 0 || c.drawn > 0 || (c.contribution || 0) > 0) {
+                const contribText = (c.contribution || 0) > 0 ? `<span style="color: var(--success); margin-right: 6px;">+${this._fmt(c.contribution)} saved</span>` : '';
                 out += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; opacity: 0.85;">
                     <span class="inspector-label">↳ ${c.name} (Bal: ${this._fmt(c.balance)})</span>
-                    <span class="inspector-value" style="color: var(--success);">+${this._fmt(c.interest)}</span>
+                    <span class="inspector-value">${contribText}<span style="color: var(--success);">+${this._fmt(c.interest)}</span></span>
                 </div>`;
             }
         });

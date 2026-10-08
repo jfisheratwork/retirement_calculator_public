@@ -203,6 +203,8 @@ export class FinancialInputPanel extends BaseComponent {
             const startAge = Number(current.startAge) || 55;
             const rMonth = String(val).padStart(2, '0');
             current.startDate = `${birthYear + startAge}-${rMonth}`;
+        } else if (path.includes('dependents') && path.endsWith('.contributionMode')) {
+            this._applyStructuralChange();
         }
     }
 
@@ -371,6 +373,11 @@ export class FinancialInputPanel extends BaseComponent {
             annualCollegeCost: 20000,
             currentCollegeSavingsBalance: 0,
             expectedReturn: 5.5,
+            contributionMode: 'fixed',
+            annualContribution: 0,
+            contributionStartYear: '',
+            contributionStopYear: '',
+            targetCollegeSavingsBalance: 0,
             isOpen: true
         });
         this._applyStructuralChange();

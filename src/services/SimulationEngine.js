@@ -983,7 +983,7 @@ export class SimulationEngine {
             s2Hsa: getGrowth(this.s2, 'hsa'),
             college529: {
                 interest: snapshot.college529?.totalInterest || 0,
-                contributions: 0,
+                contributions: snapshot.college529?.totalContributed || 0,
                 withdrawals: snapshot.college529?.totalDrawn || 0
             },
             primaryResidenceEquity: {

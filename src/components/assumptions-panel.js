@@ -16,22 +16,31 @@ export class AssumptionsPanel extends BaseComponent {
         let html = this._startSection('Global Assumptions', true);
         
         const startDateVal = this.state.assumptions.startDate || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-        html += this._input('Simulation Start Date (As of Today)', 'assumptions.startDate', 'date', startDateVal, 'The starting month of your financial plan. All entered portfolio account balances represent balances as of this date. Months prior to this date in Year 1 are treated as past history.');
-        html += this._input('Initial Cash Cushion ($)', 'assumptions.initialCashCushion', 'number', this.state.assumptions.initialCashCushion, 'Starting liquid cash reserve available before retirement investment accounts are tapped for deficit funding.');
-        html += this._input('Graph Years (Filter X-Axis)', 'assumptions.graphYears', 'number', this.state.assumptions.graphYears, 'Total duration (number of years) simulated into the future and displayed on all charts and tables.');
         
+        // Row 1: Simulation Start Date, Initial Cash Cushion, Graph Years
+        html += `<div class="compact-grid-3">`;
+        html += `<div>` + this._input('Simulation Start Date', 'assumptions.startDate', 'date', startDateVal, 'The starting month of your financial plan. All entered portfolio account balances represent balances as of this date. Months prior to this date in Year 1 are treated as past history.') + `</div>`;
+        html += `<div>` + this._input('Initial Cash Cushion ($)', 'assumptions.initialCashCushion', 'number', this.state.assumptions.initialCashCushion, 'Starting liquid cash reserve available before retirement investment accounts are tapped for deficit funding.') + `</div>`;
+        html += `<div>` + this._input('Graph Years', 'assumptions.graphYears', 'number', this.state.assumptions.graphYears, 'Total duration (number of years) simulated into the future and displayed on all charts and tables.') + `</div>`;
+        html += `</div>`;
+        
+        // Row 2: Inflation Rate, Expected W2 Raise, State Tax Rate
         const inflRate = this.state.assumptions.inflationRate;
-        html += this._input('Inflation Rate (%)', 'assumptions.inflationRate', 'number', inflRate, 'Estimated compound annual inflation rate. Used to inflate future expenses, phase budgets, and college costs. Historical 50-year US CPI average is ~2.5%–3.2%.');
+        const w2Raise = this.state.assumptions.w2RaiseRate || 2.0;
+        html += `<div class="compact-grid-3">`;
+        html += `<div>` + this._input('Inflation Rate (%)', 'assumptions.inflationRate', 'number', inflRate, 'Estimated compound annual inflation rate. Used to inflate future expenses, phase budgets, and college costs. Historical 50-year US CPI average is ~2.5%–3.2%.') + `</div>`;
+        html += `<div>` + this._input('Expected W2 Raise (%)', 'assumptions.w2RaiseRate', 'number', w2Raise, 'Annual nominal wage growth rate applied to base W2 salaries. Standard corporate merit raises typically average 2.0%–3.5%.') + `</div>`;
+        html += `<div>` + this._input('State Tax Rate (%)', 'assumptions.stateTaxRate', 'number', this.state.assumptions.stateTaxRate !== undefined ? this.state.assumptions.stateTaxRate : 0, 'Estimated flat state income tax rate applied on top of Federal 2024 Married Filing Jointly tax brackets.') + `</div>`;
+        html += `</div>`;
+
         const inflWarn = HeuristicValidator.validateInflation(inflRate);
         html += this._warningBox('assumptions-inflation-warning', inflWarn ? inflWarn.message : '');
-
-        const w2Raise = this.state.assumptions.w2RaiseRate || 2.0;
-        html += this._input('Expected W2 Raise (%)', 'assumptions.w2RaiseRate', 'number', w2Raise, 'Annual nominal wage growth rate applied to base W2 salaries. Standard corporate merit raises typically average 2.0%–3.5%.');
         const wageWarn = HeuristicValidator.validateWageGrowth(w2Raise);
         html += this._warningBox('assumptions-wage-warning', wageWarn ? wageWarn.message : '');
 
-        html += this._input('State Tax Rate (%)', 'assumptions.stateTaxRate', 'number', this.state.assumptions.stateTaxRate !== undefined ? this.state.assumptions.stateTaxRate : 0, 'Estimated flat state income tax rate applied on top of Federal 2024 Married Filing Jointly tax brackets.');
+        html += `<div style="margin-top: 0.25rem;">`;
         html += this._checkbox("Display in Today's Dollars (Real)", 'assumptions.displayRealDollars', this.state.assumptions.displayRealDollars, "Strips cumulative inflation out of all future projected dollars, presenting all net worth, income, and expense numbers in today's constant purchasing power.");
+        html += `</div>`;
         
         html += this._renderMarketRates();
         html += `<div class="pane-section-header">Strategy</div>`;

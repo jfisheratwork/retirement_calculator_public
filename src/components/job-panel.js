@@ -101,8 +101,10 @@ export class JobPanel extends BaseComponent {
         out += this._select(`LTI Vest Month`, `${jobPrefix}.ltiMonth`, monthOptions, ltiMonthVal, 'The calendar month when equity shares or long-term incentives vest.');
         out += `</div>`;
 
-        out += `<div style="grid-column: 1 / -1;">`;
-        out += this._select(`Linked 401k/403b`, `${jobPrefix}.linked401kAccountId`, linkedOptions, job.linked401kAccountId || '', 'Select a 401k/403b account to receive this job\'s contributions.');
+        const hsaOptions = this._getLinkedHsaOptions(spouseObj);
+        out += `<div style="grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">`;
+        out += `<div>` + this._select(`Linked 401k/403b`, `${jobPrefix}.linked401kAccountId`, linkedOptions, job.linked401kAccountId || '', 'Select a 401k/403b account to receive this job\'s contributions.') + `</div>`;
+        out += `<div>` + this._select(`Linked HSA`, `${jobPrefix}.linkedHsaAccountId`, hsaOptions, job.linkedHsaAccountId || '', 'Select a Health Savings Account (HSA) to receive workplace payroll contributions.') + `</div>`;
         out += `</div>`;
 
         const hasLinkedAcc = Boolean(job.linked401kAccountId);
@@ -116,15 +118,10 @@ export class JobPanel extends BaseComponent {
         out += `</div>`;
         out += `</div>`;
 
-        const hsaOptions = this._getLinkedHsaOptions(spouseObj);
-        out += `<div style="grid-column: 1 / -1;">`;
-        out += this._select(`Linked HSA`, `${jobPrefix}.linkedHsaAccountId`, hsaOptions, job.linkedHsaAccountId || '', 'Select a Health Savings Account (HSA) to receive workplace payroll contributions.');
-        out += `</div>`;
-
         const hasLinkedHsa = Boolean(job.linkedHsaAccountId);
         out += `<div class="linked-hsa-container" style="grid-column: 1 / -1; display: ${hasLinkedHsa ? 'block' : 'none'}; padding: 0.5rem; background: rgba(0, 206, 201, 0.05); border: 1px solid rgba(0, 206, 201, 0.3); border-radius: 4px; margin-top: 0.25rem;">`;
         out += `<div class="pane-section-header" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem; color: #00cec9;">🏥 Workplace HSA Payroll Deductions (Triple Tax-Free)</div>`;
-        out += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">`;
+        out += `<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">`;
         out += this._input(`Annual HSA Contribution ($)`, `${jobPrefix}.hsaAnnualContribution`, 'number', job.hsaAnnualContribution !== undefined ? job.hsaAnnualContribution : '', 'Annual payroll contribution (defaults to statutory cap $4,300 single / $8,550 family + $1,000 if 55+). Pre-tax deduction saves Federal, State, and FICA 7.65% taxes.');
         out += this._input(`HSA Start Year`, `${jobPrefix}.hsaStartYear`, 'number', job.hsaStartYear || '', 'Calendar year to begin HSA contributions at this job (e.g. start next year or 3 years from now). Leave blank to start immediately with job.');
         out += this._input(`HSA Stop Year`, `${jobPrefix}.hsaEndYear`, 'number', job.hsaEndYear || '', 'Optional final calendar year to contribute (e.g. contribute for 5 years). Contributions end when job ends or at Medicare Age 65.');

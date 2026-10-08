@@ -15,34 +15,47 @@ export class HousingPanel extends BaseComponent {
         // Mortgage
         html += this._startSection('Mortgage');
         html += this._checkbox('Enable Mortgage', 'primaryResidenceMortgage.enabled', this.state.primaryResidenceMortgage.enabled, 'Enables precise monthly principal, interest, tax, and insurance (PITI) amortization tracking.');
-        html += `<div id="mortgage-inputs" style="display: ${this.state.primaryResidenceMortgage.enabled ? 'block' : 'none'};">`;
+        html += `<div id="mortgage-inputs" style="display: ${this.state.primaryResidenceMortgage.enabled ? 'block' : 'none'}; margin-top: 0.35rem;">`;
         const mortgageOrig = this.state.primaryResidenceMortgage.originationDate || `${new Date().getFullYear() - 3}-01`;
         const mortgageOrigFormatted = mortgageOrig.length === 7 ? `${mortgageOrig}-01` : mortgageOrig;
-        html += this._input('Origination Date (Month & Year)', 'primaryResidenceMortgage.originationDate', 'date', mortgageOrigFormatted, 'Original loan start month and year.');
-        html += this._input('Origination Amount ($)', 'primaryResidenceMortgage.originationAmount', 'number', this.state.primaryResidenceMortgage.originationAmount, 'Total original loan principal borrowed.');
-        html += this._input('Current Balance ($)', 'primaryResidenceMortgage.currentBalance', 'number', this.state.primaryResidenceMortgage.currentBalance || this.state.primaryResidenceMortgage.originationAmount, 'Current remaining principal balance due today.');
-        html += this._input('Term (Years)', 'primaryResidenceMortgage.termYears', 'number', this.state.primaryResidenceMortgage.termYears, 'Total amortization length of the loan in years (e.g. 15 or 30).');
-        html += this._input('Interest Rate (%)', 'primaryResidenceMortgage.interestRate', 'number', this.state.primaryResidenceMortgage.interestRate, 'Annual mortgage interest rate.');
-        html += this._input('Yearly Insurance ($)', 'primaryResidenceMortgage.yearlyInsurance', 'number', this.state.primaryResidenceMortgage.yearlyInsurance, 'Annual homeowner property insurance premium.');
-        html += this._input('Yearly Taxes ($)', 'primaryResidenceMortgage.yearlyTaxes', 'number', this.state.primaryResidenceMortgage.yearlyTaxes, 'Annual municipal property taxes.');
-        html += this._input('Yearly Repairs ($)', 'primaryResidenceMortgage.yearlyRepairs', 'number', this.state.primaryResidenceMortgage.yearlyRepairs, 'Annual maintenance, upkeep, and capital repair reserves.');
+        
+        // Row 1: Origination Date, Origination Amount, Current Balance
+        html += `<div class="compact-grid-3">`;
+        html += `<div>` + this._input('Origination Date', 'primaryResidenceMortgage.originationDate', 'date', mortgageOrigFormatted, 'Original loan start month and year.') + `</div>`;
+        html += `<div>` + this._input('Origination Amount ($)', 'primaryResidenceMortgage.originationAmount', 'number', this.state.primaryResidenceMortgage.originationAmount, 'Total original loan principal borrowed.') + `</div>`;
+        html += `<div>` + this._input('Current Balance ($)', 'primaryResidenceMortgage.currentBalance', 'number', this.state.primaryResidenceMortgage.currentBalance || this.state.primaryResidenceMortgage.originationAmount, 'Current remaining principal balance due today.') + `</div>`;
+        html += `</div>`;
+
+        // Row 2: Term, Interest Rate, Yearly Insurance
+        html += `<div class="compact-grid-3">`;
+        html += `<div>` + this._input('Term (Years)', 'primaryResidenceMortgage.termYears', 'number', this.state.primaryResidenceMortgage.termYears, 'Total amortization length of the loan in years (e.g. 15 or 30).') + `</div>`;
+        html += `<div>` + this._input('Interest Rate (%)', 'primaryResidenceMortgage.interestRate', 'number', this.state.primaryResidenceMortgage.interestRate, 'Annual mortgage interest rate.') + `</div>`;
+        html += `<div>` + this._input('Yearly Insurance ($)', 'primaryResidenceMortgage.yearlyInsurance', 'number', this.state.primaryResidenceMortgage.yearlyInsurance, 'Annual homeowner property insurance premium.') + `</div>`;
+        html += `</div>`;
+
+        // Row 3: Yearly Taxes, Yearly Repairs
+        html += `<div class="compact-grid-2">`;
+        html += `<div>` + this._input('Yearly Taxes ($)', 'primaryResidenceMortgage.yearlyTaxes', 'number', this.state.primaryResidenceMortgage.yearlyTaxes, 'Annual municipal property taxes.') + `</div>`;
+        html += `<div>` + this._input('Yearly Repairs ($)', 'primaryResidenceMortgage.yearlyRepairs', 'number', this.state.primaryResidenceMortgage.yearlyRepairs, 'Annual maintenance, upkeep, and capital repair reserves.') + `</div>`;
+        html += `</div>`;
         html += `</div>`;
         html += this._endSection();
         
         // Home Equity
         html += this._startSection('Home Equity & Property');
-        html += this._input('Home Value ($)', 'primaryResidenceEquity.currentValue', 'number', this.state.primaryResidenceEquity.currentValue, 'Current estimated market value of primary residence.');
-        
         const homeGrowth = this.state.primaryResidenceEquity.annualGrowthRate !== undefined ? this.state.primaryResidenceEquity.annualGrowthRate : 3;
-        html += this._input('Annual Appreciation (%)', 'primaryResidenceEquity.annualGrowthRate', 'number', homeGrowth, 'Estimated annual property growth rate. Case-Shiller long-term national average is ~3.0%–4.5%.');
+        html += `<div class="compact-grid-2">`;
+        html += `<div>` + this._input('Home Value ($)', 'primaryResidenceEquity.currentValue', 'number', this.state.primaryResidenceEquity.currentValue, 'Current estimated market value of primary residence.') + `</div>`;
+        html += `<div>` + this._input('Annual Appreciation (%)', 'primaryResidenceEquity.annualGrowthRate', 'number', homeGrowth, 'Estimated annual property growth rate. Case-Shiller long-term national average is ~3.0%–4.5%.') + `</div>`;
+        html += `</div>`;
         const homeWarn = HeuristicValidator.validateHomeAppreciation(homeGrowth);
         html += this._warningBox('household-home-growth-warning', homeWarn ? homeWarn.message : '');
 
-        html += `<div class="pane-section-header">Reverse Mortgage Strategy (Optional)</div>`;
+        html += `<div class="pane-section-header" style="margin-top: 0.5rem;">Reverse Mortgage Strategy (Optional)</div>`;
         const isRmEnabled = Boolean(this.state.primaryResidenceEquity.reverseMortgageEnabled ?? this.state.primaryResidenceEquity.enabled);
         html += this._checkbox('Enable Reverse Mortgage Strategy', 'primaryResidenceEquity.reverseMortgageEnabled', isRmEnabled, 'Optionally tap into home equity as a non-recourse line of credit to backstop late-life cash flow.');
-        html += `<div id="reverse-mortgage-inputs" style="display: ${isRmEnabled ? 'block' : 'none'};">`;
-        html += this._input('Start Age (Spouse 1)', 'primaryResidenceEquity.reverseMortgageStartAge', 'number', this.state.primaryResidenceEquity.reverseMortgageStartAge, 'Eligible age (must be 62+) to start drawing reverse mortgage equity.');
+        html += `<div id="reverse-mortgage-inputs" style="display: ${isRmEnabled ? 'block' : 'none'}; margin-top: 0.25rem;">`;
+        html += `<div style="max-width: 240px;">` + this._input('Start Age (Spouse 1)', 'primaryResidenceEquity.reverseMortgageStartAge', 'number', this.state.primaryResidenceEquity.reverseMortgageStartAge, 'Eligible age (must be 62+) to start drawing reverse mortgage equity.') + `</div>`;
         html += `</div>`;
         html += this._endSection();
 

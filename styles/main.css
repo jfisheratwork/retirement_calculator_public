@@ -2200,3 +2200,123 @@ body.what-if-open #stress-test-alerts {
     border-radius: 10px;
 }
 
+/* Compact Child & 529 Card Form Styling */
+.child-card {
+    padding: 0.5rem 0.75rem !important;
+    background: var(--bg-darker);
+    margin-bottom: 0.5rem !important;
+    border-left: 3px solid #10b981;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.child-card summary {
+    padding: 0.2rem 0;
+}
+
+.child-card .form-group {
+    margin-bottom: 0.35rem;
+}
+
+.child-card .form-label-row {
+    margin-bottom: 0.15rem;
+    gap: 0.25rem;
+}
+
+.child-card .form-group label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.child-card .tooltip-trigger {
+    font-size: 0.7rem;
+    padding: 0 0.2rem;
+}
+
+.child-card .form-group input,
+.child-card .form-group select {
+    padding: 0.32rem 0.5rem;
+    font-size: 0.85rem;
+    border-radius: 0.35rem;
+    height: 2rem;
+}
+
+.child-card .input-group .input-prefix,
+.child-card .input-group .input-suffix {
+    padding: 0.32rem 0.45rem;
+    font-size: 0.85rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.child-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+/* SPEC-050: Compact Horizontal Form Rows and Sized Inputs */
+.compact-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.compact-form-row .form-group {
+    margin-bottom: 0.35rem;
+}
+
+.compact-form-row .form-label-row {
+    margin-bottom: 0.15rem;
+    gap: 0.25rem;
+}
+
+.compact-form-row .form-group label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.compact-form-row .form-group input,
+.compact-form-row .form-group select {
+    padding: 0.32rem 0.5rem;
+    font-size: 0.85rem;
+    border-radius: 0.35rem;
+    height: 2.05rem;
+}
+
+.compact-form-row .input-group .input-prefix,
+.compact-form-row .input-group .input-suffix {
+    padding: 0.32rem 0.45rem;
+    font-size: 0.85rem;
+    height: 2.05rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.compact-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.compact-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+

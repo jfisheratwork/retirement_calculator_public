@@ -71,66 +71,144 @@ export class ExpenseCalculator {
 
 
 
-    static processCollegeCosts({ dependents, year, inflationMultiplier, assumptions, snapshot, events }) {
+    static _calculateTargetGoalContribution({ targetGoal, startBal, yearsRemaining, annualGrowthRate }) {
+        const r = annualGrowthRate;
+        const projectedExisting = startBal * Math.pow(1 + r, yearsRemaining);
+        const netGap = Math.max(0, targetGoal - projectedExisting);
+        if (netGap <= 0) return 0;
+
+        const pmt = r > 0
+            ? (netGap * r) / (Math.pow(1 + r, yearsRemaining) - 1)
+            : (netGap / yearsRemaining);
+        const requiredAnnual = Math.round(pmt);
+        return Math.min(requiredAnnual, Math.max(0, targetGoal - startBal));
+    }
+
+    static _calculateFixedContribution({ child, startBal, targetGoal }) {
+        const annualContrib = Number(child.annualContribution) || 0;
+        if (annualContrib <= 0) return 0;
+
+        if (targetGoal > 0) {
+            const remainingToCap = Math.max(0, targetGoal - startBal);
+            return Math.min(annualContrib, remainingToCap);
+        }
+        return annualContrib;
+    }
+
+    static _calculateChild529Contribution({ child, year, childAge, currentYear, annualGrowthRate, startBal }) {
+        if (childAge >= 18) return 0;
+
+        const effectiveCurrentYear = currentYear || new Date().getFullYear();
+        const startYear = Number(child.contributionStartYear) || effectiveCurrentYear;
+        const defaultStopYear = (Number(child.yearOfBirth) || effectiveCurrentYear) + 17;
+        const stopYear = Number(child.contributionStopYear) || defaultStopYear;
+
+        if (year < startYear || year > stopYear) return 0;
+
+        const mode = child.contributionMode || 'fixed';
+        const targetGoal = Number(child.targetCollegeSavingsBalance) || 0;
+
+        if (mode === 'target' && targetGoal > 0) {
+            const yearsRemaining = Math.max(1, 18 - childAge);
+            return this._calculateTargetGoalContribution({ targetGoal, startBal, yearsRemaining, annualGrowthRate });
+        }
+
+        return this._calculateFixedContribution({ child, startBal, targetGoal });
+    }
+
+    static _drawCollegeTuition({ child, childAge, inflationMultiplier }) {
+        if (childAge < 18 || childAge > 21) {
+            return { cost: 0, drawn: 0 };
+        }
+        let cost = (Number(child.annualCollegeCost) || 0) * inflationMultiplier;
+        let drawn = 0;
+        if (child.currentCollegeSavingsBalance && child.currentCollegeSavingsBalance > 0) {
+            drawn = Math.min(child.currentCollegeSavingsBalance, cost);
+            child.currentCollegeSavingsBalance -= drawn;
+            cost -= drawn;
+        }
+        return { cost, drawn };
+    }
+
+    static _processSingleChildCollegeCost({ child, index, year, currentYear, inflationMultiplier, assumptions, events }) {
+        const childAge = year - child.yearOfBirth;
+        const childId = child.id || `child_${index}`;
+        const childName = child.name || `Child ${index + 1}`;
+        const annualGrowthRate = (child.expectedReturn !== undefined && child.expectedReturn !== null)
+            ? (Number(child.expectedReturn) / 100)
+            : ((assumptions?.collegeReturnRate !== undefined ? assumptions.collegeReturnRate : (assumptions?.generalReturnRate || 7)) / 100);
+
+        const startBal = child.currentCollegeSavingsBalance || 0;
+        let interest = 0;
+
+        if (startBal > 0) {
+            interest = startBal * annualGrowthRate;
+            child.currentCollegeSavingsBalance += interest;
+        }
+
+        const contribution = this._calculateChild529Contribution({
+            child,
+            year,
+            childAge,
+            currentYear,
+            annualGrowthRate,
+            startBal
+        });
+
+        if (contribution > 0) {
+            child.currentCollegeSavingsBalance += contribution;
+        }
+
+        if (childAge === 18 && !events.find(e => e.type === 'child_grad' && e.dependentId === childId)) {
+            events.push({ year, label: `${childName} turns 18`, type: 'child_grad', dependentId: childId });
+        }
+
+        const tuitionResult = this._drawCollegeTuition({ child, childAge, inflationMultiplier });
+        const endBal = child.currentCollegeSavingsBalance || 0;
+
+        return {
+            childRecord: { id: childId, name: childName, startBalance: startBal, contribution, interest, drawn: tuitionResult.drawn, balance: endBal },
+            collegeCost: tuitionResult.cost,
+            contribution,
+            interest,
+            drawn: tuitionResult.drawn,
+            endBal
+        };
+    }
+
+    static processCollegeCosts({ dependents, year, currentYear, inflationMultiplier, assumptions, snapshot, events }) {
         let collegeCost = 0;
         let total529Balance = 0;
         let total529Interest = 0;
         let total529Drawn = 0;
+        let total529Contributed = 0;
         const children529 = [];
 
         (dependents || []).forEach((child, index) => {
-            const childAge = year - child.yearOfBirth;
-            const childId = child.id || `child_${index}`;
-            const childName = child.name || `Child ${index + 1}`;
-            const annualGrowthRate = (child.expectedReturn !== undefined && child.expectedReturn !== null)
-                ? (Number(child.expectedReturn) / 100)
-                : ((assumptions?.collegeReturnRate !== undefined ? assumptions.collegeReturnRate : (assumptions?.generalReturnRate || 7)) / 100);
-
-            const startBal = child.currentCollegeSavingsBalance || 0;
-            let interest = 0;
-
-            // 529 savings account grows each year at the expected return rate
-            if (startBal > 0) {
-                interest = startBal * annualGrowthRate;
-                child.currentCollegeSavingsBalance += interest;
-            }
-
-            if (childAge === 18 && !events.find(eventItem => eventItem.type === 'child_grad' && eventItem.dependentId === childId)) {
-                events.push({ year, label: `${childName} turns 18`, type: 'child_grad', dependentId: childId });
-            }
-
-            let drawn = 0;
-            if (childAge >= 18 && childAge <= 21) {
-                let cost = (Number(child.annualCollegeCost) || 0) * inflationMultiplier;
-                if (child.currentCollegeSavingsBalance && child.currentCollegeSavingsBalance > 0) {
-                    drawn = Math.min(child.currentCollegeSavingsBalance, cost);
-                    child.currentCollegeSavingsBalance -= drawn;
-                    cost -= drawn;
-                }
-                collegeCost += cost;
-            }
-
-            const endBal = child.currentCollegeSavingsBalance || 0;
-            total529Balance += endBal;
-            total529Interest += interest;
-            total529Drawn += drawn;
-
-            children529.push({
-                id: childId,
-                name: childName,
-                startBalance: startBal,
-                interest,
-                drawn,
-                balance: endBal
+            const res = this._processSingleChildCollegeCost({
+                child,
+                index,
+                year,
+                currentYear,
+                inflationMultiplier,
+                assumptions,
+                events
             });
+            collegeCost += res.collegeCost;
+            total529Contributed += res.contribution;
+            total529Interest += res.interest;
+            total529Drawn += res.drawn;
+            total529Balance += res.endBal;
+            children529.push(res.childRecord);
         });
 
-        snapshot.expenses += collegeCost;
-        snapshot.expenseBreakdown.childcare += collegeCost;
+        snapshot.expenses += (collegeCost + total529Contributed);
+        snapshot.expenseBreakdown.childcare += (collegeCost + total529Contributed);
         snapshot.college529 = {
             totalBalance: total529Balance,
             totalInterest: total529Interest,
             totalDrawn: total529Drawn,
+            totalContributed: total529Contributed,
             children: children529
         };
     }
@@ -164,7 +242,7 @@ export class ExpenseCalculator {
         }
 
         // College 529 & Tuition
-        this.processCollegeCosts({ dependents, year, inflationMultiplier, assumptions, snapshot, events });
+        this.processCollegeCosts({ dependents, year, currentYear, inflationMultiplier, assumptions, snapshot, events });
     }
 }
 

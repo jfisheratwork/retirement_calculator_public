@@ -25,9 +25,13 @@ export class SpousePanel extends BaseComponent {
         if (!spouseObj) return `<div>Error: Invalid prefix ${this.spousePrefix}</div>`;
 
         let out = this._startSection(`${escapeHtml(spouseObj.name || 'Spouse')} Personal Details`, true);
-        out += this._input('Name', `${this.spousePrefix}.name`, 'text', spouseObj.name, 'Name of the spouse.');
-        out += this._input('Birth Year', `${this.spousePrefix}.yearOfBirth`, 'number', spouseObj.yearOfBirth, 'Birth year used to calculate current age, retirement milestone years, RMD schedules (ages 73-75), and early withdrawal penalty thresholds (59.5).');
-        out += this._input('Life Expectancy (Age)', `${this.spousePrefix}.estimatedLifeExpectancy`, 'number', spouseObj.estimatedLifeExpectancy, 'The age this spouse passes away. Halves ongoing household living expenses and transitions the surviving spouse to the higher Social Security benefit.');
+        
+        // Row 1: Name, Birth Year, Life Expectancy (3 fields)
+        out += `<div class="compact-form-row">`;
+        out += `<div style="flex: 1.2; min-width: 140px;">${this._input('Name', `${this.spousePrefix}.name`, 'text', spouseObj.name, 'Name of the spouse.')}</div>`;
+        out += `<div style="flex: 1; min-width: 100px;">${this._input('Birth Year', `${this.spousePrefix}.yearOfBirth`, 'number', spouseObj.yearOfBirth, 'Birth year used to calculate current age, retirement milestone years, RMD schedules (ages 73-75), and early withdrawal penalty thresholds (59.5).')}</div>`;
+        out += `<div style="flex: 1; min-width: 120px;">${this._input('Life Expectancy (Age)', `${this.spousePrefix}.estimatedLifeExpectancy`, 'number', spouseObj.estimatedLifeExpectancy, 'The age this spouse passes away. Halves ongoing household living expenses and transitions the surviving spouse to the higher Social Security benefit.')}</div>`;
+        out += `</div>`;
         
         const birthYear = Number(spouseObj.yearOfBirth) || 1980;
         let retDate = spouseObj.targetRetirementDate;
@@ -39,9 +43,13 @@ export class SpousePanel extends BaseComponent {
         const retYear = parseInt(String(retDate).split('-')[0], 10) || (birthYear + 65);
         const retAge = retYear - birthYear;
         const retBadge = `<span id="${this.spousePrefix}-ret-age-badge" style="font-size: 0.75rem; color: var(--accent); margin-left: 6px; font-weight: normal;">(Retirement Age: ${retAge})</span>`;
-        out += this._input(`Target Retirement Date ${retBadge}`, `${this.spousePrefix}.targetRetirementDate`, 'date', retDate, 'The month and year this spouse plans to retire. Earned W2 salary terminates upon reaching this retirement month.');
-
+        
+        // Row 2: Target Retirement Date, SSN Claiming Date, SSN Monthly Benefit (3 fields)
+        out += `<div class="compact-form-row">`;
+        out += `<div style="flex: 1; min-width: 150px;">${this._input(`Target Retirement Date ${retBadge}`, `${this.spousePrefix}.targetRetirementDate`, 'date', retDate, 'The month and year this spouse plans to retire. Earned W2 salary terminates upon reaching this retirement month.')}</div>`;
         out += this._renderSocialSecurity(spouseObj);
+        out += `</div>`;
+
         out += this._endSection();
         return out;
     }
@@ -69,7 +77,7 @@ export class SpousePanel extends BaseComponent {
         
         const ssnBadge = `<span id="${this.spousePrefix}-ssn-badge" data-ai-target="${this.spousePrefix}-ssn-badge" style="font-size: 0.75rem; color: ${ssnPct < 100 ? '#fdcb6e' : (ssnPct > 100 ? '#00b894' : 'var(--text-muted)')}; margin-left: 6px; font-weight: normal;">(Age: ${ssnCalculatedAge}, ${ssnPct}% of FRA 67)</span>`;
 
-        let out = this._input(`SSN Claiming Date ${ssnBadge}`, `${this.spousePrefix}.socialSecurityStartDate`, 'date', ssnDate, 'The month and year to begin drawing Social Security (ages 62 to 70). Claiming at 62 permanently reduces benefit to 70% of FRA; delaying to 70 increases benefit by +8%/yr to 124% of FRA.');
+        let out = `<div style="flex: 1; min-width: 150px;">` + this._input(`SSN Claiming Date ${ssnBadge}`, `${this.spousePrefix}.socialSecurityStartDate`, 'date', ssnDate, 'The month and year to begin drawing Social Security (ages 62 to 70). Claiming at 62 permanently reduces benefit to 70% of FRA; delaying to 70 increases benefit by +8%/yr to 124% of FRA.') + `</div>`;
         
         const monthlyBenefit = spouseObj.socialSecurityMonthlyBenefit !== undefined && spouseObj.socialSecurityMonthlyBenefit !== null
             ? Number(spouseObj.socialSecurityMonthlyBenefit)
@@ -77,7 +85,7 @@ export class SpousePanel extends BaseComponent {
         const annualEquiv = Math.round(monthlyBenefit * 12);
         const annualBadge = `<span id="${this.spousePrefix}-ssn-annual-badge" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; font-weight: normal;">(Annual: $${annualEquiv.toLocaleString()}/yr)</span>`;
 
-        out += this._input(`SSN Monthly Benefit at FRA 67 ($/mo) ${annualBadge}`, `${this.spousePrefix}.socialSecurityMonthlyBenefit`, 'number', monthlyBenefit || 0, "Estimated monthly Social Security benefit in today's purchasing dollars assuming claiming at Full Retirement Age (67), as provided on your ssa.gov statement.");
+        out += `<div style="flex: 1; min-width: 150px;">` + this._input(`SSN Monthly Benefit at FRA 67 ($/mo) ${annualBadge}`, `${this.spousePrefix}.socialSecurityMonthlyBenefit`, 'number', monthlyBenefit || 0, "Estimated monthly Social Security benefit in today's purchasing dollars assuming claiming at Full Retirement Age (67), as provided on your ssa.gov statement.") + `</div>`;
         return out;
     }
 
