@@ -86,7 +86,7 @@ export class JobPanel extends BaseComponent {
             job.hasBonus === true
         );
 
-        let out = `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">`;
+        let out = `<div class="tab-stop-grid-2" style="margin-top: 0.5rem;">`;
         out += this._input(`Base Salary ($)`, `${jobPrefix}.baseSalary`, 'number', job.baseSalary || 0);
         out += this._input(`Start Date`, `${jobPrefix}.startDate`, 'date', job.startDate || `${new Date().getFullYear()}-01`, 'The month and year this job position starts.');
 
@@ -94,7 +94,7 @@ export class JobPanel extends BaseComponent {
         out += this._checkbox(`Include Annual Bonus & Equity / LTI`, `${jobPrefix}.hasBonus`, hasBonusData, 'Show inputs for annual performance bonus and long-term incentive (LTI) equity vesting.');
         out += `</div>`;
 
-        out += `<div class="job-bonus-container" style="grid-column: 1 / -1; display: ${hasBonusData ? 'grid' : 'none'}; grid-template-columns: 1fr 1fr; gap: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 0.25rem;">`;
+        out += `<div class="job-bonus-container" style="grid-column: 1 / -1; display: ${hasBonusData ? 'grid' : 'none'}; grid-template-columns: repeat(2, minmax(12ch, 1fr)); gap: clamp(1rem, 1.8vw, 1.5rem); padding: 0.5rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 0.25rem;">`;
         out += this._input(`Bonus Amount ($)`, `${jobPrefix}.bonusAmount`, 'number', job.bonusAmount || 0, 'Annual cash performance bonus.');
         out += this._select(`Bonus Month`, `${jobPrefix}.bonusMonth`, monthOptions, bonusMonthVal, 'The calendar month when the annual bonus pays out.');
         out += this._input(`LTI Vest Amount ($)`, `${jobPrefix}.ltiAmount`, 'number', job.ltiAmount || 0, 'Annual equity or long-term incentive vesting amount.');
@@ -102,29 +102,29 @@ export class JobPanel extends BaseComponent {
         out += `</div>`;
 
         const hsaOptions = this._getLinkedHsaOptions(spouseObj);
-        out += `<div style="grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">`;
+        out += `<div class="tab-stop-grid-2" style="grid-column: 1 / -1;">`;
         out += `<div>` + this._select(`Linked 401k/403b`, `${jobPrefix}.linked401kAccountId`, linkedOptions, job.linked401kAccountId || '', 'Select a 401k/403b account to receive this job\'s contributions.') + `</div>`;
         out += `<div>` + this._select(`Linked HSA`, `${jobPrefix}.linkedHsaAccountId`, hsaOptions, job.linkedHsaAccountId || '', 'Select a Health Savings Account (HSA) to receive workplace payroll contributions.') + `</div>`;
         out += `</div>`;
 
         const hasLinkedAcc = Boolean(job.linked401kAccountId);
-        out += `<div class="linked-contributions-container" style="grid-column: 1 / -1; display: ${hasLinkedAcc ? 'block' : 'none'}; padding: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 0.25rem;">`;
-        out += `<div class="pane-section-header" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">💼 Workplace 401(k) / 403(b) Contributions & Match</div>`;
-        out += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">`;
-        out += this._input(`Contribution (%)`, `${jobPrefix}.contributionPercentage`, 'number', job.contributionPercentage || 0, 'Percentage of annual gross salary deferred into this account (subject to IRS elective deferral limits).');
-        out += this._input(`Employer 100% Match on First X%`, `${jobPrefix}.employer100PercentMatchOnTheFirstXPercent`, 'number', job.employer100PercentMatchOnTheFirstXPercent || 0, 'Employer matches 100% of employee salary deferrals up to this percentage of salary.');
-        out += this._input(`Employer 50% Match on Next X%`, `${jobPrefix}.employer50PercentMatchOnTheNextXPercent`, 'number', job.employer50PercentMatchOnTheNextXPercent || 0, 'Employer matches 50% of employee salary deferrals for the subsequent percentage band of salary.');
-        out += this._input(`Employer Bonus Match (%)`, `${jobPrefix}.employerMatchBonusPercentage`, 'number', job.employerMatchBonusPercentage || 0, 'Employer matching percentage applied directly to annual employee cash bonuses.');
+        out += `<div class="linked-contributions-container" style="grid-column: 1 / -1; display: ${hasLinkedAcc ? 'block' : 'none'}; padding: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 0.25rem; margin-bottom: 0.5rem;">`;
+        out += `<div class="pane-section-header" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">💼 Workplace 401(k) / 403(b) Contributions & Match</div>`;
+        out += `<div class="tab-stop-grid-2">`;
+        out += `<div>` + this._input(`Contribution (%)`, `${jobPrefix}.contributionPercentage`, 'number', job.contributionPercentage || 0, 'Percentage of annual gross salary deferred into this account (subject to IRS elective deferral limits).') + `</div>`;
+        out += `<div>` + this._input(`Employer 100% Match on First X%`, `${jobPrefix}.employer100PercentMatchOnTheFirstXPercent`, 'number', job.employer100PercentMatchOnTheFirstXPercent || 0, 'Employer matches 100% of employee salary deferrals up to this percentage of salary.') + `</div>`;
+        out += `<div>` + this._input(`Employer 50% Match on Next X%`, `${jobPrefix}.employer50PercentMatchOnTheNextXPercent`, 'number', job.employer50PercentMatchOnTheNextXPercent || 0, 'Employer matches 50% of employee salary deferrals for the subsequent percentage band of salary.') + `</div>`;
+        out += `<div>` + this._input(`Employer Bonus Match (%)`, `${jobPrefix}.employerMatchBonusPercentage`, 'number', job.employerMatchBonusPercentage || 0, 'Employer matching percentage applied directly to annual employee cash bonuses.') + `</div>`;
         out += `</div>`;
         out += `</div>`;
 
         const hasLinkedHsa = Boolean(job.linkedHsaAccountId);
-        out += `<div class="linked-hsa-container" style="grid-column: 1 / -1; display: ${hasLinkedHsa ? 'block' : 'none'}; padding: 0.5rem; background: rgba(0, 206, 201, 0.05); border: 1px solid rgba(0, 206, 201, 0.3); border-radius: 4px; margin-top: 0.25rem;">`;
-        out += `<div class="pane-section-header" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem; color: #00cec9;">🏥 Workplace HSA Payroll Deductions (Triple Tax-Free)</div>`;
-        out += `<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">`;
-        out += this._input(`Annual HSA Contribution ($)`, `${jobPrefix}.hsaAnnualContribution`, 'number', job.hsaAnnualContribution !== undefined ? job.hsaAnnualContribution : '', 'Annual payroll contribution (defaults to statutory cap $4,300 single / $8,550 family + $1,000 if 55+). Pre-tax deduction saves Federal, State, and FICA 7.65% taxes.');
-        out += this._input(`HSA Start Year`, `${jobPrefix}.hsaStartYear`, 'number', job.hsaStartYear || '', 'Calendar year to begin HSA contributions at this job (e.g. start next year or 3 years from now). Leave blank to start immediately with job.');
-        out += this._input(`HSA Stop Year`, `${jobPrefix}.hsaEndYear`, 'number', job.hsaEndYear || '', 'Optional final calendar year to contribute (e.g. contribute for 5 years). Contributions end when job ends or at Medicare Age 65.');
+        out += `<div class="linked-hsa-container" style="grid-column: 1 / -1; display: ${hasLinkedHsa ? 'block' : 'none'}; padding: 0.75rem; background: rgba(0, 206, 201, 0.05); border: 1px solid rgba(0, 206, 201, 0.3); border-radius: 4px; margin-top: 0.25rem; margin-bottom: 0.5rem;">`;
+        out += `<div class="pane-section-header" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: #00cec9;">🏥 Workplace HSA Payroll Deductions (Triple Tax-Free)</div>`;
+        out += `<div class="tab-stop-grid-3">`;
+        out += `<div>` + this._input(`Annual HSA Contribution ($)`, `${jobPrefix}.hsaAnnualContribution`, 'number', job.hsaAnnualContribution !== undefined ? job.hsaAnnualContribution : '', 'Annual payroll contribution (defaults to statutory cap $4,300 single / $8,550 family + $1,000 if 55+). Pre-tax deduction saves Federal, State, and FICA 7.65% taxes.') + `</div>`;
+        out += `<div>` + this._input(`HSA Start Year`, `${jobPrefix}.hsaStartYear`, 'number', job.hsaStartYear || '', 'Calendar year to begin HSA contributions at this job (e.g. start next year or 3 years from now). Leave blank to start immediately with job.') + `</div>`;
+        out += `<div>` + this._input(`HSA Stop Year`, `${jobPrefix}.hsaEndYear`, 'number', job.hsaEndYear || '', 'Optional final calendar year to contribute (e.g. contribute for 5 years). Contributions end when job ends or at Medicare Age 65.') + `</div>`;
         out += `</div></div>`;
 
         out += `</div>`;

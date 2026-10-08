@@ -46,16 +46,16 @@ export class ChildrenPanel extends BaseComponent {
         let html = '';
 
         if (mode === 'target') {
-            html += `<div style="flex: 1; min-width: 160px;">${this._input('Target Goal by 18 ($)', `dependents.${index}.targetCollegeSavingsBalance`, 'number', child.targetCollegeSavingsBalance || 0, 'Target balance you want available in the 529 plan when this child turns 18.')}</div>`;
-            html += `</div>`;
+            html += `<div class="child-grid-3"><div style="grid-column: span 2;">${this._input('Target Goal by 18 ($)', `dependents.${index}.targetCollegeSavingsBalance`, 'number', child.targetCollegeSavingsBalance || 0, 'Target balance you want available in the 529 plan when this child turns 18.')}</div></div>`;
             const badgeHtml = this._calculateTargetFundingSummary(child);
-            html += `<div class="target-529-summary" data-child-index="${index}" style="margin-top: 0.15rem; margin-bottom: 0.25rem; padding: 0.4rem 0.65rem; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 4px; font-size: 0.78rem; line-height: 1.35;">${badgeHtml}</div>`;
+            html += `<div class="target-529-summary" data-child-index="${index}" style="margin-top: 0.25rem; margin-bottom: 0.5rem; padding: 0.6rem 0.85rem; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; font-size: 0.8rem; line-height: 1.4;">${badgeHtml}</div>`;
         } else {
-            html += `<div style="flex: 1; min-width: 140px;">${this._input('Annual Contribution ($)', `dependents.${index}.annualContribution`, 'number', child.annualContribution || 0, 'Annual contribution from household cash flow into this child\'s 529 college fund.')}</div>`;
-            html += `<div style="width: 100px; flex-shrink: 0;">${this._input('Start Year', `dependents.${index}.contributionStartYear`, 'number', child.contributionStartYear || '', 'Calendar year to start annual contributions. Defaults to current year.')}</div>`;
             const defaultStopYear = (Number(child.yearOfBirth) || new Date().getFullYear()) + 17;
-            html += `<div style="width: 100px; flex-shrink: 0;">${this._input('Stop Year', `dependents.${index}.contributionStopYear`, 'number', child.contributionStopYear || '', `Calendar year to stop contributions. Defaults to year child turns 18 (${defaultStopYear}).`)}</div>`;
-            html += `<div style="flex: 1; min-width: 140px;">${this._input('Target Cap (Optional, $)', `dependents.${index}.targetCollegeSavingsBalance`, 'number', child.targetCollegeSavingsBalance || 0, 'Optional maximum balance cap. Contributions cease once the 529 reaches this amount.')}</div>`;
+            html += `<div class="tab-stop-grid-4">`;
+            html += `<div>${this._input('Annual Contribution ($)', `dependents.${index}.annualContribution`, 'number', child.annualContribution || 0, "Annual contribution from household cash flow into this child's 529 college fund.")}</div>`;
+            html += `<div>${this._input('Start Year (Optional)', `dependents.${index}.contributionStartYear`, 'number', child.contributionStartYear || '', 'Calendar year to start annual contributions. Defaults to current year.')}</div>`;
+            html += `<div>${this._input('Stop Year (Optional)', `dependents.${index}.contributionStopYear`, 'number', child.contributionStopYear || '', `Calendar year to stop contributions. Defaults to year child turns 18 (${defaultStopYear}).`)}</div>`;
+            html += `<div>${this._input('Target Cap (Optional, $)', `dependents.${index}.targetCollegeSavingsBalance`, 'number', child.targetCollegeSavingsBalance || 0, 'Optional maximum balance cap. Contributions cease once the 529 reaches this amount.')}</div>`;
             html += `</div>`;
         }
 
@@ -88,18 +88,21 @@ export class ChildrenPanel extends BaseComponent {
                 </summary>
                 <div style="margin-top: 0.5rem;">`;
 
-            // Row 1: Profile & 529 Baseline
-            html += `<div class="child-form-row">`;
-            html += `<div style="flex: 1.2; min-width: 140px;">${this._input('Name', `dependents.${index}.name`, 'text', child.name || `Child ${index + 1}`, 'Child name.')}</div>`;
-            html += `<div style="width: 100px; flex-shrink: 0;">${this._input('Birth Year', `dependents.${index}.yearOfBirth`, 'number', child.yearOfBirth, 'Birth year used to model college attendance from age 18 to 22.')}</div>`;
-            html += `<div style="flex: 1; min-width: 140px;">${this._input('College Cost ($)', `dependents.${index}.annualCollegeCost`, 'number', child.annualCollegeCost, 'Projected annual college tuition, room, and board expenses.')}</div>`;
-            html += `<div style="flex: 1; min-width: 140px;">${this._input('529 Balance ($)', `dependents.${index}.currentCollegeSavingsBalance`, 'number', child.currentCollegeSavingsBalance, 'Dedicated 529 investment balance.')}</div>`;
-            html += `<div style="width: 105px; flex-shrink: 0;">${this._input('Return (%)', `dependents.${index}.expectedReturn`, 'number', child.expectedReturn !== undefined ? child.expectedReturn : 7, 'Annual compound investment return rate on 529 college funds.')}</div>`;
+            // Row 1: Profile & 529 Strategy (3 aligned columns)
+            html += `<div class="child-grid-3">`;
+            html += `<div>${this._input('Child Name', `dependents.${index}.name`, 'text', child.name || `Child ${index + 1}`, 'Child name.')}</div>`;
+            html += `<div>${this._input('Birth Year', `dependents.${index}.yearOfBirth`, 'number', child.yearOfBirth, 'Birth year used to model college attendance from age 18 to 22.')}</div>`;
+            html += `<div>${this._select('529 Strategy', `dependents.${index}.contributionMode`, modeOptions, mode, 'Choose between saving a fixed dollar amount each year, or specifying a target balance for when your child turns 18 so the calculator automatically solves for required annual savings.')}</div>`;
             html += `</div>`;
-            
-            // Row 2: 529 Strategy
-            html += `<div class="child-form-row">`;
-            html += `<div style="flex: 1.2; min-width: 220px;">${this._select('529 Strategy', `dependents.${index}.contributionMode`, modeOptions, mode, 'Choose between saving a fixed dollar amount each year, or specifying a target balance for when your child turns 18 so the calculator automatically solves for required annual savings.')}</div>`;
+
+            // Row 2: College Costs & Balances (3 aligned columns)
+            html += `<div class="child-grid-3">`;
+            html += `<div>${this._input('Annual College Cost ($)', `dependents.${index}.annualCollegeCost`, 'number', child.annualCollegeCost, 'Projected annual college tuition, room, and board expenses.')}</div>`;
+            html += `<div>${this._input('Current 529 Balance ($)', `dependents.${index}.currentCollegeSavingsBalance`, 'number', child.currentCollegeSavingsBalance, 'Dedicated 529 investment balance.')}</div>`;
+            html += `<div>${this._input('Expected Return (%)', `dependents.${index}.expectedReturn`, 'number', child.expectedReturn !== undefined ? child.expectedReturn : 7, 'Annual compound investment return rate on 529 college funds.')}</div>`;
+            html += `</div>`;
+
+            // Row 3: Strategy Fields
             html += this._renderStrategyFields(child, index);
 
             html += `</div></details>`;

@@ -54,18 +54,18 @@ export class StrategyEventsPanel extends BaseComponent {
         html += this._checkbox('Enable Advanced Roth Strategy', 'strategies.advancedRothStrategy.enabled', isEnabled, 'Dynamically converts pre-tax Traditional IRA funds to Roth IRA to fill up a target tax bracket without crossing into a higher bracket.');
 
         html += `<div id="advanced-roth-inputs" style="display: ${isEnabled ? 'block' : 'none'}; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08);">`;
-        html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">`;
-        html += this._select('Target Tax Bracket', 'strategies.advancedRothStrategy.targetBracket', bracketOptions, advRoth.targetBracket || '12', 'The highest federal income tax bracket you wish to fill with Roth conversions each year.');
-        html += this._input('Safety Margin ($)', 'strategies.advancedRothStrategy.safetyMargin', 'number', advRoth.safetyMargin !== undefined ? advRoth.safetyMargin : 10000, 'Dollar buffer kept below the top bracket ceiling to protect against bracket overshooting.');
-        html += this._input('Start Date (Month & Year)', 'strategies.advancedRothStrategy.startDate', 'date', advStartDate, 'The month and year this automated conversion ladder starts.');
-        html += this._input('Duration (Years)', 'strategies.advancedRothStrategy.durationYears', 'number', advRoth.durationYears || 10, 'Number of consecutive years to execute the dynamic conversion strategy.');
+        html += `<div class="tab-stop-grid-2">`;
+        html += `<div>` + this._select('Target Tax Bracket', 'strategies.advancedRothStrategy.targetBracket', bracketOptions, advRoth.targetBracket || '12', 'The highest federal income tax bracket you wish to fill with Roth conversions each year.') + `</div>`;
+        html += `<div>` + this._input('Safety Margin ($)', 'strategies.advancedRothStrategy.safetyMargin', 'number', advRoth.safetyMargin !== undefined ? advRoth.safetyMargin : 10000, 'Dollar buffer kept below the top bracket ceiling to protect against bracket overshooting.') + `</div>`;
+        html += `<div>` + this._input('Start Date (Month & Year)', 'strategies.advancedRothStrategy.startDate', 'date', advStartDate, 'The month and year this automated conversion ladder starts.') + `</div>`;
+        html += `<div>` + this._input('Duration (Years)', 'strategies.advancedRothStrategy.durationYears', 'number', advRoth.durationYears || 10, 'Number of consecutive years to execute the dynamic conversion strategy.') + `</div>`;
         html += `</div>`;
 
         html += `<div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem;">
             <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Minimum Conversion Rules</div>`;
-        html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">`;
-        html += this._input('Minimum Annual Conversion ($)', 'strategies.advancedRothStrategy.minConversion', 'number', advRoth.minConversion || 0, 'Guarantees at least this amount is converted annually even if it exceeds the target bracket up to the absolute max bracket.');
-        html += this._select('Absolute Max Bracket', 'strategies.advancedRothStrategy.maxBracket', bracketOptions, advRoth.maxBracket || '24', 'The hard tax bracket ceiling that minimum conversions will never exceed.');
+        html += `<div class="tab-stop-grid-2">`;
+        html += `<div>` + this._input('Minimum Annual Conversion ($)', 'strategies.advancedRothStrategy.minConversion', 'number', advRoth.minConversion || 0, 'Guarantees at least this amount is converted annually even if it exceeds the target bracket up to the absolute max bracket.') + `</div>`;
+        html += `<div>` + this._select('Absolute Max Bracket', 'strategies.advancedRothStrategy.maxBracket', bracketOptions, advRoth.maxBracket || '24', 'The hard tax bracket ceiling that minimum conversions will never exceed.') + `</div>`;
         html += `</div></div>`;
 
         html += `</div></div>`;
@@ -147,39 +147,40 @@ export class StrategyEventsPanel extends BaseComponent {
         const { year: targetYear, month: targetMonth } = parseDateParts(r72t.startDate, default72tYear, r72tMonth);
         const r72tDate = normalizeDateStr(r72t.startDate, default72tYear, r72tMonth) || `${default72tYear}-${String(r72tMonth).padStart(2, '0')}-01`;
         const calculatedR72tAge = targetYear - birthYear;
-        const r72tBadge = `<span id="${prefix}-72t-age-badge" style="font-size: 0.75rem; color: var(--accent); margin-left: 6px; font-weight: normal;">(Start Age: ${calculatedR72tAge})</span>`;
+        const r72tBadge = `<span id="${prefix}-72t-age-badge" class="badge-subtle badge-subtle-blue">Age ${calculatedR72tAge}</span>`;
 
         const srcOpts = this._get72tSourceOptions(prefix, spouseObj, targetYear, targetMonth);
         const iraOpts = this._get72tIraOptions(prefix, spouseObj, targetYear, targetMonth);
         const targetMode = r72t.targetIraMode || 'existing';
 
-        let out = this._select('Source Account (Funds Coming From)', `${prefix}.rule72t.sourceAccount`, srcOpts, r72t.sourceAccount || srcOpts[0].value, 'The retirement account (401k, 403b, or IRA) supplying funds for the 72(t) schedule.');
-        
-        out += this._select('Designated 72(t) Account Mode', `${prefix}.rule72t.targetIraMode`, [
+        let out = `<div class="tab-stop-grid-2">`;
+        out += `<div>` + this._select('Source Account (Funds Coming From)', `${prefix}.rule72t.sourceAccount`, srcOpts, r72t.sourceAccount || srcOpts[0].value, 'The retirement account (401k, 403b, or IRA) supplying funds for the 72(t) schedule.') + `</div>`;
+        out += `<div>` + this._select('Designated 72(t) Account Mode', `${prefix}.rule72t.targetIraMode`, [
             { value: 'existing', label: 'Use Existing IRA' },
             { value: 'new', label: 'Create New Dedicated 72(t) IRA' }
-        ], targetMode, 'Choose whether to designate an existing Traditional IRA or automatically instantiate a separate new IRA to hold the locked 72(t) balance.');
+        ], targetMode, 'Choose whether to designate an existing Traditional IRA or automatically instantiate a separate new IRA to hold the locked 72(t) balance.') + `</div>`;
 
+        out += `<div>`;
         out += `<div id="${prefix}-72t-target-existing-wrap" style="display: ${targetMode === 'existing' ? 'block' : 'none'};">`;
         out += this._select('Select Target IRA', `${prefix}.rule72t.targetAccount`, iraOpts, r72t.targetAccount || iraOpts[0].value, 'The destination Traditional IRA account tied to 72(t) SEPP distributions.');
         out += `</div>`;
-
         out += `<div id="${prefix}-72t-target-new-wrap" style="display: ${targetMode === 'new' ? 'block' : 'none'};">`;
         out += this._input('New Dedicated IRA Name', `${prefix}.rule72t.newIraName`, 'text', r72t.newIraName || `${spouseObj.name || 'Spouse'} 72(t) IRA`, 'Name for the new isolated Traditional IRA created specifically for 72(t) SEPP.');
         out += `</div>`;
+        out += `</div>`;
 
         const splitVal = r72t.splitAmount !== undefined && r72t.splitAmount !== null ? r72t.splitAmount : '';
-        out += this._input('Amount to Split / Roll Over ($)', `${prefix}.rule72t.splitAmount`, 'number', splitVal, 'Initial amount transferred from source account into the 72(t) IRA at plan start. Leave blank to use full source balance.');
+        out += `<div>` + this._input('Amount to Split / Roll Over ($)', `${prefix}.rule72t.splitAmount`, 'number', splitVal, 'Initial amount transferred from source account into the 72(t) IRA at plan start. Leave blank to use full source balance.') + `</div>`;
 
-        out += this._input(`72(t) Start Date ${r72tBadge}`, `${prefix}.rule72t.startDate`, 'date', r72tDate, 'The month and year to begin 72(t) distributions. Starting at age 56 or later locks you into rigid payments past age 59.5.');
+        out += `<div>` + this._input('72(t) Start Date', `${prefix}.rule72t.startDate`, 'date', r72tDate, { tooltip: 'The month and year to begin 72(t) distributions. Starting at age 56 or later locks you into rigid payments past age 59.5.', badge: r72tBadge }) + `</div>`;
+        out += `<div>` + this._select('Method', `${prefix}.rule72tMethod`, [
+            { value: 'amortization', label: 'Amortization (Fixed - Highest Payout)' },
+            { value: 'rmd', label: 'RMD (Variable - Lowest Payout)' }
+        ], spouseObj.rule72tMethod || 'amortization', 'Amortization produces steady fixed payout over life expectancy. RMD produces variable distribution.') + `</div>`;
+        out += `</div>`;
         
         const warning = HeuristicValidator.validate72tAge(calculatedR72tAge);
         out += this._warningBox(`${prefix}-72t-age-warning`, warning ? warning.message : '');
-
-        out += this._select('Method', `${prefix}.rule72tMethod`, [
-            { value: 'amortization', label: 'Amortization (Fixed - Highest Payout)' },
-            { value: 'rmd', label: 'RMD (Variable - Lowest Payout)' }
-        ], spouseObj.rule72tMethod || 'amortization', 'Amortization produces steady fixed payout over life expectancy. RMD produces variable distribution.');
 
         // Live SEPP Payout Preview Callout
         const targetAcc = (spouseObj.accounts || []).find(a => a.id === r72t.targetAccount || a.name === r72t.targetAccount || a.type === r72t.targetAccount)

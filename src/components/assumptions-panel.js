@@ -18,7 +18,7 @@ export class AssumptionsPanel extends BaseComponent {
         const startDateVal = this.state.assumptions.startDate || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
         
         // Row 1: Simulation Start Date, Initial Cash Cushion, Graph Years
-        html += `<div class="compact-grid-3">`;
+        html += `<div class="tab-stop-grid-3">`;
         html += `<div>` + this._input('Simulation Start Date', 'assumptions.startDate', 'date', startDateVal, 'The starting month of your financial plan. All entered portfolio account balances represent balances as of this date. Months prior to this date in Year 1 are treated as past history.') + `</div>`;
         html += `<div>` + this._input('Initial Cash Cushion ($)', 'assumptions.initialCashCushion', 'number', this.state.assumptions.initialCashCushion, 'Starting liquid cash reserve available before retirement investment accounts are tapped for deficit funding.') + `</div>`;
         html += `<div>` + this._input('Graph Years', 'assumptions.graphYears', 'number', this.state.assumptions.graphYears, 'Total duration (number of years) simulated into the future and displayed on all charts and tables.') + `</div>`;
@@ -27,7 +27,7 @@ export class AssumptionsPanel extends BaseComponent {
         // Row 2: Inflation Rate, Expected W2 Raise, State Tax Rate
         const inflRate = this.state.assumptions.inflationRate;
         const w2Raise = this.state.assumptions.w2RaiseRate || 2.0;
-        html += `<div class="compact-grid-3">`;
+        html += `<div class="tab-stop-grid-3">`;
         html += `<div>` + this._input('Inflation Rate (%)', 'assumptions.inflationRate', 'number', inflRate, 'Estimated compound annual inflation rate. Used to inflate future expenses, phase budgets, and college costs. Historical 50-year US CPI average is ~2.5%–3.2%.') + `</div>`;
         html += `<div>` + this._input('Expected W2 Raise (%)', 'assumptions.w2RaiseRate', 'number', w2Raise, 'Annual nominal wage growth rate applied to base W2 salaries. Standard corporate merit raises typically average 2.0%–3.5%.') + `</div>`;
         html += `<div>` + this._input('State Tax Rate (%)', 'assumptions.stateTaxRate', 'number', this.state.assumptions.stateTaxRate !== undefined ? this.state.assumptions.stateTaxRate : 0, 'Estimated flat state income tax rate applied on top of Federal 2024 Married Filing Jointly tax brackets.') + `</div>`;
@@ -53,9 +53,9 @@ export class AssumptionsPanel extends BaseComponent {
     }
 
     _renderMarketRates() {
-        let html = `<div style="padding: 0.5rem; background: var(--bg-darker); margin-top: 1rem; border-left: 3px solid var(--primary);">
+        let html = `<div style="padding: 0.85rem 1rem; background: var(--bg-darker); margin-top: 1rem; border-left: 3px solid var(--primary); border-radius: 6px;">
             <div class="pane-section-header">Portfolio Market Return Rates (Securities)</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; line-height: 1.4;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.4;">
                 Unified annual nominal return rate for 401k, 403b, Traditional IRA, Roth IRA, and Brokerage accounts. (Long-term S&P 500 nominal avg: ~7%–10%).
             </div>`;
             
@@ -67,18 +67,17 @@ export class AssumptionsPanel extends BaseComponent {
             const tierRate = tier.rate !== undefined ? tier.rate : 7.0;
             const tierWarn = HeuristicValidator.validateMarketReturn(tierRate);
 
-            html += `<div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.5rem; align-items: end; margin-bottom: 0.2rem;">`;
-            html += this._input(`Start Year`, `assumptions.marketReturnRates.${tIdx}.startYear`, 'number', tier.startYear || new Date().getFullYear(), 'The calendar year this market return rate tier begins taking effect.');
-            html += this._input(`Return Rate (%)`, `assumptions.marketReturnRates.${tIdx}.rate`, 'number', tierRate, 'Annual compound return rate for this time period. S&P 500 average is 7%–10% nominal (5%–7% real).');
+            html += `<div class="tab-stop-grid-2" style="align-items: end; margin-bottom: 0.4rem;">`;
+            html += `<div>${this._input(`Start Year`, `assumptions.marketReturnRates.${tIdx}.startYear`, 'number', tier.startYear || new Date().getFullYear(), 'The calendar year this market return rate tier begins taking effect.')}</div>`;
+            html += `<div style="display: flex; gap: 0.5rem; align-items: flex-end;">`;
+            html += `<div style="flex: 1;">${this._input(`Return Rate (%)`, `assumptions.marketReturnRates.${tIdx}.rate`, 'number', tierRate, 'Annual compound return rate for this time period. S&P 500 average is 7%–10% nominal (5%–7% real).')}</div>`;
             if (marketRates.length > 1) {
-                html += `<button type="button" class="btn btn-secondary remove-market-rate-btn" data-index="${tIdx}" style="padding: 0.4rem 0.6rem; background: #e74c3c; color: white; border: none; margin-bottom: 0.5rem;" title="Remove tier">✕</button>`;
-            } else {
-                html += `<div style="width: 28px;"></div>`;
+                html += `<button type="button" class="btn btn-secondary remove-market-rate-btn" data-index="${tIdx}" style="padding: 0.45rem 0.65rem; background: #e74c3c; color: white; border: none; margin-bottom: 0.5rem; border-radius: 4px;" title="Remove tier">✕</button>`;
             }
-            html += `</div>`;
+            html += `</div></div>`;
             html += this._warningBox(`market-rate-warning-${tIdx}`, tierWarn ? tierWarn.message : '');
         });
-        html += `<button id="btn-add-market-rate" type="button" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.3rem 0.6rem; margin-top: 0.3rem;">+ Add Rate Tier</button>`;
+        html += `<button id="btn-add-market-rate" type="button" class="btn btn-secondary btn-small" style="margin-top: 0.35rem;">+ Add Rate Tier</button>`;
         html += `</div>`;
         return html;
     }

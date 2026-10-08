@@ -29,6 +29,10 @@ export function parseDateParts(dateStr, defaultYear = 2026, defaultMonth = 1) {
         parsedYear += 2000;
     }
 
+    if (parsedYear < 1920 || parsedYear > 2100) {
+        parsedYear = defaultYear;
+    }
+
     let parsedMonth = parseInt(parts[1], 10);
     if (isNaN(parsedMonth)) {
         parsedMonth = defaultMonth;
