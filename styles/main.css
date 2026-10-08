@@ -447,6 +447,16 @@ main {
     transition: transform 0.3s ease;
 }
 
+/* Settings & Parameters Drawer - Solid opaque background (SPEC-053: zero transparency) */
+#params-modal .drawer-content {
+    background: #0f172a;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: 0;
+    border-right: 1px solid var(--border-color);
+    box-shadow: 25px 0 50px -12px rgba(0, 0, 0, 0.75);
+}
+
 .drawer-right {
     width: 95vw;
     max-width: 780px;
