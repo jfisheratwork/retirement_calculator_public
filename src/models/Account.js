@@ -210,7 +210,7 @@ export class RothIra extends Account {
         }
     }
 
-    getRothPrincipalBreakdown(currentYear) {
+    getRothPrincipalBreakdown(currentYear, ownerAge = 0) {
         let withdrawablePrincipal = 0;
         let immaturePrincipal = 0;
         let totalOriginal = 0;
@@ -219,7 +219,7 @@ export class RothIra extends Account {
             const avail = Math.min(c.balance, c.originalAmount);
             totalOriginal += c.originalAmount;
             if (c.originalAmount > 0) {
-                if (currentYear >= c.maturityYear) {
+                if (currentYear >= c.maturityYear || ownerAge >= 59.5) {
                     withdrawablePrincipal += avail;
                 } else {
                     immaturePrincipal += avail;
@@ -237,11 +237,12 @@ export class RothIra extends Account {
         };
     }
 
-    withdrawMaturedPrincipal(amountLeft, currentYear) {
+    withdrawMaturedPrincipal(amountLeft, currentYear, ownerAge = 0) {
         let drawn = 0;
         for (const c of this.cohorts) {
             if (amountLeft - drawn <= 0) break;
-            if (currentYear >= c.maturityYear && c.originalAmount > 0) {
+            const isMatured = (currentYear >= c.maturityYear) || (ownerAge >= 59.5);
+            if (isMatured && c.originalAmount > 0) {
                 const principalAvailable = Math.min(c.balance, c.originalAmount);
                 if (principalAvailable > 0) {
                     const d = Math.min(principalAvailable, amountLeft - drawn);
@@ -276,8 +277,8 @@ export class RothIra extends Account {
         if (amount <= 0) return 0;
         let amountLeft = amount;
         
-        // 1. Pull from matured principal (5-year rule)
-        const principalDrawn = this.withdrawMaturedPrincipal(amountLeft, currentYear);
+        // 1. Pull from matured principal (5-year rule OR age >= 59.5 per IRC § 408A(d)(3)(F))
+        const principalDrawn = this.withdrawMaturedPrincipal(amountLeft, currentYear, ownerAge);
         amountLeft -= principalDrawn;
 
         // 2. Pull from remaining earnings if age >= 59.5
@@ -294,7 +295,7 @@ export class RothIra extends Account {
         if (totalDrawn < amount && events) {
             let principalBlocked = 0;
             for (const c of this.cohorts) {
-                if (currentYear < c.maturityYear && c.originalAmount > 0) {
+                if (currentYear < c.maturityYear && ownerAge < 59.5 && c.originalAmount > 0) {
                     principalBlocked += Math.min(c.balance, c.originalAmount);
                 }
             }

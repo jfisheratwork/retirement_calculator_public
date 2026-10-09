@@ -69,16 +69,21 @@ function initDisclaimerBanner() {
     const dismissBtn = document.getElementById('btn-dismiss-disclaimer');
     if (!banner) return;
 
+    const dismiss = () => {
+        banner.classList.add('dismissed');
+        setTimeout(() => {
+            banner.style.display = 'none';
+        }, 500);
+    };
+
     if (dismissBtn) {
-        dismissBtn.addEventListener('click', () => {
-            banner.classList.add('dismissed');
-        });
+        dismissBtn.addEventListener('click', dismiss);
     }
 
     // Auto-hide after 2 minutes (120,000ms)
     setTimeout(() => {
         if (banner && !banner.classList.contains('dismissed')) {
-            banner.classList.add('dismissed');
+            dismiss();
         }
     }, 120000);
 }

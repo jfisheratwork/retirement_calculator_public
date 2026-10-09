@@ -4,17 +4,35 @@
  * Domain logic for calculating spouse W2 contributions, pre-tax deductions, 
  * post-tax deductions, employer matching, HSA, and Roth IRA contributions.
  */
-const HSA_BASE_CAP_SINGLE = 4300;
-const HSA_BASE_CAP_FAMILY = 8550;
-const HSA_CATCHUP_55 = 1000;
-const ROTH_BASE_CAP = 7000;
-const ROTH_CATCHUP_50 = 1000;
-const ROTH_PHASEOUT_SINGLE_FLOOR = 150000;
-const ROTH_PHASEOUT_SINGLE_CEILING = 165000;
-const ROTH_PHASEOUT_MFJ_FLOOR = 236000;
-const ROTH_PHASEOUT_MFJ_CEILING = 246000;
+export const HSA_BASE_CAP_SINGLE = 4300;
+export const HSA_BASE_CAP_FAMILY = 8550;
+export const HSA_CATCHUP_55 = 1000;
+export const ROTH_BASE_CAP = 7000;
+export const ROTH_CATCHUP_50 = 1000;
+export const ROTH_PHASEOUT_SINGLE_FLOOR = 150000;
+export const ROTH_PHASEOUT_SINGLE_CEILING = 165000;
+export const ROTH_PHASEOUT_MFJ_FLOOR = 236000;
+export const ROTH_PHASEOUT_MFJ_CEILING = 246000;
+export const ELECTIVE_DEFERRAL_BASE_CAP = 23500;
+export const ELECTIVE_DEFERRAL_CATCHUP_50 = 7500;
+export const ELECTIVE_DEFERRAL_SUPER_CATCHUP_60_63 = 11250;
 
 export class ContributionCalculator {
+    /**
+     * Computes the statutory IRC § 402(g) employee elective deferral limit based on age.
+     * @param {number} age - Owner's age in the given year
+     * @returns {number} Statutory elective deferral limit ($23,500 base + catch-up)
+     */
+    static getElectiveDeferralLimit(age = 0) {
+        if (age >= 60 && age <= 63) {
+            return ELECTIVE_DEFERRAL_BASE_CAP + ELECTIVE_DEFERRAL_SUPER_CATCHUP_60_63;
+        }
+        if (age >= 50) {
+            return ELECTIVE_DEFERRAL_BASE_CAP + ELECTIVE_DEFERRAL_CATCHUP_50;
+        }
+        return ELECTIVE_DEFERRAL_BASE_CAP;
+    }
+
     /**
      * Estimates pre-tax deductions (401k/403b and HSA) without mutating account balances,
      * useful for accurate household MAGI calculation prior to Roth IRA processing.
@@ -22,17 +40,28 @@ export class ContributionCalculator {
     static calculatePreTaxDeductionsEstimate({ spouse, jobs, year }) {
         if (!jobs) return 0;
         const spouseAge = spouse.getAge ? spouse.getAge(year) : (year - spouse.birthYear);
-        return jobs.reduce((sum, job) => sum + this._estimateJobPreTax(spouse, job, year, spouseAge), 0);
+        const electiveCap = this.getElectiveDeferralLimit(spouseAge);
+        let total401k = 0;
+        let totalHsa = 0;
+
+        jobs.forEach(job => {
+            const est = this._estimateJobPreTax(spouse, job, year, spouseAge);
+            total401k += est.preTax401k;
+            totalHsa += est.preTaxHsa;
+        });
+
+        return Math.min(total401k, electiveCap) + totalHsa;
     }
 
     static _estimateJobPreTax(spouse, job, year, spouseAge) {
-        let preTax = 0;
+        let preTax401k = 0;
+        let preTaxHsa = 0;
         if (job.linked401kAccountId && job.total > 0) {
             const acc = spouse.getAccount(job.linked401kAccountId);
             if (acc && (acc.type === 'traditional401k' || acc.type === 'trad403b')) {
                 const jobDef = (spouse.jobs || []).find(j => (j.id && j.id === job.id) || (j.title && j.title === job.title)) || {};
                 const p = Number(job.contributionPercentage ?? jobDef.contributionPercentage ?? acc.contributionPercentage ?? 0);
-                preTax += job.total * (p / 100);
+                preTax401k += job.total * (p / 100);
             }
         }
         if (job.linkedHsaAccountId && job.total > 0 && spouseAge < 65) {
@@ -48,11 +77,11 @@ export class ContributionCalculator {
                     const rawTarget = (job.hsaAnnualContribution !== undefined && job.hsaAnnualContribution !== null && job.hsaAnnualContribution !== '')
                         ? Number(job.hsaAnnualContribution)
                         : (acc.annualContribution || statutoryLimit);
-                    preTax += Math.min(statutoryLimit, Math.max(0, rawTarget));
+                    preTaxHsa += Math.min(statutoryLimit, Math.max(0, rawTarget));
                 }
             }
         }
-        return preTax;
+        return { preTax401k, preTaxHsa };
     }
 
     /**
@@ -78,7 +107,7 @@ export class ContributionCalculator {
         }
 
         // 1. Process employer-sponsored accounts (401k/403b) linked to active jobs
-        const k401Result = this._processLinked401k({ spouse, jobs });
+        const k401Result = this._processLinked401k({ spouse, jobs, year });
         preTaxDeductions += k401Result.preTaxDeductions;
         totalEmployerMatch += k401Result.totalEmployerMatch;
 
@@ -88,7 +117,15 @@ export class ContributionCalculator {
         hsaPreTaxDeduction += hsaResult.preTaxHsa;
 
         // 3. Process direct / remaining accounts (Traditional IRA, Roth IRA, Brokerage, HYSA)
-        const directResult = this._processDirectAccounts({ spouse, w2Gross, jobs, year, filingStatus, householdMagi });
+        const directResult = this._processDirectAccounts({
+            spouse,
+            w2Gross,
+            jobs,
+            year,
+            filingStatus,
+            householdMagi,
+            accumulatedElective: k401Result.preTaxDeductions
+        });
         preTaxDeductions += directResult.preTaxDeductions;
         postTaxDeductions += directResult.postTaxDeductions;
         totalEmployerMatch += directResult.totalEmployerMatch;
@@ -96,10 +133,14 @@ export class ContributionCalculator {
         return { preTaxDeductions, postTaxDeductions, totalEmployerMatch, hsaPreTaxDeduction };
     }
 
-    static _processLinked401k({ spouse, jobs }) {
+    static _processLinked401k({ spouse, jobs, year = 2026 }) {
         let preTaxDeductions = 0;
         let totalEmployerMatch = 0;
         if (!jobs) return { preTaxDeductions, totalEmployerMatch };
+
+        const spouseAge = spouse.getAge ? spouse.getAge(year) : (year - spouse.birthYear);
+        const electiveCap = this.getElectiveDeferralLimit(spouseAge);
+        let accumulatedElective = 0;
 
         jobs.forEach(job => {
             if (job.linked401kAccountId && job.total > 0) {
@@ -111,9 +152,15 @@ export class ContributionCalculator {
                         : (jobDef.contributionPercentage !== undefined && jobDef.contributionPercentage !== null
                             ? jobDef.contributionPercentage
                             : (acc.contributionPercentage || 0)));
-                    const cont = job.total * (p / 100);
+                    const rawCont = job.total * (p / 100);
+                    const remainingCap = Math.max(0, electiveCap - accumulatedElective);
+                    const cont = Math.min(rawCont, remainingCap);
+
+                    accumulatedElective += cont;
                     preTaxDeductions += cont;
-                    acc.contribute(cont);
+                    if (cont > 0) {
+                        acc.contribute(cont);
+                    }
 
                     const matchCont = this._calculateEmployerMatch(job, jobDef, acc, p);
                     totalEmployerMatch += matchCont;
@@ -172,18 +219,27 @@ export class ContributionCalculator {
         return { preTaxHsa };
     }
 
-    static _processDirectAccounts({ spouse, w2Gross, jobs, year, filingStatus, householdMagi }) {
+    static _processDirectAccounts({ spouse, w2Gross, jobs, year, filingStatus, householdMagi, accumulatedElective = 0 }) {
         let preTaxDeductions = 0;
         let postTaxDeductions = 0;
         const totalEmployerMatch = 0;
+
+        const spouseAge = spouse.getAge ? spouse.getAge(year) : (year - spouse.birthYear);
+        const electiveCap = this.getElectiveDeferralLimit(spouseAge);
+        let currentElective = accumulatedElective;
 
         spouse.accounts.forEach(acc => {
             if (acc.type === 'traditional401k' || acc.type === 'trad403b') {
                 const isLinked = jobs && jobs.some(j => j.linked401kAccountId === acc.id);
                 if (!isLinked && acc.isActiveContributor) {
-                    const cont = w2Gross * ((acc.contributionPercentage || 0) / 100);
+                    const rawCont = w2Gross * ((acc.contributionPercentage || 0) / 100);
+                    const remainingCap = Math.max(0, electiveCap - currentElective);
+                    const cont = Math.min(rawCont, remainingCap);
+                    currentElective += cont;
                     preTaxDeductions += cont;
-                    acc.contribute(cont);
+                    if (cont > 0) {
+                        acc.contribute(cont);
+                    }
                 }
             } else if (acc.type === 'standardIra') {
                 const cont = w2Gross * ((acc.contributionPercentage || 0) / 100);

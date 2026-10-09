@@ -104,7 +104,7 @@ export class AssumptionsPanel extends BaseComponent {
         html += `</div>`;
 
         html += `<div id="drawdown-vitality-settings" style="margin-top: 0.5rem;">`;
-        html += this._input('Early Retirement "Go-Go" Multiplier (x)', 'strategies.gogoMultiplier', 'number', this.state.strategies?.gogoMultiplier !== undefined ? this.state.strategies.gogoMultiplier : 1.0, 'Lifestyle spending multiplier applied during active early retirement years (50s/60s) when physical energy and travel desires are highest (1.0x to 1.5x).');
+        html += this._input('Early Retirement "Go-Go" Multiplier', 'strategies.gogoMultiplier', 'number', this.state.strategies?.gogoMultiplier !== undefined ? this.state.strategies.gogoMultiplier : 1.0, 'Lifestyle spending multiplier applied during active early retirement years (50s/60s) when physical energy and travel desires are highest (1.0x to 1.5x).');
         html += this._input('Biological Health Aging Offset (Years)', 'strategies.healthAgingOffset', 'number', this.state.strategies?.healthAgingOffset || 0, 'Simulates biological health aging faster (+years) or slower (-years) than chronological calendar age, dynamically accelerating retirement phase expense transitions.');
         html += `</div>`;
 

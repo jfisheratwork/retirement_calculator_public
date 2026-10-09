@@ -306,6 +306,9 @@ export class BaseComponent extends BaseElement {
             const { min, max } = this._inferAgeConfig(cleanLabel);
             return { prefix: '', suffix: '', sizingClass: 'input-age', minAttr: `min="${min}"`, maxAttr: `max="${max}"`, stepAttr: 'step="1"' };
         }
+        if (cleanLabel.includes('multiplier') || cleanLabel.includes('ratio')) {
+            return { prefix: '', suffix: 'x', sizingClass: 'input-rate', minAttr: 'min="0.1"', maxAttr: 'max="5.0"', stepAttr: 'step="0.05"' };
+        }
         if (this._isCurrencyField(cleanLabel)) {
             const isLarge = cleanLabel.includes('annual') || cleanLabel.includes('salary') || cleanLabel.includes('balance') || cleanLabel.includes('value') || cleanLabel.includes('target cap');
             return { prefix: '$', suffix: '', sizingClass: isLarge ? 'input-currency-md' : 'input-currency-sm', minAttr: 'min="0"', maxAttr: 'max="50000000"', stepAttr: 'step="1"' };

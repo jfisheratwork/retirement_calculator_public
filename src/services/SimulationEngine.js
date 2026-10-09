@@ -934,7 +934,8 @@ export class SimulationEngine {
             if (type === 'rothIra') {
                 const rothAcc = (spouse.accounts || []).find(a => a.type === 'rothIra');
                 if (rothAcc && typeof rothAcc.getRothPrincipalBreakdown === 'function') {
-                    res.rothPrincipalBreakdown = rothAcc.getRothPrincipalBreakdown(snapshot.year);
+                    const spouseAge = spouse.getAge ? spouse.getAge(snapshot.year) : (snapshot.year - spouse.birthYear);
+                    res.rothPrincipalBreakdown = rothAcc.getRothPrincipalBreakdown(snapshot.year, spouseAge);
                 }
             }
             return res;
