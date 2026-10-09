@@ -14,6 +14,11 @@ import { FireMilestoneCalculator } from './services/FireMilestoneCalculator.js';
 import { renderFireIndicator } from './components/fire-indicator.js';
 import './components/fire-drawer.js';
 import './components/what-if-drawer.js';
+import { StateSyncBridge } from './services/StateSyncBridge.js';
+import './components/setup-picker-modal.js';
+import './components/express-onboarding-modal.js';
+import './components/guided-planner-wizard.js';
+import './components/micro-expand-drawer.js';
 
 // DOM Elements
 let btnLoadSample;
@@ -25,6 +30,7 @@ let btnDeleteProfile;
 let btnEditParams;
 let btnOpenWhatIf;
 let btnLockData;
+let btnOpenSetup;
 let parkedDrawer;
 let paramsModal;
 let btnCloseModal;
@@ -36,6 +42,9 @@ let profileManagerModalInstance;
 let whatIfDrawerInstance;
 let pinLockModalInstance;
 let pinUnlockModalInstance;
+let setupPickerModalInstance;
+let expressModalInstance;
+let guidedModalInstance;
 
 function bootstrap() {
     pinLockModalInstance = document.querySelector('pin-lock-modal');
@@ -129,19 +138,29 @@ function initAppPostUnlock() {
     paramsModal = document.getElementById('params-modal');
     btnCloseModal = document.getElementById('btn-close-modal');
     btnSaveParams = document.getElementById('btn-save-params');
+    btnOpenSetup = document.getElementById('btn-open-setup');
 
     // Init Modals
     settingsModalInstance = document.querySelector('settings-modal');
     profileManagerModalInstance = document.querySelector('profile-manager-modal');
     whatIfDrawerInstance = document.querySelector('what-if-drawer');
+    setupPickerModalInstance = document.querySelector('setup-picker-modal');
+    expressModalInstance = document.querySelector('express-onboarding-modal');
+    guidedModalInstance = document.querySelector('guided-planner-wizard');
 
     bindEvents();
+    initModeSwitcher();
     updateProfileSelect();
     updateLockButtonState();
     
     const state = getState();
-    if (!state.primarySpouse.yearOfBirth || !state.primarySpouse.targetRetirementAge) {
-        if (paramsModal) paramsModal.classList.remove('hidden');
+    const hasCompletedOnboarding = typeof localStorage !== 'undefined' && localStorage.getItem('has_completed_onboarding') === 'true';
+    if (!hasCompletedOnboarding && (!state.primarySpouse.yearOfBirth || !state.primarySpouse.targetRetirementAge)) {
+        if (setupPickerModalInstance) {
+            setupPickerModalInstance.open();
+        } else if (paramsModal) {
+            paramsModal.classList.remove('hidden');
+        }
     }
     
     updateApp();
@@ -321,6 +340,133 @@ function bindDrawerEvents() {
             whatIfDrawerInstance.toggle();
         });
     }
+}
+
+function _bindModeButtons(updateActiveModePill) {
+    const modeButtons = document.querySelectorAll('.mode-pill-btn');
+    modeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.dataset.mode;
+            updateActiveModePill(mode);
+            if (mode === 'express') {
+                if (expressModalInstance) {
+                    expressModalInstance.setViewModel(StateSyncBridge.toExpressViewModel(getState()));
+                    expressModalInstance.open();
+                }
+            } else if (mode === 'guided') {
+                if (guidedModalInstance) {
+                    guidedModalInstance.setViewModel(StateSyncBridge.toGuidedViewModel(getState()));
+                    guidedModalInstance.open();
+                }
+            } else if (mode === 'advanced') {
+                if (paramsModal) paramsModal.classList.remove('hidden');
+            }
+        });
+    });
+
+    if (btnOpenSetup) {
+        btnOpenSetup.addEventListener('click', () => {
+            if (setupPickerModalInstance) setupPickerModalInstance.open();
+        });
+    }
+}
+
+function _bindSetupPickerEvents(updateActiveModePill) {
+    if (!setupPickerModalInstance) return;
+
+    setupPickerModalInstance.addEventListener('select-mode', (e) => {
+        const mode = e.detail?.mode || 'express';
+        updateActiveModePill(mode);
+        if (mode === 'express') {
+            if (expressModalInstance) {
+                expressModalInstance.setViewModel(StateSyncBridge.toExpressViewModel(getState()));
+                expressModalInstance.open();
+            }
+        } else if (mode === 'guided') {
+            if (guidedModalInstance) {
+                guidedModalInstance.setViewModel(StateSyncBridge.toGuidedViewModel(getState()));
+                guidedModalInstance.open();
+            }
+        } else if (mode === 'advanced') {
+            if (paramsModal) paramsModal.classList.remove('hidden');
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('has_completed_onboarding', 'true');
+            }
+        }
+    });
+
+    setupPickerModalInstance.addEventListener('load-sample', async () => {
+        setupPickerModalInstance.close();
+        if (btnLoadSample) btnLoadSample.click();
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('has_completed_onboarding', 'true');
+        }
+    });
+}
+
+function _bindExpressModalEvents(updateActiveModePill) {
+    if (!expressModalInstance) return;
+
+    expressModalInstance.addEventListener('express-complete', (e) => {
+        const formData = e.detail?.formData;
+        if (formData) {
+            const currState = getState();
+            const updatedState = StateSyncBridge.applyExpressUpdate(currState, formData);
+            replaceProfileData(getActiveProfileId(), updatedState);
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('has_completed_onboarding', 'true');
+                localStorage.setItem('active_mode', 'express');
+            }
+            updateActiveModePill('express');
+            updateApp(true);
+        }
+        expressModalInstance.close();
+    });
+}
+
+function _bindGuidedModalEvents(updateActiveModePill) {
+    if (!guidedModalInstance) return;
+
+    guidedModalInstance.addEventListener('guided-complete', (e) => {
+        const guidedData = e.detail;
+        if (guidedData) {
+            const currState = getState();
+            let updatedState = currState;
+            if (guidedData.step1) updatedState = StateSyncBridge.applyGuidedUpdate(updatedState, guidedData.step1, 1);
+            if (guidedData.step2) updatedState = StateSyncBridge.applyGuidedUpdate(updatedState, guidedData.step2, 2);
+            if (guidedData.step3) updatedState = StateSyncBridge.applyGuidedUpdate(updatedState, guidedData.step3, 3);
+            if (guidedData.step4) updatedState = StateSyncBridge.applyGuidedUpdate(updatedState, guidedData.step4, 4);
+
+            replaceProfileData(getActiveProfileId(), updatedState);
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('has_completed_onboarding', 'true');
+                localStorage.setItem('active_mode', 'guided');
+            }
+            updateActiveModePill('guided');
+            updateApp(true);
+        }
+        guidedModalInstance.close();
+    });
+}
+
+function initModeSwitcher() {
+    const modeButtons = document.querySelectorAll('.mode-pill-btn');
+    const updateActiveModePill = (mode) => {
+        modeButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('active_mode', mode);
+        }
+    };
+
+    const initialMode = (typeof localStorage !== 'undefined' && localStorage.getItem('active_mode')) || 'express';
+    updateActiveModePill(initialMode);
+
+    _bindModeButtons(updateActiveModePill);
+    _bindSetupPickerEvents(updateActiveModePill);
+    _bindExpressModalEvents(updateActiveModePill);
+    _bindGuidedModalEvents(updateActiveModePill);
 }
 
 function bindEvents() {

@@ -17,7 +17,7 @@
     <!-- chartjs-plugin-annotation v2.1.0: https://github.com/chartjs/chartjs-plugin-annotation/releases/tag/v2.1.0 -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0/dist/chartjs-plugin-annotation.min.js" integrity="sha384-dB7WWqy9+vERwKo2atAKw+KLNhfY0RX5ZjV1l4HHMBZz5wfSvX/GsytIpOyBY8dG" crossorigin="anonymous"></script>
 
-    <link rel="stylesheet" href="styles/main.css?v=1791586438554">
+    <link rel="stylesheet" href="styles/main.css?v=1791589497226">
 </head>
 
 <body>
@@ -39,6 +39,9 @@
     <cost-basis-modal></cost-basis-modal>
     <pin-lock-modal id="pin-lock-modal"></pin-lock-modal>
     <pin-unlock-modal id="pin-unlock-modal"></pin-unlock-modal>
+    <setup-picker-modal id="setup-picker-modal"></setup-picker-modal>
+    <express-onboarding-modal id="express-onboarding-modal"></express-onboarding-modal>
+    <guided-planner-wizard id="guided-planner-modal" style="display: none;"></guided-planner-wizard>
 
     <div class="app-container">
         <!-- Prominent Hobby Sandbox / No Warranties Disclaimer Banner -->
@@ -56,6 +59,14 @@
                 <p style="margin: 0; color: var(--text-muted);">Retirement strategy with detailed scenario modeling.</p>
             </div>
             <div class="header-actions">
+                <div class="mode-pill-group" id="header-mode-group" title="Experience Mode">
+                    <button type="button" id="btn-mode-express" class="mode-pill-btn active" data-mode="express">⚡ Express</button>
+                    <button type="button" id="btn-mode-guided" class="mode-pill-btn" data-mode="guided">🧭 Guided</button>
+                    <button type="button" id="btn-mode-advanced" class="mode-pill-btn" data-mode="advanced">⚙️ Advanced</button>
+                </div>
+                <button type="button" id="btn-open-setup" class="btn btn-header-setup" title="Open Setup Wizard">
+                    <span>⚡ Setup</span>
+                </button>
                 <button id="btn-load-sample" class="btn btn-sample-profile" title="Load Sample Household Profile (Couple 45 & 41, 2 Kids, $180k Income, $1.5M at 52)">
                     <span>📊 Samples</span>
                 </button>
@@ -216,7 +227,7 @@
     <!-- What If Sandbox Drawer Component -->
     <what-if-drawer id="what-if-drawer"></what-if-drawer>
 
-    <script type="module" src="src/app.js?v=1791586438554"></script>
+    <script type="module" src="src/app.js?v=1791589497226"></script>
 </body>
 
 </html>
