@@ -1,6 +1,5 @@
 import { BaseComponent } from './base-component.js';
-import { getGlobalSettings, updateGlobalSettings, getProfiles, getActiveProfileId, switchProfile, createProfile, renameProfile, deleteProfile, replaceProfileData, exportState } from '../services/state.js';
-import { obfuscateData, deobfuscateData } from '../services/encryption.js';
+import { getProfiles, getActiveProfileId, switchProfile, createProfile, renameProfile, deleteProfile, replaceProfileData, exportState } from '../services/state.js';
 
 import { escapeHtml } from '../utils/sanitize.js';
 export { escapeHtml };
@@ -22,33 +21,6 @@ export class SettingsModal extends BaseComponent {
                         <button class="btn-export btn btn-secondary" style="width: 100%;">Export Current Profile (JSON)</button>
                         <button class="btn-import btn btn-secondary" style="width: 100%;">Import Profile (JSON File)</button>
                         <input type="file" class="file-import" style="display: none;" accept=".json">
-
-                        <hr style="border-color: rgba(255,255,255,0.1); margin: 1rem 0;">
-
-                        
-                        <div>
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Google Gemini AI Settings</label>
-                            
-                            <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 0.85rem; margin-bottom: 0.75rem;">
-                                <div style="font-size: 0.85rem; font-weight: 600; color: #93c5fd; margin-bottom: 0.4rem;">🔑 How to get a free Gemini API Key:</div>
-                                <ol style="font-size: 0.8rem; line-height: 1.5; padding-left: 1.2rem; color: #cbd5e1; margin-bottom: 0.6rem;">
-                                    <li>Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">Google AI Studio (aistudio.google.com)</a>.</li>
-                                    <li>Click <strong>"Create API Key"</strong> (Free Tier with generous limits available).</li>
-                                    <li>Copy your key and paste it into the field below.</li>
-                                </ol>
-                                <div style="font-size: 0.75rem; color: #94a3b8; font-style: italic;">
-                                    🔒 <strong>Privacy:</strong> Keys are obfuscated in your browser's local storage and sent exclusively to Google's Generative AI endpoint.
-                                </div>
-                            </div>
-
-                            <input type="password" class="gemini-api-key" placeholder="Paste your Gemini API key (AIzaSy...)" style="width: 100%; padding: 0.6rem 0.8rem; border-radius: 0.4rem; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.5); color: white; margin-bottom: 0.5rem;">
-                            
-                            <div style="display: flex; gap: 0.5rem;">
-                                <button type="button" class="btn-save-api-key btn btn-primary" style="flex: 1;">Save Key</button>
-                                <button type="button" class="btn-test-api-key btn btn-secondary" style="flex: 1;">Test Connection</button>
-                            </div>
-                            <div class="api-key-test-status" style="font-size: 0.8rem; margin-top: 0.5rem; display: none; line-height: 1.3;"></div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -61,10 +33,6 @@ export class SettingsModal extends BaseComponent {
         const btnExport = this.querySelector('.btn-export');
         const btnImport = this.querySelector('.btn-import');
         const fileImport = this.querySelector('.file-import');
-        const btnSaveKey = this.querySelector('.btn-save-api-key');
-        const btnTestKey = this.querySelector('.btn-test-api-key');
-        const keyInput = this.querySelector('.gemini-api-key');
-        const testStatus = this.querySelector('.api-key-test-status');
 
         btnClose.addEventListener('click', () => this.close());
         
@@ -73,8 +41,6 @@ export class SettingsModal extends BaseComponent {
         });
 
         btnImport.addEventListener('click', () => fileImport.click());
-
-
 
         fileImport.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -98,49 +64,6 @@ export class SettingsModal extends BaseComponent {
             reader.readAsText(file);
         });
 
-        btnSaveKey.addEventListener('click', () => {
-            const key = keyInput.value.trim();
-            const obfuscated = obfuscateData(key);
-            updateGlobalSettings({ apiKey: obfuscated });
-            
-            btnSaveKey.textContent = 'Saved!';
-            setTimeout(() => {
-                btnSaveKey.textContent = 'Save Key';
-            }, 1500);
-        });
-
-        btnTestKey.addEventListener('click', async () => {
-            const key = keyInput.value.trim();
-            if (!key) {
-                testStatus.style.display = 'block';
-                testStatus.style.color = '#fdcb6e';
-                testStatus.textContent = '⚠️ Please enter an API key first.';
-                return;
-            }
-
-            testStatus.style.display = 'block';
-            testStatus.style.color = '#74b9ff';
-            testStatus.textContent = '⏳ Testing connection to Google AI Studio...';
-            btnTestKey.disabled = true;
-
-            try {
-                const { AIClient } = await import('../services/ai/ai-client.js');
-                const result = await AIClient.testKey(key);
-                if (result.success) {
-                    testStatus.style.color = '#00b894';
-                    testStatus.textContent = `✅ ${result.message}`;
-                } else {
-                    testStatus.style.color = '#ff7675';
-                    testStatus.textContent = `❌ ${result.message}`;
-                }
-            } catch (err) {
-                testStatus.style.color = '#ff7675';
-                testStatus.textContent = `❌ Error: ${err.message}`;
-            } finally {
-                btnTestKey.disabled = false;
-            }
-        });
-
         modal.addEventListener('click', (e) => {
             if (e.target === modal) this.close();
         });
@@ -149,10 +72,6 @@ export class SettingsModal extends BaseComponent {
     open() {
         const modal = this.querySelector('.drawer-overlay');
         modal.classList.remove('hidden');
-        const settings = getGlobalSettings();
-        if (settings && settings.apiKey) {
-            this.querySelector('.gemini-api-key').value = deobfuscateData(settings.apiKey);
-        }
     }
 
     close() {

@@ -6,10 +6,8 @@ import { initNerdAdvisor, renderNerdDetails } from './components/nerd-advisor.js
 import { renderUnderTheHood } from './components/under-the-hood.js';
 import { runAllSimulations } from './services/ScenarioManager.js';
 import './components/ui-modals.js';
-import './components/ai-advisor.js';
 import { renderStressAlerts } from './components/stress-alerts.js';
 import { initGlobalTooltips } from './components/tooltip.js';
-import { aiAssistant } from './services/AIAssistant.js';
 import { FireMilestoneCalculator } from './services/FireMilestoneCalculator.js';
 import { renderFireIndicator } from './components/fire-indicator.js';
 import './components/fire-drawer.js';
@@ -23,7 +21,6 @@ let btnAddProfile;
 let btnRenameProfile;
 let btnDeleteProfile;
 let btnEditParams;
-let btnOpenAi;
 let btnOpenWhatIf;
 let parkedDrawer;
 let paramsModal;
@@ -33,7 +30,6 @@ let inputPanelInstance = null;
 
 let settingsModalInstance;
 let profileManagerModalInstance;
-let aiAdvisorInstance;
 let whatIfDrawerInstance;
 
 function bootstrap() {
@@ -49,7 +45,6 @@ function bootstrap() {
     btnRenameProfile = document.getElementById('btn-rename-profile');
     btnDeleteProfile = document.getElementById('btn-delete-profile');
     btnEditParams = document.getElementById('btn-edit-params');
-    btnOpenAi = document.getElementById('btn-open-ai');
     btnOpenWhatIf = document.getElementById('btn-open-whatif');
     parkedDrawer = document.getElementById('parked-drawer');
     paramsModal = document.getElementById('params-modal');
@@ -59,7 +54,6 @@ function bootstrap() {
     // Init Modals
     settingsModalInstance = document.querySelector('settings-modal');
     profileManagerModalInstance = document.querySelector('profile-manager-modal');
-    aiAdvisorInstance = document.querySelector('ai-advisor-drawer');
     whatIfDrawerInstance = document.querySelector('what-if-drawer');
 
     bindEvents();
@@ -216,12 +210,6 @@ function bindDrawerEvents() {
     bindParamsModalEvents();
     bindExplainModalEvents();
 
-    if (btnOpenAi && aiAdvisorInstance) {
-        btnOpenAi.addEventListener('click', () => {
-            aiAdvisorInstance.open();
-        });
-    }
-
     if (btnOpenWhatIf && whatIfDrawerInstance) {
         btnOpenWhatIf.addEventListener('click', () => {
             whatIfDrawerInstance.toggle();
@@ -356,9 +344,6 @@ function updateApp(forceInputPanelRedraw = false) {
     if (typeof window !== 'undefined') {
         window.__lastSimResult = simResult;
     }
-    
-    // Update simulation context for AI Assistant
-    aiAssistant.updateSimulationContext(simResult.data, stressResults);
     
     // Render visual stress alerts above top KPI charts
     renderStressAlerts('stress-test-alerts', stressResults);

@@ -17,7 +17,7 @@
     <!-- chartjs-plugin-annotation v2.1.0: https://github.com/chartjs/chartjs-plugin-annotation/releases/tag/v2.1.0 -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0/dist/chartjs-plugin-annotation.min.js" integrity="sha384-dB7WWqy9+vERwKo2atAKw+KLNhfY0RX5ZjV1l4HHMBZz5wfSvX/GsytIpOyBY8dG" crossorigin="anonymous"></script>
 
-    <link rel="stylesheet" href="styles/main.css?v=1791431614056">
+    <link rel="stylesheet" href="styles/main.css?v=1791519754021">
 </head>
 
 <body>
@@ -39,6 +39,14 @@
     <cost-basis-modal></cost-basis-modal>
 
     <div class="app-container">
+        <!-- Prominent Hobby Sandbox / No Warranties Disclaimer Banner -->
+        <aside class="disclaimer-banner" role="note" aria-label="Hobby Project Disclaimer">
+            <div class="disclaimer-icon">⚠️</div>
+            <div class="disclaimer-content">
+                <strong>Hobby Sandbox &amp; Computational Experiment:</strong> This tool is strictly a personal, exploratory hobby project created for fun and computational modeling. Calculations, tax projections, and actuarial models are provided as-is without any warranties, guarantees, or representations of accuracy, and do not constitute financial, legal, investment, or tax advice.
+            </div>
+        </aside>
+
         <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <div>
                 <h1 style="margin: 0; font-size: 2rem; color: var(--primary);">Detailed Retirement Calculator</h1>
@@ -61,10 +69,6 @@
                 <button id="btn-open-whatif" class="btn btn-secondary" title="Open What-If Scenario Sandbox"
                     style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; padding: 0.45rem 0.85rem; border-radius: 6px; cursor: pointer; border: 1px solid rgba(234, 179, 8, 0.4); background: rgba(234, 179, 8, 0.12); color: #fde047; white-space: nowrap; transition: all 0.2s ease;">
                     <span>🔮 What If?</span>
-                </button>
-                <button id="btn-open-ai" class="btn btn-primary" title="Open AI Financial Advisor"
-                    style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; padding: 0.45rem 0.9rem; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none; border-radius: 6px; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35); cursor: pointer;">
-                    <span>✨ AI Advisor</span>
                 </button>
                 <button id="btn-edit-params" class="btn btn-icon" title="Settings"
                     style="font-size: 1.5rem; background: none; border: none; cursor: pointer;">⚙️</button>
@@ -251,16 +255,13 @@
         </div>
     </div>
 
-    <!-- AI Advisor Drawer Component -->
-    <ai-advisor-drawer id="ai-advisor-drawer"></ai-advisor-drawer>
-
     <!-- FIRE Milestones Drawer Component -->
     <fire-drawer id="fire-drawer"></fire-drawer>
 
     <!-- What If Sandbox Drawer Component -->
     <what-if-drawer id="what-if-drawer"></what-if-drawer>
 
-    <script type="module" src="src/app.js?v=1791431614056"></script>
+    <script type="module" src="src/app.js?v=1791519754021"></script>
 </body>
 
 </html>
