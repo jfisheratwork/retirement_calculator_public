@@ -13,6 +13,19 @@ export const TAX_BRACKETS_2024_MFJ = [
 
 export const STANDARD_DEDUCTION_2024_MFJ = 29200;
 
+// Post-TCJA Sunset (commencing 2026) US Federal Tax Brackets for MFJ
+export const TAX_BRACKETS_POST_TCJA_MFJ = [
+    { rate: 0.10, upTo: 23200 },
+    { rate: 0.15, upTo: 94300 },
+    { rate: 0.25, upTo: 190000 },
+    { rate: 0.28, upTo: 290000 },
+    { rate: 0.33, upTo: 450000 },
+    { rate: 0.35, upTo: 510000 },
+    { rate: 0.396, upTo: Infinity }
+];
+
+export const STANDARD_DEDUCTION_POST_TCJA_MFJ = 15000;
+
 // 2024 US Federal Tax Brackets for Single Filers (e.g. Spousal Survivor)
 export const TAX_BRACKETS_2024_SINGLE = [
     { rate: 0.10, upTo: 11600 },
@@ -25,6 +38,19 @@ export const TAX_BRACKETS_2024_SINGLE = [
 ];
 
 export const STANDARD_DEDUCTION_2024_SINGLE = 14600;
+
+// Post-TCJA Sunset (commencing 2026) US Federal Tax Brackets for Single Filers
+export const TAX_BRACKETS_POST_TCJA_SINGLE = [
+    { rate: 0.10, upTo: 11600 },
+    { rate: 0.15, upTo: 47150 },
+    { rate: 0.25, upTo: 95000 },
+    { rate: 0.28, upTo: 145000 },
+    { rate: 0.33, upTo: 225000 },
+    { rate: 0.35, upTo: 500000 },
+    { rate: 0.396, upTo: Infinity }
+];
+
+export const STANDARD_DEDUCTION_POST_TCJA_SINGLE = 7500;
 
 // 2024 Federal Long-Term Capital Gains (LTCG) Brackets
 export const LTCG_BRACKETS_2024_MFJ = [
@@ -88,66 +114,67 @@ export function calculateFicaTax(w2Gross, oasdiLimit = OASDI_WAGE_BASE_2024, fil
     return { oasdi, medicare, addlMedicare, totalFica };
 }
 
+function _buildStatusTaxTable(config, inflationMultiplier) {
+    const { baseBrackets, baseStdDeduction, baseIrmaa, baseLtcg, niitThreshold } = config;
+    const brackets = baseBrackets.map(b => ({
+        rate: b.rate,
+        upTo: b.upTo === Infinity ? Infinity : b.upTo * inflationMultiplier
+    }));
+    const irmaaBrackets = baseIrmaa.map(b => ({
+        surcharge: b.surcharge,
+        upTo: b.upTo === Infinity ? Infinity : b.upTo * inflationMultiplier
+    }));
+    const ltcgBrackets = baseLtcg.map(b => ({
+        rate: b.rate,
+        upTo: b.upTo === Infinity ? Infinity : b.upTo * inflationMultiplier
+    }));
+    return {
+        brackets,
+        standardDeduction: baseStdDeduction * inflationMultiplier,
+        irmaaBrackets,
+        ltcgBrackets,
+        niitThreshold, // Statutory IRC § 1411 threshold is NOT indexed for inflation
+        oasdiLimit: OASDI_WAGE_BASE_2024 * inflationMultiplier
+    };
+}
+
 /**
  * Precalculates tax brackets and standard deductions for N years based on an inflation rate.
- * Supports both MFJ and Single filing statuses.
+ * Supports both MFJ and Single filing statuses, 2026 TCJA Sunset, and statutory NIIT freezing.
  * @param {number} years 
  * @param {number} inflationRate 
+ * @param {number} [startYear=2026]
+ * @param {object} [assumptions={}]
  * @returns {Array} Array of tax data for each year
  */
-export function precalculateTaxTables(years, inflationRate) {
+export function precalculateTaxTables(years, inflationRate, startYear = 2026, assumptions = {}) {
     const tables = [];
+    const tcjaSunset = Boolean(assumptions?.tcjaSunset);
+
     for (let i = 0; i <= years; i++) {
+        const simYear = startYear + i;
+        const isPostSunset = tcjaSunset && (simYear >= 2026);
         const inflationMultiplier = Math.pow(1 + (inflationRate / 100), i);
-        
-        // MFJ
-        const mfjBrackets = TAX_BRACKETS_2024_MFJ.map(b => ({
-            rate: b.rate,
-            upTo: b.upTo === Infinity ? Infinity : b.upTo * inflationMultiplier
-        }));
-        const mfjIrmaa = IRMAA_BRACKETS_2024_MFJ.map(b => ({
-            surcharge: b.surcharge,
-            upTo: b.upTo === Infinity ? Infinity : b.upTo * inflationMultiplier
-        }));
-        const mfjLtcg = LTCG_BRACKETS_2024_MFJ.map(b => ({
-            rate: b.rate,
-            upTo: b.upTo === Infinity ? Infinity : b.upTo * inflationMultiplier
-        }));
 
-        // Single
-        const singleBrackets = TAX_BRACKETS_2024_SINGLE.map(b => ({
-            rate: b.rate,
-            upTo: b.upTo === Infinity ? Infinity : b.upTo * inflationMultiplier
-        }));
-        const singleIrmaa = IRMAA_BRACKETS_2024_SINGLE.map(b => ({
-            surcharge: b.surcharge,
-            upTo: b.upTo === Infinity ? Infinity : b.upTo * inflationMultiplier
-        }));
-        const singleLtcg = LTCG_BRACKETS_2024_SINGLE.map(b => ({
-            rate: b.rate,
-            upTo: b.upTo === Infinity ? Infinity : b.upTo * inflationMultiplier
-        }));
+        const mfj = _buildStatusTaxTable({
+            baseBrackets: isPostSunset ? TAX_BRACKETS_POST_TCJA_MFJ : TAX_BRACKETS_2024_MFJ,
+            baseStdDeduction: isPostSunset ? STANDARD_DEDUCTION_POST_TCJA_MFJ : STANDARD_DEDUCTION_2024_MFJ,
+            baseIrmaa: IRMAA_BRACKETS_2024_MFJ,
+            baseLtcg: LTCG_BRACKETS_2024_MFJ,
+            niitThreshold: NIIT_THRESHOLD_2024_MFJ
+        }, inflationMultiplier);
 
-        const mfj = {
-            brackets: mfjBrackets,
-            standardDeduction: STANDARD_DEDUCTION_2024_MFJ * inflationMultiplier,
-            irmaaBrackets: mfjIrmaa,
-            ltcgBrackets: mfjLtcg,
-            niitThreshold: NIIT_THRESHOLD_2024_MFJ * inflationMultiplier,
-            oasdiLimit: OASDI_WAGE_BASE_2024 * inflationMultiplier
-        };
-
-        const single = {
-            brackets: singleBrackets,
-            standardDeduction: STANDARD_DEDUCTION_2024_SINGLE * inflationMultiplier,
-            irmaaBrackets: singleIrmaa,
-            ltcgBrackets: singleLtcg,
-            niitThreshold: NIIT_THRESHOLD_2024_SINGLE * inflationMultiplier,
-            oasdiLimit: OASDI_WAGE_BASE_2024 * inflationMultiplier
-        };
+        const single = _buildStatusTaxTable({
+            baseBrackets: isPostSunset ? TAX_BRACKETS_POST_TCJA_SINGLE : TAX_BRACKETS_2024_SINGLE,
+            baseStdDeduction: isPostSunset ? STANDARD_DEDUCTION_POST_TCJA_SINGLE : STANDARD_DEDUCTION_2024_SINGLE,
+            baseIrmaa: IRMAA_BRACKETS_2024_SINGLE,
+            baseLtcg: LTCG_BRACKETS_2024_SINGLE,
+            niitThreshold: NIIT_THRESHOLD_2024_SINGLE
+        }, inflationMultiplier);
 
         tables.push({
             yearIndex: i,
+            year: simYear,
             // Backward-compatible top-level properties
             brackets: mfj.brackets,
             irmaaBrackets: mfj.irmaaBrackets,
@@ -280,9 +307,23 @@ export function calculateTax(grossTaxableIncome, stateTaxRate, taxYearData, fili
 }
 
 /**
+ * IRS Uniform Lifetime Table (Table III, Treas. Reg. § 1.401(a)(9)-9, effective 2022+)
+ * Official life expectancy distribution factors for calculating Required Minimum Distributions.
+ */
+export const IRS_UNIFORM_LIFETIME_TABLE = {
+    72: 27.4, 73: 26.5, 74: 25.5, 75: 24.6, 76: 23.7, 77: 22.9, 78: 22.0, 79: 21.1,
+    80: 20.2, 81: 19.4, 82: 18.5, 83: 17.7, 84: 16.8, 85: 16.0, 86: 15.2, 87: 14.4,
+    88: 13.7, 89: 12.9, 90: 12.2, 91: 11.5, 92: 10.8, 93: 10.1, 94: 9.5, 95: 8.9,
+    96: 8.4, 97: 7.8, 98: 7.3, 99: 6.8, 100: 6.4, 101: 6.0, 102: 5.6, 103: 5.2,
+    104: 4.9, 105: 4.6, 106: 4.3, 107: 4.1, 108: 3.9, 109: 3.7, 110: 3.5, 111: 3.4,
+    112: 3.3, 113: 3.1, 114: 3.0, 115: 2.9, 116: 2.8, 117: 2.7, 118: 2.5, 119: 2.3,
+    120: 2.0
+};
+
+/**
  * RMD (Required Minimum Distribution) rules per SECURE Act 2.0:
  * Age 73 for born 1951–1959; Age 75 for born 1960 or later.
- * Uses the IRS Uniform Lifetime Table divisor approximation.
+ * Uses official IRS Uniform Lifetime Table (Table III) divisor factors.
  * @param {number} age 
  * @param {number} [yearOfBirth]
  * @returns {number} The required decimal fraction to withdraw (e.g. 0.0377 for 3.77%).
@@ -291,9 +332,11 @@ export function getRmdPercentage(age, yearOfBirth = 1955) {
     const rmdStartAge = (yearOfBirth && yearOfBirth >= 1960) ? 75 : 73;
     if (age < rmdStartAge) return 0;
     
-    // IRS Uniform Lifetime Table approximation:
-    // At 73: divisor 26.5 (3.77%); at 75: divisor ~24.6 (4.07%); at 80: divisor 20.2 (4.95%); at 90: divisor 12.2 (8.20%)
-    const divisor = Math.max(2, 26.5 - ((age - 73) * 0.95)); 
+    const roundedAge = Math.floor(age);
+    if (roundedAge >= 120) {
+        return 1 / 2.0;
+    }
+    const divisor = IRS_UNIFORM_LIFETIME_TABLE[roundedAge] || Math.max(2, 26.5 - ((roundedAge - 73) * 0.95)); 
     return 1 / divisor;
 }
 

@@ -2,9 +2,9 @@ import { Trad401k, Trad403b, StandardIra, TaxableBrokerage, Hysa, CdAccount, Rot
 import { RolloverEvent, RothConversionSchedule } from './FinancialEvent.js';
 import { parseDateParts } from '../utils/date.js';
 
-// MODEL_VERSION: 6
+// MODEL_VERSION: 7
 // IMPORTANT: Update this MODEL_VERSION whenever you change the properties or structure of Person or Account classes.
-export const MODEL_VERSION = 6;
+export const MODEL_VERSION = 7;
 
 function isConfiguredJob(job) {
     if (!job) return false;
@@ -121,13 +121,20 @@ function createAccountInstance(accState) {
 
 export class Person {
     constructor(key, state) {
-        this.key = key; // 's1' or 's2'
-        this._initDemographics(state);
-        this._initRetirementMilestones(state);
-        this._initSocialSecurity(state);
-        this._initRule72t(state);
-        this._initJobs(state);
-        this._initAccounts(state);
+        let personKey = key;
+        let personState = state;
+        if (typeof key === 'object' && key !== null && state === undefined) {
+            personState = key;
+            personKey = personState.key || 's1';
+        }
+        this.key = personKey || 's1';
+        const safeState = personState || {};
+        this._initDemographics(safeState);
+        this._initRetirementMilestones(safeState);
+        this._initSocialSecurity(safeState);
+        this._initRule72t(safeState);
+        this._initJobs(safeState);
+        this._initAccounts(safeState);
     }
 
     _initDemographics(state) {
@@ -262,6 +269,14 @@ export class Person {
         defineGetter('hysa', 'hysa');
         defineGetter('cd', 'cd');
         defineGetter('hsa', 'hsa');
+    }
+
+    get yearOfBirth() {
+        return this.birthYear;
+    }
+
+    set yearOfBirth(val) {
+        this.birthYear = Number(val);
     }
 
     getAccount(identifier) {

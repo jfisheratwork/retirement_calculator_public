@@ -80,6 +80,7 @@ export class PreTaxAccount extends Account {
 export class Trad401k extends PreTaxAccount {
     constructor(id, name, balance, expectedReturn, contributionPercentage, employerMatchConfig = {}) {
         super(id, name, balance, expectedReturn, contributionPercentage);
+        this.type = 'traditional401k';
         this.employerMatchConfig = employerMatchConfig;
     }
 }
@@ -87,6 +88,7 @@ export class Trad401k extends PreTaxAccount {
 export class Trad403b extends PreTaxAccount {
     constructor(id, name, balance, expectedReturn, contributionPercentage, employerMatchConfig = {}) {
         super(id, name, balance, expectedReturn, contributionPercentage);
+        this.type = 'trad403b';
         this.employerMatchConfig = employerMatchConfig;
     }
 }
@@ -94,12 +96,14 @@ export class Trad403b extends PreTaxAccount {
 export class StandardIra extends PreTaxAccount {
     constructor(id, name, balance, expectedReturn, contributionPercentage) {
         super(id, name, balance, expectedReturn, contributionPercentage);
+        this.type = 'standardIra';
     }
 }
 
 export class TaxableBrokerage extends Account {
     constructor(id, name, balance, expectedReturn, contributionPercentage, costBasis = null) {
         super(id, name, balance, expectedReturn, contributionPercentage);
+        this.type = 'taxableBrokerage';
         this.costBasis = (costBasis !== null && costBasis !== undefined) ? Number(costBasis) : (this.balance * 0.5);
     }
 
@@ -126,12 +130,14 @@ export class TaxableBrokerage extends Account {
 export class Hysa extends Account {
     constructor(id, name, balance, expectedReturn, contributionPercentage) {
         super(id, name, balance, expectedReturn, contributionPercentage);
+        this.type = 'hysa';
     }
 }
 
 export class CdAccount extends Account {
     constructor(id, name, balance, expectedReturn = 5, contributionPercentage = 0, config = {}) {
         super(id, name, balance, expectedReturn, contributionPercentage);
+        this.type = 'cd';
         this.rate = (config.rate !== undefined && config.rate !== null) ? Number(config.rate) : (Number(expectedReturn) || 5);
         this.maturityDate = config.maturityDate || `${new Date().getFullYear() + 1}-01`;
         this.maturityAction = config.maturityAction || 'sweep'; // 'sweep' or 'rollover'
@@ -152,6 +158,7 @@ export class CdAccount extends Account {
 export class RothIra extends Account {
     constructor(id, name, balance, expectedReturn, contributionPercentage = 0, config = {}) {
         super(id, name, balance, expectedReturn, contributionPercentage);
+        this.type = 'rothIra';
         this.annualContribution = (config.annualContribution !== undefined && config.annualContribution !== null && config.annualContribution !== '')
             ? Number(config.annualContribution)
             : 7000;
@@ -304,6 +311,7 @@ export class RothIra extends Account {
 export class Hsa extends Account {
     constructor(id, name, balance = 0, expectedReturn = 6, contributionPercentage = 0, config = {}) {
         super(id, name, balance, expectedReturn, contributionPercentage);
+        this.type = 'hsa';
         this.coverageTier = config.coverageTier || 'single';
         this.annualContribution = (config.annualContribution !== undefined && config.annualContribution !== null && config.annualContribution !== '')
             ? Number(config.annualContribution)

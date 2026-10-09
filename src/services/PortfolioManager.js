@@ -9,25 +9,30 @@ import { SORR_SCENARIOS } from './SimulationEngine.js';
 
 const SECURITY_ACCOUNT_TYPES = ['traditional401k', 'trad403b', 'standardIra', 'rothIra', 'taxableBrokerage'];
 
-function calculateSorrRate({ year, s1, assumptions, strategies, sorrOverride }) {
-    const arr = sorrOverride?.returnsArray || (
-        (assumptions.sorrScenario || strategies?.sorrScenario) && 
-        (assumptions.sorrScenario || strategies?.sorrScenario) !== 'none' && 
-        (assumptions.sorrScenario || strategies?.sorrScenario) !== 'average'
-            ? SORR_SCENARIOS[assumptions.sorrScenario || strategies?.sorrScenario]
-            : null
-    );
+export function calculateSorrRate({ year, s1, assumptions, sorrOverride }) {
+    let arr = null;
+    let overrideConfig = sorrOverride;
+
+    if (sorrOverride) {
+        arr = sorrOverride.returnsArray || (
+            sorrOverride.scenarioKey ? SORR_SCENARIOS[sorrOverride.scenarioKey] : null
+        );
+    } else if (assumptions?.sorrScenario && assumptions.sorrScenario !== 'average' && assumptions.sorrScenario !== 'none') {
+        arr = SORR_SCENARIOS[assumptions.sorrScenario];
+        overrideConfig = assumptions;
+    }
 
     if (!arr || !Array.isArray(arr)) {
         return { isSorrActive: false, sorrRate: 0 };
     }
 
     const currentYear = new Date().getFullYear();
-    const startYearForSorr = sorrOverride?.startYear !== undefined 
-        ? (currentYear + sorrOverride.startYear) 
-        : (sorrOverride?.startAge !== undefined 
-            ? (s1.yearOfBirth + sorrOverride.startAge) 
-            : (s1.yearOfBirth + s1.targetRetirementAge));
+    const s1BirthYear = Number(s1?.birthYear || s1?.yearOfBirth) || 1980;
+    const startYearForSorr = overrideConfig?.startYear !== undefined 
+        ? (currentYear + overrideConfig.startYear) 
+        : (overrideConfig?.startAge !== undefined 
+            ? (s1BirthYear + overrideConfig.startAge) 
+            : (s1BirthYear + (s1?.targetRetirementAge || 65)));
 
     if (year >= startYearForSorr) {
         const idx = year - startYearForSorr;
@@ -39,13 +44,8 @@ function calculateSorrRate({ year, s1, assumptions, strategies, sorrOverride }) 
     return { isSorrActive: false, sorrRate: 0 };
 }
 
-function getAccountGrowthRate(account, year, assumptions, isSorrActive, sorrRate, isConservativeShift) {
-    if (isSorrActive) {
-        return sorrRate;
-    }
-    if (isConservativeShift && account.type !== 'hysa' && account.type !== 'cd') {
-        return Number(assumptions.conservativeShift?.returnRate || 5.5) / 100;
-    }
+export function getAccountGrowthRate(account, year, assumptions, isSorrActive, sorrRate, isConservativeShift) {
+    // 1. FDIC-insured cash equivalents (CDs and HYSAs) earn fixed yields and never experience equity market crashes
     if (account.type === 'cd') {
         return (account.rate !== undefined ? Number(account.rate) : (account.expectedReturn || 5)) / 100;
     }
@@ -54,6 +54,18 @@ function getAccountGrowthRate(account, year, assumptions, isSorrActive, sorrRate
             ? (Number(account.expectedReturn) / 100)
             : 0.04;
     }
+
+    // 2. Active equity market crash / sequence of returns scenario applies to security accounts
+    if (isSorrActive) {
+        return sorrRate;
+    }
+
+    // 3. Post-crisis or planned conservative portfolio glidepath
+    if (isConservativeShift) {
+        return Number(assumptions.conservativeShift?.returnRate || 5.5) / 100;
+    }
+
+    // 4. Standard security account growth rate
     if (SECURITY_ACCOUNT_TYPES.includes(account.type)) {
         if (PortfolioManager.hasMarketReturnSchedule(assumptions)) {
             return PortfolioManager.getMarketReturnRate(year, assumptions);
@@ -69,6 +81,10 @@ function getAccountGrowthRate(account, year, assumptions, isSorrActive, sorrRate
 }
 
 export class PortfolioManager {
+    static calculateSorrRate(params) {
+        return calculateSorrRate(params);
+    }
+
     static getMarketReturnRate(year, assumptions) {
         const rates = assumptions.marketReturnRates;
         if (Array.isArray(rates) && rates.length > 0) {
@@ -91,8 +107,14 @@ export class PortfolioManager {
         return Boolean(assumptions.marketReturnRates && Array.isArray(assumptions.marketReturnRates) && assumptions.marketReturnRates.length > 0);
     }
 
-    static growAccounts({ year, s1, s2, assumptions, strategies, sorrOverride, events, cashCushion, primaryResidenceEquity }) {
-        const { isSorrActive, sorrRate } = calculateSorrRate({ year, s1, assumptions, strategies, sorrOverride });
+    static applyGrowthAndInflation(params) {
+        return PortfolioManager.growAccounts(params);
+    }
+
+    static growAccounts({ year, s1, s2, assumptions, strategies, sorrOverride, events, cashCushion, primaryResidenceEquity, isSorrActive: directIsSorrActive, sorrRate: directSorrRate }) {
+        const { isSorrActive, sorrRate } = (directIsSorrActive !== undefined && directSorrRate !== undefined)
+            ? { isSorrActive: directIsSorrActive, sorrRate: directSorrRate }
+            : calculateSorrRate({ year, s1, assumptions, strategies, sorrOverride });
 
         const isConservativeShift = Boolean(assumptions.conservativeShift?.enabled)
             && s1.getAge(year) >= Number(assumptions.conservativeShift.startAge || 60);

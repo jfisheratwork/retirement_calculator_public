@@ -2,7 +2,7 @@ import { BaseComponent } from './base-component.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { FinancialPresentationService } from '../services/FinancialPresentationService.js';
 
-export class NerdAdvisor extends BaseComponent {
+export class FinancialDetailsInspector extends BaseComponent {
     constructor() {
         super();
         this.snapshot = null;
@@ -73,7 +73,7 @@ export class NerdAdvisor extends BaseComponent {
     getTemplate() {
         if (!this.snapshot || !this.appState) {
             return `
-                <div id="nerd-advisor-drawer" class="hidden" style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 2rem;">
+                <div id="financial-details-drawer" class="financial-details-drawer nerd-advisor-drawer hidden" style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 2rem;">
                     <!-- Hidden when no data -->
                 </div>
             `;
@@ -87,16 +87,16 @@ export class NerdAdvisor extends BaseComponent {
         const nav = this._getNavState();
         
         const html = `
-            <div id="nerd-advisor-drawer" style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 2rem;">
+            <div id="financial-details-drawer" class="financial-details-drawer nerd-advisor-drawer" style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 2rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
-                    <h2 style="margin: 0;">Detailed Financial Snapshot: <span id="nerd-advisor-year" style="color: var(--primary);">${title}</span></h2>
+                    <h2 style="margin: 0;">Detailed Financial Snapshot: <span id="financial-details-year" style="color: var(--primary);">${title}</span></h2>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
                         <button id="btn-prev-year" class="btn btn-secondary" ${nav.prevDisabledAttr}>${nav.prevLabel}</button>
                         <button id="btn-next-year" class="btn btn-secondary" ${nav.nextDisabledAttr}>${nav.nextLabel}</button>
                         <button id="btn-unpin-year" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">✕ Close</button>
                     </div>
                 </div>
-                <div id="nerd-advisor-content">
+                <div id="financial-details-content">
                     ${this._buildContent(snapshot, state, s1Name, s2Name)}
                 </div>
             </div>
@@ -148,7 +148,7 @@ export class NerdAdvisor extends BaseComponent {
         return res;
     }
 
-    _renderNerdInflows(inflows) {
+    _renderFinancialInflows(inflows) {
         let html = `<div style="margin-bottom: 12px;">
                     <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Cash Inflows (Income & Distributions)</div>`;
 
@@ -161,13 +161,13 @@ export class NerdAdvisor extends BaseComponent {
             html += this._renderJobBreakouts(inflows.s2Jobs);
         }
         if (inflows.totalSsn > 0) {
-            html += `<div class="inspector-row" data-ai-target="nerd-row-ssn" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#16a085')} Social Security</span><span class="inspector-value">${this._fmt(inflows.totalSsn)}</span></div>`;
+            html += `<div class="inspector-row" data-ai-target="row-ssn" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#16a085')} Social Security</span><span class="inspector-value">${this._fmt(inflows.totalSsn)}</span></div>`;
         }
         if (inflows.s1Rule72t > 0) {
-            html += `<div class="inspector-row" data-ai-target="nerd-row-72t" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#f39c12')} ${inflows.s1Name} Rule 72(t) SEPP</span><span class="inspector-value" style="color: var(--success);">${this._fmt(inflows.s1Rule72t)}</span></div>`;
+            html += `<div class="inspector-row" data-ai-target="row-72t" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#f39c12')} ${inflows.s1Name} Rule 72(t) SEPP</span><span class="inspector-value" style="color: var(--success);">${this._fmt(inflows.s1Rule72t)}</span></div>`;
         }
         if (inflows.s2Rule72t > 0) {
-            html += `<div class="inspector-row" data-ai-target="nerd-row-72t" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#f1c40f')} ${inflows.s2Name} Rule 72(t) SEPP</span><span class="inspector-value" style="color: var(--success);">${this._fmt(inflows.s2Rule72t)}</span></div>`;
+            html += `<div class="inspector-row" data-ai-target="row-72t" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#f1c40f')} ${inflows.s2Name} Rule 72(t) SEPP</span><span class="inspector-value" style="color: var(--success);">${this._fmt(inflows.s2Rule72t)}</span></div>`;
         }
         if (inflows.reverseMortgage > 0) {
             html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#e67e22')} Standby Home Equity</span><span class="inspector-value">${this._fmt(inflows.reverseMortgage)}</span></div>`;
@@ -188,7 +188,7 @@ export class NerdAdvisor extends BaseComponent {
         return html;
     }
 
-    _renderNerdExpenses(outflows, snap) {
+    _renderFinancialExpenses(outflows, snap) {
         let html = `<div style="margin-bottom: 12px;">
                     <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Cash Expenses & Outflows</div>`;
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#e74c3c')} Base Lifestyle</span><span class="inspector-value">${this._fmt(outflows.base)}</span></div>`;
@@ -203,7 +203,7 @@ export class NerdAdvisor extends BaseComponent {
         }
         const nonW2Tax = snap.taxDetails?.nonW2Tax ?? snap.taxes?.nonW2TaxesPaid ?? 0;
         if (nonW2Tax > 0) {
-            html += `<div class="inspector-row" data-ai-target="nerd-row-taxes" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#ff7675')} Non-W2 Taxes (Conversions/Investments)</span><span class="inspector-value">${this._fmt(nonW2Tax)}</span></div>`;
+            html += `<div class="inspector-row" data-ai-target="row-taxes" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#ff7675')} Non-W2 Taxes (Conversions/Investments)</span><span class="inspector-value">${this._fmt(nonW2Tax)}</span></div>`;
         }
         const totalCashOutflow = (snap.expenses || 0) + nonW2Tax;
         html += `<div class="inspector-row" style="font-size: 0.85rem; font-weight: bold; margin-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 2px;"><span class="inspector-label">Total Cash Outflow Needed</span><span class="inspector-value" style="color: var(--danger);">${this._fmt(totalCashOutflow)}</span></div>`;
@@ -211,21 +211,21 @@ export class NerdAdvisor extends BaseComponent {
         return html;
     }
 
-    _renderNerdSurplus(snap) {
+    _renderFinancialSurplus(snap) {
         let html = `<div style="margin-bottom: 12px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">`;
         if (snap.surplus > 0) {
-            html += `<div class="inspector-row" data-ai-target="nerd-row-surplus" style="font-weight: bold; font-size: 0.95rem;"><span class="inspector-label" style="color: var(--success);">Net Cash Surplus</span><span class="inspector-value" style="color: var(--success);">+${this._fmt(snap.surplus)}</span></div>`;
+            html += `<div class="inspector-row" data-ai-target="row-surplus" style="font-weight: bold; font-size: 0.95rem;"><span class="inspector-label" style="color: var(--success);">Net Cash Surplus</span><span class="inspector-value" style="color: var(--success);">+${this._fmt(snap.surplus)}</span></div>`;
             const sweepAmt = snap.reinvestedToSweep || snap.reinvestedToBrokerage || snap.surplus;
             const sweepLabel = snap.sweepAccountName ? `Reinvested (${escapeHtml(snap.sweepAccountName)})` : 'Reinvested Surplus';
             html += `<div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px; color: #74b9ff; margin-top: 4px;"><span class="inspector-label">↳ ${sweepLabel}</span><span class="inspector-value">+${this._fmt(sweepAmt)}</span></div>`;
         } else if (snap.unfundedShortfall > 0) {
-            html += `<div class="inspector-row" data-ai-target="nerd-row-shortfall" style="font-weight: bold; font-size: 0.95rem; margin-top: 4px;"><span class="inspector-label" style="color: var(--danger);">Unfunded Shortfall (Out of Assets)</span><span class="inspector-value" style="color: var(--danger);">-${this._fmt(snap.unfundedShortfall)}</span></div>`;
+            html += `<div class="inspector-row" data-ai-target="row-shortfall" style="font-weight: bold; font-size: 0.95rem; margin-top: 4px;"><span class="inspector-label" style="color: var(--danger);">Unfunded Shortfall (Out of Assets)</span><span class="inspector-value" style="color: var(--danger);">-${this._fmt(snap.unfundedShortfall)}</span></div>`;
         }
         html += `</div>`;
         return html;
     }
 
-    _renderNerdAdditions(additions, s1Name, s2Name) {
+    _renderFinancialAdditions(additions, s1Name, s2Name) {
         if (additions.totalPortfolioAdditions <= 0) return '';
         let html = `<div style="margin-bottom: 12px;">
                     <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Portfolio Contributions & Savings</div>`;
@@ -268,7 +268,7 @@ export class NerdAdvisor extends BaseComponent {
         return `<span style="background: #d63031; color: #fff; font-size: 0.65rem; font-weight: bold; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">Ineligible</span>`;
     }
 
-    _renderNerdTaxes(tax, snap) {
+    _renderFinancialTaxes(tax, snap) {
         const ficaTax = snap.taxDetails?.ficaTax || 0;
         const ltcgTax = snap.taxDetails?.capitalGainsTax || 0;
         const niitTax = snap.taxDetails?.niitTax || 0;
@@ -317,11 +317,11 @@ export class NerdAdvisor extends BaseComponent {
         const additions = FinancialPresentationService.computePortfolioAdditions(snap, this.appState, Math.max(0, snap.surplus || 0));
         const tax = FinancialPresentationService.computeTaxProfile(snap);
 
-        html += this._renderNerdInflows(inflows);
-        html += this._renderNerdExpenses(outflows, snap);
-        html += this._renderNerdSurplus(snap);
-        html += this._renderNerdAdditions(additions, s1Name, s2Name);
-        html += this._renderNerdTaxes(tax, snap);
+        html += this._renderFinancialInflows(inflows);
+        html += this._renderFinancialExpenses(outflows, snap);
+        html += this._renderFinancialSurplus(snap);
+        html += this._renderFinancialAdditions(additions, s1Name, s2Name);
+        html += this._renderFinancialTaxes(tax, snap);
         html += '</div>';
         return html;
     }
@@ -618,32 +618,48 @@ export class NerdAdvisor extends BaseComponent {
 
         // Scroll into view on newly rendered data
         setTimeout(() => {
-            const drawer = this.querySelector('#nerd-advisor-drawer');
+            const drawer = this.querySelector('#financial-details-drawer') || this.querySelector('#nerd-advisor-drawer');
             if (drawer) drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }, 50);
     }
 }
 
-if (typeof customElements !== 'undefined' && !customElements.get('nerd-advisor')) {
-    customElements.define('nerd-advisor', NerdAdvisor);
+// Backwards-compatible class and prototype aliases
+export const NerdAdvisor = FinancialDetailsInspector;
+FinancialDetailsInspector.prototype._renderNerdInflows = FinancialDetailsInspector.prototype._renderFinancialInflows;
+FinancialDetailsInspector.prototype._renderNerdExpenses = FinancialDetailsInspector.prototype._renderFinancialExpenses;
+FinancialDetailsInspector.prototype._renderNerdSurplus = FinancialDetailsInspector.prototype._renderFinancialSurplus;
+FinancialDetailsInspector.prototype._renderNerdAdditions = FinancialDetailsInspector.prototype._renderFinancialAdditions;
+FinancialDetailsInspector.prototype._renderNerdTaxes = FinancialDetailsInspector.prototype._renderFinancialTaxes;
+
+if (typeof customElements !== 'undefined') {
+    if (!customElements.get('financial-details-inspector')) {
+        customElements.define('financial-details-inspector', FinancialDetailsInspector);
+    }
+    if (!customElements.get('nerd-advisor')) {
+        customElements.define('nerd-advisor', class extends FinancialDetailsInspector {});
+    }
 }
 
-export function renderNerdDetails(snapshot, state, yearIndex, allSimData) {
-    let advisor = document.querySelector('nerd-advisor');
+export function renderFinancialDetails(snapshot, state, yearIndex, allSimData) {
+    let advisor = document.querySelector('financial-details-inspector') || document.querySelector('nerd-advisor');
     if (!advisor) {
-        const container = document.getElementById('nerd-advisor-container') || document.body;
-        advisor = document.createElement('nerd-advisor');
+        const container = document.getElementById('financial-details-container') || document.getElementById('nerd-advisor-container') || document.body;
+        advisor = document.createElement('financial-details-inspector');
         container.appendChild(advisor);
     }
     advisor.updateData(snapshot, state, yearIndex, allSimData);
 }
+export const renderNerdDetails = renderFinancialDetails;
 
 /**
- * Initializes nerd advisor listeners and attaches global backwards compatibility.
+ * Initializes financial details inspector listeners and attaches global backwards compatibility.
  */
-export function initNerdAdvisor() {
+export function initFinancialDetailsInspector() {
     if (typeof window !== 'undefined') {
-        window.renderNerdDetails = renderNerdDetails;
+        window.renderFinancialDetails = renderFinancialDetails;
+        window.renderNerdDetails = renderFinancialDetails;
     }
 }
+export const initNerdAdvisor = initFinancialDetailsInspector;
 

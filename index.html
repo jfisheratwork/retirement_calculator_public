@@ -17,7 +17,7 @@
     <!-- chartjs-plugin-annotation v2.1.0: https://github.com/chartjs/chartjs-plugin-annotation/releases/tag/v2.1.0 -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0/dist/chartjs-plugin-annotation.min.js" integrity="sha384-dB7WWqy9+vERwKo2atAKw+KLNhfY0RX5ZjV1l4HHMBZz5wfSvX/GsytIpOyBY8dG" crossorigin="anonymous"></script>
 
-    <link rel="stylesheet" href="styles/main.css?v=1791520850310">
+    <link rel="stylesheet" href="styles/main.css?v=1791523792964">
 </head>
 
 <body>
@@ -26,9 +26,9 @@
         <span>Retirement Details</span>
     </div>
 
-    <!-- Explain Parked Drawer -->
-    <div id="explain-parked-drawer" title="Open Calculations Explanation">
-        <span>Explain Calculations</span>
+    <!-- Calculation Methodology & Financial Engine Parked Drawer -->
+    <div id="explain-parked-drawer" title="Open Calculation Methodology & Financial Engine">
+        <span>Calculation Methodology</span>
     </div>
 
     <!-- Chart Inspector (Custom Tooltip) - Moved to dashboard sidebar -->
@@ -40,10 +40,10 @@
 
     <div class="app-container">
         <!-- Prominent Hobby Sandbox / No Warranties Disclaimer Banner -->
-        <aside class="disclaimer-banner" role="note" aria-label="Hobby Project Disclaimer">
+        <aside class="disclaimer-banner" role="note" aria-label="Sandbox Experiment Disclaimer">
             <div class="disclaimer-icon">⚠️</div>
             <div class="disclaimer-content">
-                <strong>Hobby Sandbox &amp; Computational Experiment:</strong> This tool is strictly a personal, exploratory hobby project created for fun and computational modeling. Calculations, tax projections, and actuarial models are provided as-is without any warranties, guarantees, or representations of accuracy, and do not constitute financial, legal, investment, or tax advice.
+                <strong>Sandbox Experiment:</strong> This tool is strictly a personal hobby project created for fun and computational modeling. Calculations, tax projections, and actuarial models are provided as-is without warranties or guarantees of accuracy, and do not constitute financial, legal, investment, or tax advice.
             </div>
         </aside>
 
@@ -113,7 +113,7 @@
                 </div>
 
                 <!-- Financial Details Inspector Component -->
-                <nerd-advisor id="nerd-advisor-container"></nerd-advisor>
+                <financial-details-inspector id="financial-details-container"></financial-details-inspector>
 
                 <!-- Sequence of Returns Risk (SORR) Relocated Directly Below Financial Details -->
                 <section style="margin-top: 1.5rem;">
@@ -246,7 +246,7 @@
     <div id="explain-modal" class="drawer-overlay hidden drawer-right-overlay">
         <div class="drawer drawer-right">
             <div class="drawer-header">
-                <h2>Under the Hood</h2>
+                <h2>Calculation Methodology & Financial Engine</h2>
                 <button id="btn-close-explain" class="btn-close">&times;</button>
             </div>
             <div class="drawer-content" id="explain-content" style="line-height: 1.6; color: var(--text-color);">
@@ -261,7 +261,7 @@
     <!-- What If Sandbox Drawer Component -->
     <what-if-drawer id="what-if-drawer"></what-if-drawer>
 
-    <script type="module" src="src/app.js?v=1791520850310"></script>
+    <script type="module" src="src/app.js?v=1791523792964"></script>
 </body>
 
 </html>

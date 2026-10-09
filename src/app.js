@@ -2,7 +2,7 @@ import { getState, getProfiles, getActiveProfileId, switchProfile, replaceProfil
 import { loadSampleHouseholdProfile } from './services/sample-profile.js';
 import { renderCharts, setPinnedYearIndex, getPinnedYearIndex } from './components/charts.js';
 import { renderInputPanel } from './components/input-panel.js';
-import { initNerdAdvisor, renderNerdDetails } from './components/nerd-advisor.js';
+import { initFinancialDetailsInspector, renderFinancialDetails } from './components/financial-details-inspector.js';
 import { renderUnderTheHood } from './components/under-the-hood.js';
 import { runAllSimulations } from './services/ScenarioManager.js';
 import './components/ui-modals.js';
@@ -34,7 +34,7 @@ let whatIfDrawerInstance;
 
 function bootstrap() {
     initState();
-    initNerdAdvisor();
+    initFinancialDetailsInspector();
     initGlobalTooltips();
     
     // Select DOM nodes
@@ -222,7 +222,7 @@ function bindEvents() {
         focusYearSelect.addEventListener('change', (e) => {
             const val = e.target.value;
             if (val === "") {
-                const advisor = document.querySelector('nerd-advisor');
+                const advisor = document.querySelector('financial-details-inspector') || document.querySelector('nerd-advisor');
                 if (advisor) {
                     advisor.close();
                 } else {
@@ -367,7 +367,7 @@ function updateApp(forceInputPanelRedraw = false) {
     if (activeIndex !== null && activeIndex < simResult.data.length) {
         const snap = simResult.data[activeIndex];
         if (snap) {
-            renderNerdDetails(snap, currentState, activeIndex, simResult.data);
+            renderFinancialDetails(snap, currentState, activeIndex, simResult.data);
         }
     }
     

@@ -83,7 +83,11 @@ export class StressTestEvaluator {
             stateCopy.strategies.sorrScenario = scenarioKey;
 
             const startAge = stateCopy.primarySpouse?.targetRetirementAge || 55;
-            const engine = new SimulationEngine(stateCopy, { startAge });
+            const engine = new SimulationEngine(stateCopy, { 
+                startAge, 
+                returnsArray: SORR_SCENARIOS[scenarioKey],
+                scenarioKey 
+            });
             const simResult = engine.run();
             const snapshots = simResult.data || [];
 
