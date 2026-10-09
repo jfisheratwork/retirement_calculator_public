@@ -2356,3 +2356,26 @@ select:user-invalid,
     box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25) !important;
 }
 
+/* Spinner Animation for Async Actions & Cryptographic Operations */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.pin-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(0, 0, 0, 0.25);
+    border-top-color: #000000;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.pin-spinner-light {
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #ffffff;
+}
+

@@ -3,6 +3,7 @@
  *
  * Boot-time blocking modal displayed when local storage is encrypted with AES-256-GCM.
  * Prompts the user for their PIN before decrypting and rendering financial plans into memory.
+ * Features permanent root event delegation, animated decrypting spinner, and auto-focus.
  *
  * Written with the assistance of Google Gemini
  */
@@ -17,6 +18,27 @@ export class PinUnlockModal extends BaseComponent {
         this._errorMsg = '';
         this._isSubmitting = false;
         this._isOpen = false;
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this._bindRootDelegation();
+    }
+
+    _bindRootDelegation() {
+        this.addEventListener('submit', (e) => {
+            if (e.target.id === 'pin-unlock-form') {
+                e.preventDefault();
+                this._handleUnlock();
+            }
+        });
+
+        this.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-forgot-pin')) {
+                e.preventDefault();
+                this._handleForgotReset();
+            }
+        });
     }
 
     getTemplate() {
@@ -36,19 +58,21 @@ export class PinUnlockModal extends BaseComponent {
                     ` : ''}
 
                     <form id="pin-unlock-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <input type="text" name="username" value="local-user" autocomplete="username" style="display:none;" aria-hidden="true">
                         <div>
-                            <input type="password" id="input-unlock-pin" autofocus maxlength="12" placeholder="Enter your PIN"
+                            <input type="password" id="input-unlock-pin" maxlength="12" placeholder="Enter your PIN"
+                                autocomplete="current-password" ${this._isSubmitting ? 'disabled' : ''}
                                 style="width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: #1e293b; color: #fff; font-size: 1.25rem; text-align: center; letter-spacing: 0.25rem;">
                         </div>
 
                         <button type="submit" class="btn btn-primary btn-submit-unlock" ${this._isSubmitting ? 'disabled' : ''}
-                            style="padding: 0.75rem; border-radius: 8px; background: #eab308; color: #000; font-weight: 700; font-size: 1rem; border: none; cursor: pointer; transition: all 0.2s ease;">
-                            ${this._isSubmitting ? 'Decrypting...' : '🔓 Unlock Plan'}
+                            style="padding: 0.75rem; border-radius: 8px; background: #eab308; color: #000; font-weight: 700; font-size: 1rem; border: none; cursor: ${this._isSubmitting ? 'not-allowed' : 'pointer'}; transition: all 0.2s ease;">
+                            ${this._isSubmitting ? `<span class="pin-spinner"></span> Decrypting...` : '🔓 Unlock Plan'}
                         </button>
                     </form>
 
                     <div style="margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">
-                        <button type="button" class="btn-forgot-pin" style="background: none; border: none; color: #64748b; font-size: 0.8rem; cursor: pointer; text-decoration: underline;">
+                        <button type="button" class="btn-forgot-pin" ${this._isSubmitting ? 'disabled' : ''} style="background: none; border: none; color: #64748b; font-size: 0.8rem; cursor: pointer; text-decoration: underline;">
                             Forgot PIN? Reset Local Data
                         </button>
                     </div>
@@ -58,25 +82,17 @@ export class PinUnlockModal extends BaseComponent {
     }
 
     afterRender() {
-        const form = this.querySelector('#pin-unlock-form');
-        const pinInput = this.querySelector('#input-unlock-pin');
-        const btnForgot = this.querySelector('.btn-forgot-pin');
-
-        if (form) {
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this._handleUnlock();
-            });
+        if (this._isOpen && !this._isSubmitting) {
+            const pinInput = this.querySelector('#input-unlock-pin');
+            if (pinInput) {
+                setTimeout(() => pinInput.focus(), 60);
+            }
         }
+    }
 
-        if (btnForgot) {
-            btnForgot.addEventListener('click', () => this._handleForgotReset());
-        }
-
-        // Auto-focus input
-        if (pinInput && !this.querySelector('#pin-unlock-overlay')?.classList.contains('hidden')) {
-            setTimeout(() => pinInput.focus(), 50);
-        }
+    render() {
+        super.render();
+        this.afterRender();
     }
 
     async _handleUnlock() {
@@ -92,6 +108,8 @@ export class PinUnlockModal extends BaseComponent {
         this._isSubmitting = true;
         this._errorMsg = '';
         this.render();
+
+        await new Promise(resolve => setTimeout(resolve, 50));
 
         try {
             await unlockStorageWithPin(pin);
@@ -125,6 +143,8 @@ export class PinUnlockModal extends BaseComponent {
 
     close() {
         this._isOpen = false;
+        this._errorMsg = '';
+        this._isSubmitting = false;
         this.render();
     }
 }
