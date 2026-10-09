@@ -689,12 +689,17 @@ export class SimulationEngine {
         const prorata = activeMonths < 12 ? (activeMonths / 12) : 1;
         const stateTaxRate = Number(this.assumptions.stateTaxRate) || 0;
 
-        const w2Taxable = snapshot.income.s1.w2Net + snapshot.income.s2.w2Net;
+        const s1TaxableGross = Math.max(0, s1W2 - s1Contribs.preTaxDeductions);
+        const s2TaxableGross = Math.max(0, s2W2 - s2Contribs.preTaxDeductions);
+        snapshot.income.s1.w2TaxableGross = s1TaxableGross;
+        snapshot.income.s2.w2TaxableGross = s2TaxableGross;
+
+        const w2Taxable = s1TaxableGross + s2TaxableGross;
         const w2TaxResults = calculateTax(w2Taxable * annualization, stateTaxRate, currentTaxData, filingStatus, 0);
         const baselineW2IncomeTax = w2TaxResults.totalTax * prorata;
 
-        const s1TaxableShare = w2Taxable > 0 ? (snapshot.income.s1.w2Net / w2Taxable) : 0;
-        const s2TaxableShare = w2Taxable > 0 ? (snapshot.income.s2.w2Net / w2Taxable) : 0;
+        const s1TaxableShare = w2Taxable > 0 ? (s1TaxableGross / w2Taxable) : 0;
+        const s2TaxableShare = w2Taxable > 0 ? (s2TaxableGross / w2Taxable) : 0;
         const s1IncomeTax = baselineW2IncomeTax * s1TaxableShare;
         const s2IncomeTax = baselineW2IncomeTax * s2TaxableShare;
 

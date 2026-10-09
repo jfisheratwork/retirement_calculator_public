@@ -39,7 +39,9 @@ export class TaxManager {
         const prorata = activeMonths < 12 ? (activeMonths / 12) : 1;
 
         // 1. Calculate Baseline W2 Tax
-        const w2Taxable = snapshot.income.s1.w2Net + snapshot.income.s2.w2Net;
+        const w2Taxable = (snapshot.income?.s1?.w2TaxableGross !== undefined && snapshot.income?.s2?.w2TaxableGross !== undefined)
+            ? (snapshot.income.s1.w2TaxableGross + snapshot.income.s2.w2TaxableGross)
+            : (snapshot.income.s1.w2Net + snapshot.income.s2.w2Net);
         const w2TaxResults = calculateTax(w2Taxable * annualization, stateTaxRate, currentTaxYearData, filingStatus, 0);
 
         // 2. Calculate Total Tax (Ordinary + Capital Gains + NIIT)

@@ -22,8 +22,8 @@ export class YearlySnapshot {
         this.age2 = p2 ? p2.getAge(year) : 0;
 
         this.income = {
-            s1: { w2Gross: 0, w2Net: 0, takeHome: 0, employerMatch: 0, ssn: 0, rule72t: 0, rothConversion: 0 },
-            s2: { w2Gross: 0, w2Net: 0, takeHome: 0, employerMatch: 0, ssn: 0, rule72t: 0, rothConversion: 0 },
+            s1: { w2Gross: 0, w2TaxableGross: 0, w2Net: 0, takeHome: 0, employerMatch: 0, ssn: 0, rule72t: 0, rothConversion: 0 },
+            s2: { w2Gross: 0, w2TaxableGross: 0, w2Net: 0, takeHome: 0, employerMatch: 0, ssn: 0, rule72t: 0, rothConversion: 0 },
             drawdowns: {
                 s1Hysa: 0, s2Hysa: 0,
                 s1Brokerage: 0, s2Brokerage: 0,

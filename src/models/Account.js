@@ -158,11 +158,15 @@ export class RothIra extends Account {
         this.autoContribute = Boolean(config.autoContribute);
         this.startYear = config.startYear ? Number(config.startYear) : null;
         this.stopYear = config.stopYear ? Number(config.stopYear) : null;
+        this.principle = (config.principle !== undefined && config.principle !== null && config.principle !== '')
+            ? Number(config.principle)
+            : this.balance;
         this.cohorts = [];
         if (this.balance > 0) {
+            const initialPrincipal = Math.min(this.balance, Math.max(0, this.principle));
             this.cohorts.push({
                 maturityYear: 0,
-                originalAmount: this.balance,
+                originalAmount: initialPrincipal,
                 balance: this.balance
             });
         }

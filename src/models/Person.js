@@ -101,7 +101,8 @@ function createAccountInstance(accState) {
             annualContribution: accState.annualContribution,
             autoContribute: accState.autoContribute,
             startYear: accState.startYear,
-            stopYear: accState.stopYear
+            stopYear: accState.stopYear,
+            principle: accState.principle
         });
         acc.principle = accState.principle || 0;
     }

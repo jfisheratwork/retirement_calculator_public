@@ -287,6 +287,14 @@ export class PortfolioManager {
                     
                     targetAcc.balance += maturedBalance;
                     targetAcc.yearRolloverIn = (targetAcc.yearRolloverIn || 0) + maturedBalance;
+                    if (events && Array.isArray(events)) {
+                        events.push({
+                            year,
+                            month: maturityMonth,
+                            label: `${spouse.name || 'Primary'} CD Matured ($${Math.round(maturedBalance).toLocaleString()} ➔ ${targetAcc.name || 'Brokerage'})`,
+                            type: 'cd_matured'
+                        });
+                    }
                 }
             }
         }
