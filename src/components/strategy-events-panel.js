@@ -1,6 +1,7 @@
 import { BaseComponent } from './base-component.js';
 import { HeuristicValidator } from '../services/HeuristicValidator.js';
 import { parseDateParts, normalizeDateStr } from '../utils/date.js';
+import { calculate72tPayment } from '../services/tax.js';
 
 export class StrategyEventsPanel extends BaseComponent {
     constructor() {
@@ -193,7 +194,8 @@ export class StrategyEventsPanel extends BaseComponent {
         const effective72tBal = hasCustomSplit ? Math.min(projectedBal, Number(r72t.splitAmount)) : projectedBal;
         const DEFAULT_72T_RATE = 0.05;
         const rate72t = (this.state.strategies?.rule72tInterestRate ? (Number(this.state.strategies.rule72tInterestRate) / 100) : DEFAULT_72T_RATE);
-        const projectedAnnualPayout = Math.round(effective72tBal * rate72t);
+        const method = spouseObj.rule72tMethod || 'amortization';
+        const projectedAnnualPayout = Math.round(calculate72tPayment(effective72tBal, rate72t, calculatedR72tAge, method));
         const projectedMonthlyPayout = Math.round(projectedAnnualPayout / 12);
 
         out += `

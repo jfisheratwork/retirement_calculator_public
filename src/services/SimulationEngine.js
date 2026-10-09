@@ -1,4 +1,4 @@
-import { precalculateTaxTables, calculateFicaTax, calculateTax, getIrmaaAnnualSurcharge } from './tax.js';
+import { precalculateTaxTables, calculateFicaTax, calculateTax, getIrmaaAnnualSurcharge, calculate72tPayment } from './tax.js';
 import { Person } from '../models/Person.js';
 import { Mortgage } from '../models/Mortgage.js';
 import { YearlySnapshot } from '../models/YearlySnapshot.js';
@@ -437,8 +437,10 @@ export class SimulationEngine {
         const inceptionBalance = activeAcc ? activeAcc.balance : spouse.getTotalPreTaxBalance();
         const DEFAULT_72T_RATE = 0.05;
         const rate72t = (this.strategies?.rule72tInterestRate ? (Number(this.strategies.rule72tInterestRate) / 100) : DEFAULT_72T_RATE);
+        const inceptionAge = spouse.getAge ? spouse.getAge(year) : (year - spouse.birthYear);
+        const method = spouse.rule72tMethod || 'amortization';
 
-        spouse.rule72tAnnualPayment = inceptionBalance * rate72t;
+        spouse.rule72tAnnualPayment = calculate72tPayment(inceptionBalance, rate72t, inceptionAge, method);
         spouse.rule72tMonthlyPayment = spouse.rule72tAnnualPayment / 12;
         spouse._72tInceptionDone = true;
         spouse._72tActive = true;

@@ -307,6 +307,77 @@ export function calculateTax(grossTaxableIncome, stateTaxRate, taxYearData, fili
 }
 
 /**
+ * IRS Single Life Expectancy Table (Table I, Treas. Reg. § 1.401(a)(9)-9(b), effective 2022+)
+ * Official life expectancy distribution factors for Substantially Equal Periodic Payments (Rule 72(t) SEPP)
+ * under IRS Notice 2022-6 and beneficiary RMD calculations under IRC § 401(a)(9).
+ * IRS Notice 2022-6: https://www.irs.gov/irb/2022-05_IRB#NOT-2022-6
+ * Electronic Code of Federal Regulations: https://www.ecfr.gov/current/title-26/chapter-I/subchapter-A/part-1/section-1.401(a)(9)-9
+ */
+export const IRS_SINGLE_LIFE_EXPECTANCY_TABLE = {
+    0: 84.6, 1: 83.7, 2: 82.8, 3: 81.8, 4: 80.8, 5: 79.8, 6: 78.8, 7: 77.9, 8: 76.9, 9: 75.9,
+    10: 74.9, 11: 73.9, 12: 72.9, 13: 71.9, 14: 70.9, 15: 70.0, 16: 69.0, 17: 68.0, 18: 67.0, 19: 66.0,
+    20: 65.0, 21: 64.1, 22: 63.1, 23: 62.1, 24: 61.1, 25: 60.2, 26: 59.2, 27: 58.2, 28: 57.3, 29: 56.3,
+    30: 55.3, 31: 54.4, 32: 53.4, 33: 52.5, 34: 51.5, 35: 50.5, 36: 49.6, 37: 48.6, 38: 47.7, 39: 46.7,
+    40: 45.7, 41: 44.8, 42: 43.8, 43: 42.9, 44: 41.9, 45: 41.0, 46: 40.0, 47: 39.0, 48: 38.1, 49: 37.1,
+    50: 36.2, 51: 35.3, 52: 34.3, 53: 33.4, 54: 32.5, 55: 31.6, 56: 30.6, 57: 29.8, 58: 28.9, 59: 28.0,
+    60: 27.1, 61: 26.2, 62: 25.4, 63: 24.5, 64: 23.7, 65: 22.9, 66: 22.0, 67: 21.2, 68: 20.4, 69: 19.6,
+    70: 18.8, 71: 18.0, 72: 17.2, 73: 16.4, 74: 15.6, 75: 14.8, 76: 14.1, 77: 13.3, 78: 12.6, 79: 11.9,
+    80: 11.2, 81: 10.5, 82: 9.9, 83: 9.3, 84: 8.7, 85: 8.1, 86: 7.6, 87: 7.1, 88: 6.6, 89: 6.1,
+    90: 5.7, 91: 5.3, 92: 4.9, 93: 4.6, 94: 4.3, 95: 4.0, 96: 3.7, 97: 3.4, 98: 3.2, 99: 3.0,
+    100: 2.8, 101: 2.6, 102: 2.5, 103: 2.3, 104: 2.2, 105: 2.1, 106: 2.1, 107: 2.1, 108: 2.0, 109: 2.0,
+    110: 2.0, 111: 2.0, 112: 2.0, 113: 1.9, 114: 1.9, 115: 1.8, 116: 1.8, 117: 1.6, 118: 1.4, 119: 1.1,
+    120: 1.0
+};
+
+/**
+ * Returns single life expectancy factor for an individual under IRS Table I (Treas. Reg. § 1.401(a)(9)-9(b)).
+ * @param {number} age Owner or beneficiary age
+ * @returns {number} Life expectancy divisor factor
+ */
+export function getSingleLifeExpectancy(age) {
+    const roundedAge = Math.round(Number(age) || 0);
+    if (roundedAge in IRS_SINGLE_LIFE_EXPECTANCY_TABLE) {
+        return IRS_SINGLE_LIFE_EXPECTANCY_TABLE[roundedAge];
+    }
+    if (roundedAge >= 120) return 1.0;
+    if (roundedAge <= 0) return 84.6;
+    return Math.max(1.0, 84.6 - (roundedAge * 0.95));
+}
+
+/**
+ * Calculates statutory Substantially Equal Periodic Payment (SEPP) under IRS Notice 2022-6.
+ * Supports Fixed Amortization (default) and Required Minimum Distribution (RMD) methods.
+ * Notice 2022-6: https://www.irs.gov/irb/2022-05_IRB#NOT-2022-6
+ *
+ * @param {number} balance Inception balance of the dedicated 72(t) account
+ * @param {number} rate Annual interest rate as a decimal (e.g. 0.05 for 5.0%)
+ * @param {number} age Owner's age at inception
+ * @param {string} [method='amortization'] 'amortization' or 'rmd'
+ * @returns {number} Level annual SEPP payment amount
+ */
+export function calculate72tPayment(balance, rate, age, method = 'amortization') {
+    if (!balance || balance <= 0) return 0;
+    const n = getSingleLifeExpectancy(age);
+    if (!n || n <= 0) return 0;
+
+    if (method === 'rmd') {
+        return balance / n;
+    }
+
+    const r = Number(rate) || 0;
+    if (r <= 0 || Math.abs(r) < 1e-7) {
+        return balance / n;
+    }
+
+    // Fixed Amortization Formula: P * r / (1 - (1 + r)^(-n))
+    const denominator = 1 - Math.pow(1 + r, -n);
+    if (denominator <= 0) {
+        return balance / n;
+    }
+    return (balance * r) / denominator;
+}
+
+/**
  * IRS Uniform Lifetime Table (Table III, Treas. Reg. § 1.401(a)(9)-9, effective 2022+)
  * Official life expectancy distribution factors for calculating Required Minimum Distributions.
  */
