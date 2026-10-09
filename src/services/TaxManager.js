@@ -1,10 +1,11 @@
 import { calculateTax } from './tax.js';
+import { calculateSorrRate } from './PortfolioManager.js';
 
 /**
  * Handles tax computations, tax payments from surplus/cushion/portfolio, and surplus reinvestment
  */
 export class TaxManager {
-    static calculate({ year, currentYear, firstActiveMonth = 1, taxableIncome, stateTaxRate, taxTables, snapshot, cashCushion, withdrawPortfoliosFn, filingStatus = 'mfj', ltcgGains = 0 }) {
+    static calculate({ year, currentYear, firstActiveMonth = 1, taxableIncome, stateTaxRate, taxTables, snapshot, cashCushion, withdrawPortfoliosFn, filingStatus = 'mfj', ltcgGains = 0, getTaxableIncomeFn }) {
         if (taxableIncome <= 0 && ltcgGains <= 0) {
             snapshot.taxes = 0;
             snapshot.taxDetails = { 
@@ -96,22 +97,60 @@ export class TaxManager {
             cashCushion.value = 0;
         }
 
-        // Pay tax by drawing down from portfolios
+        // Pay tax by drawing down from portfolios (with iterative gross-up if pre-tax withdrawals add taxable income)
         if (remainingTax > 0 && withdrawPortfoliosFn) {
-            const unfunded = withdrawPortfoliosFn(remainingTax);
-            snapshot.unfundedShortfall = (snapshot.unfundedShortfall || 0) + unfunded;
+            let pass = 0;
+            const maxPasses = 3;
+            while (remainingTax > 0 && pass < maxPasses) {
+                pass++;
+                const prevTaxable = (typeof getTaxableIncomeFn === 'function') ? getTaxableIncomeFn() : taxableIncome;
+                const unfunded = withdrawPortfoliosFn(remainingTax);
+                if (unfunded > 0) {
+                    snapshot.unfundedShortfall = (snapshot.unfundedShortfall || 0) + unfunded;
+                    remainingTax = 0;
+                    break;
+                }
+                const newTaxable = (typeof getTaxableIncomeFn === 'function') ? getTaxableIncomeFn() : prevTaxable;
+                const addedTaxable = Math.max(0, newTaxable - prevTaxable);
+                if (addedTaxable > 0) {
+                    const updatedResults = calculateTax(newTaxable * annualization, stateTaxRate, currentTaxYearData, filingStatus, ltcgGains * annualization);
+                    const updatedTotalTax = updatedResults.totalTax * prorata;
+                    const extraTax = Math.max(0, updatedTotalTax - snapshot.taxes);
+                    if (extraTax > 1) {
+                        snapshot.taxes = updatedTotalTax;
+                        taxResults.totalTax = updatedTotalTax;
+                        taxResults.federalTax = (updatedResults.federalTax || 0) * prorata;
+                        taxResults.stateTax = (updatedResults.stateTax || 0) * prorata;
+                        taxResults.capitalGainsTax = (updatedResults.capitalGainsTax || 0) * prorata;
+                        taxResults.niitTax = (updatedResults.niitTax || 0) * prorata;
+                        taxResults.fedTax = taxResults.federalTax;
+                        taxResults.ltcgTax = taxResults.capitalGainsTax;
+                        remainingTax = extraTax;
+                        continue;
+                    }
+                }
+                remainingTax = 0;
+            }
         }
     }
 
-    static reinvestSurplus({ snapshot, strategies, cashCushion, s1, s2 }) {
+    static reinvestSurplus({ snapshot, strategies, assumptions, sorrOverride, year, cashCushion, s1, s2 }) {
         const surplus = snapshot.surplus || 0;
         if (surplus <= 0) return;
 
         const allAccounts = [...(s1.accounts || []), ...(s2.accounts || [])];
         const sweepAccount = allAccounts.find(a => a.isSweepAccount === true && a.enabled !== false);
-        const getRate = (acc) => (acc.expectedReturn !== undefined && acc.expectedReturn !== null)
-            ? (Number(acc.expectedReturn) / 100)
-            : ((strategies?.generalReturnRate || 7) / 100);
+        const { isSorrActive, sorrRate } = calculateSorrRate({ year, s1, assumptions, sorrOverride });
+
+        const getRate = (acc) => {
+            if (isSorrActive && !['cd', 'hysa'].includes(acc.type)) {
+                return sorrRate;
+            }
+            if (acc.expectedReturn !== undefined && acc.expectedReturn !== null) {
+                return Number(acc.expectedReturn) / 100;
+            }
+            return (Number(assumptions?.generalReturnRate ?? assumptions?.portfolioReturnRate ?? strategies?.generalReturnRate ?? 7)) / 100;
+        };
 
         // 1. If user designated a Sweep Account, sweep 100% of household surplus cash directly into it
         if (sweepAccount) {

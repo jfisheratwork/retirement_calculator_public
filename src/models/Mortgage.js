@@ -103,6 +103,7 @@ export class Mortgage {
         const totalEquity = Math.max(0, grossSale - closingCosts - mortgagePayoff);
         const replacementCost = grossSale * ((this.downsizing.replacementHomeCostPercentage || 42.5) / 100);
         const netCashProceeds = Math.max(0, totalEquity - replacementCost);
+        const cashDeficit = Math.max(0, replacementCost - totalEquity);
 
         this.currentBalance = 0;
         this.enabled = false;
@@ -118,7 +119,8 @@ export class Mortgage {
             closingCosts,
             mortgagePayoff,
             replacementHomeValue: replacementCost,
-            netCashProceeds
+            netCashProceeds,
+            cashDeficit
         };
     }
 }

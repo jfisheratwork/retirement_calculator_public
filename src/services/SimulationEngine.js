@@ -208,7 +208,7 @@ export class SimulationEngine {
         return dict;
     }
 
-    _handleDownsizing(year, month, isFirstYear, firstActiveMonth) {
+    _handleDownsizing(year, month, isFirstYear, firstActiveMonth, snapshot) {
         const isDownsizeMonth = (!isFirstYear && month === 1) || (isFirstYear && month === firstActiveMonth);
         if (!isDownsizeMonth || !this.mortgage.downsizing?.enabled || year !== Number(this.mortgage.downsizing.year) || this.mortgage.downsized) {
             return;
@@ -220,9 +220,17 @@ export class SimulationEngine {
         const sweepAcc = this.s1.accounts.taxableBrokerage 
             || Object.values(this.s1.accounts).find(a => a.type === 'taxableBrokerage') 
             || Object.values(this.s2.accounts).find(a => a.type === 'taxableBrokerage');
-        if (sweepAcc) {
+        if (sweepAcc && downsizeResult.netCashProceeds > 0) {
             sweepAcc.balance += downsizeResult.netCashProceeds;
         }
+
+        if (downsizeResult.cashDeficit > 0) {
+            const shortfall = this.withdrawFromPortfolios(downsizeResult.cashDeficit, year, snapshot);
+            if (shortfall > 0 && snapshot) {
+                snapshot.unfundedShortfall = (snapshot.unfundedShortfall || 0) + shortfall;
+            }
+        }
+
         this.events.push({
             year,
             month,
@@ -298,7 +306,7 @@ export class SimulationEngine {
         }
 
         this.processMonthlyRollovers(year, month);
-        this._handleDownsizing(year, month, isFirstYear, firstActiveMonth);
+        this._handleDownsizing(year, month, isFirstYear, firstActiveMonth, snapshot);
 
         const month72tIncome = this._processMonthly72t(year, month, snapshot, isFirstYear, firstActiveMonth);
 
@@ -860,7 +868,8 @@ export class SimulationEngine {
             }
         }
 
-        const totalIncome = snapshot.income.s1.w2Net + snapshot.income.s2.w2Net + snapshot.income.s1.ssn + snapshot.income.s2.ssn + snapshot.income.s1.rule72t + snapshot.income.s2.rule72t + rmIncome;
+        const rmdIncome = snapshot.income?.mandatoryRmd || 0;
+        const totalIncome = snapshot.income.s1.w2Net + snapshot.income.s2.w2Net + snapshot.income.s1.ssn + snapshot.income.s2.ssn + snapshot.income.s1.rule72t + snapshot.income.s2.rule72t + rmIncome + rmdIncome;
         const shortfall = snapshot.expenses - totalIncome;
 
         if (shortfall > 0) {
@@ -888,12 +897,16 @@ export class SimulationEngine {
             cashCushion: cushionWrapper,
             withdrawPortfoliosFn: (taxNeeded) => this.withdrawFromPortfolios(taxNeeded, year, snapshot),
             filingStatus,
-            ltcgGains: this.realizedLtcg || 0
+            ltcgGains: this.realizedLtcg || 0,
+            getTaxableIncomeFn: () => this.taxableIncome,
+            getLtcgFn: () => (this.realizedLtcg || 0)
         });
 
         TaxManager.reinvestSurplus({
             snapshot,
             strategies: this.strategies,
+            assumptions: this.assumptions,
+            sorrOverride: this.sorrOverride,
             year,
             currentYear: this.currentYear,
             cashCushion: cushionWrapper,

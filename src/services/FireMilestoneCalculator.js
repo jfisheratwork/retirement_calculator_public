@@ -175,7 +175,7 @@ export class FireMilestoneCalculator {
             's1Trad401k', 's2Trad401k', 's1Trad403b', 's2Trad403b',
             's1StandardIra', 's2StandardIra', 's1Hysa', 's2Hysa',
             's1Cd', 's2Cd', 's1Brokerage', 's2Brokerage',
-            's1RothIra', 's2RothIra', 'cashCushion'
+            's1RothIra', 's2RothIra', 's1Hsa', 's2Hsa', 'cashCushion'
         ];
         return keys.reduce((sum, k) => sum + (Number(b[k]) || 0), 0);
     }

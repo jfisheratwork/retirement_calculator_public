@@ -29,7 +29,7 @@ export function calculateSorrRate({ year, s1, assumptions, sorrOverride }) {
     const currentYear = new Date().getFullYear();
     const s1BirthYear = Number(s1?.birthYear || s1?.yearOfBirth) || 1980;
     const startYearForSorr = overrideConfig?.startYear !== undefined 
-        ? (currentYear + overrideConfig.startYear) 
+        ? (overrideConfig.startYear > 1000 ? overrideConfig.startYear : currentYear + overrideConfig.startYear) 
         : (overrideConfig?.startAge !== undefined 
             ? (s1BirthYear + overrideConfig.startAge) 
             : (s1BirthYear + (s1?.targetRetirementAge || 65)));

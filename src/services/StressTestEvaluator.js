@@ -54,6 +54,7 @@ const LIQUID_BALANCE_KEYS = [
     's1StandardIra', 's2StandardIra',
     's1Hysa', 's2Hysa',
     's1Cd', 's2Cd',
+    's1Hsa', 's2Hsa',
     'cashCushion'
 ];
 

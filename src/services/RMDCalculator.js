@@ -86,8 +86,15 @@ export class RMDCalculator {
                     }
                 });
                 mandatoryDraws += drawn;
+                if (snapshot.income && snapshot.income[spouse.key]) {
+                    snapshot.income[spouse.key].rmd = (snapshot.income[spouse.key].rmd || 0) + drawn;
+                }
             }
         });
+
+        if (snapshot.income) {
+            snapshot.income.mandatoryRmd = (snapshot.income.mandatoryRmd || 0) + mandatoryDraws;
+        }
 
         return mandatoryDraws;
     }

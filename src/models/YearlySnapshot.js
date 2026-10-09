@@ -22,8 +22,8 @@ export class YearlySnapshot {
         this.age2 = p2 ? p2.getAge(year) : 0;
 
         this.income = {
-            s1: { w2Gross: 0, w2TaxableGross: 0, w2Net: 0, takeHome: 0, employerMatch: 0, ssn: 0, rule72t: 0, rothConversion: 0 },
-            s2: { w2Gross: 0, w2TaxableGross: 0, w2Net: 0, takeHome: 0, employerMatch: 0, ssn: 0, rule72t: 0, rothConversion: 0 },
+            s1: { w2Gross: 0, w2TaxableGross: 0, w2Net: 0, takeHome: 0, employerMatch: 0, ssn: 0, rule72t: 0, rothConversion: 0, rmd: 0 },
+            s2: { w2Gross: 0, w2TaxableGross: 0, w2Net: 0, takeHome: 0, employerMatch: 0, ssn: 0, rule72t: 0, rothConversion: 0, rmd: 0 },
             drawdowns: {
                 s1Hysa: 0, s2Hysa: 0,
                 s1Brokerage: 0, s2Brokerage: 0,
@@ -31,9 +31,11 @@ export class YearlySnapshot {
                 s1Trad403b: 0, s2Trad403b: 0,
                 s1StandardIra: 0, s2StandardIra: 0,
                 s1RothIra: 0, s2RothIra: 0,
+                s1Hsa: 0, s2Hsa: 0,
                 cashCushion: 0
             },
             reverseMortgage: 0,
+            mandatoryRmd: 0,
             w2: 0, // Keep total for convenience in KPI
             takeHome: 0,
             employerMatchTotal: 0
