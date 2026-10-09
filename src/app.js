@@ -1,4 +1,4 @@
-import { getState, getProfiles, getActiveProfileId, switchProfile, replaceProfileData, initState } from './services/state.js';
+import { getState, getProfiles, getActiveProfileId, switchProfile, replaceProfileData, initState, isStoragePinLocked, isStoragePinConfigured } from './services/state.js';
 import { loadSampleHouseholdProfile } from './services/sample-profile.js';
 import { renderCharts, setPinnedYearIndex, getPinnedYearIndex } from './components/charts.js';
 import { renderInputPanel } from './components/input-panel.js';
@@ -6,6 +6,8 @@ import { initFinancialDetailsInspector, renderFinancialDetails } from './compone
 import { renderUnderTheHood } from './components/under-the-hood.js';
 import { runAllSimulations } from './services/ScenarioManager.js';
 import './components/ui-modals.js';
+import './components/pin-lock-modal.js';
+import './components/pin-unlock-modal.js';
 import { renderStressAlerts } from './components/stress-alerts.js';
 import { initGlobalTooltips } from './components/tooltip.js';
 import { FireMilestoneCalculator } from './services/FireMilestoneCalculator.js';
@@ -22,6 +24,7 @@ let btnRenameProfile;
 let btnDeleteProfile;
 let btnEditParams;
 let btnOpenWhatIf;
+let btnLockData;
 let parkedDrawer;
 let paramsModal;
 let btnCloseModal;
@@ -31,8 +34,28 @@ let inputPanelInstance = null;
 let settingsModalInstance;
 let profileManagerModalInstance;
 let whatIfDrawerInstance;
+let pinLockModalInstance;
+let pinUnlockModalInstance;
 
 function bootstrap() {
+    pinLockModalInstance = document.querySelector('pin-lock-modal');
+    pinUnlockModalInstance = document.querySelector('pin-unlock-modal');
+
+    // Check if storage is locked with PIN before hydrating
+    if (isStoragePinLocked()) {
+        if (pinUnlockModalInstance) {
+            pinUnlockModalInstance.open();
+        }
+        document.addEventListener('plan-unlocked', () => {
+            initAppPostUnlock();
+        }, { once: true });
+        return;
+    }
+
+    initAppPostUnlock();
+}
+
+function initAppPostUnlock() {
     initState();
     initFinancialDetailsInspector();
     initGlobalTooltips();
@@ -46,6 +69,7 @@ function bootstrap() {
     btnDeleteProfile = document.getElementById('btn-delete-profile');
     btnEditParams = document.getElementById('btn-edit-params');
     btnOpenWhatIf = document.getElementById('btn-open-whatif');
+    btnLockData = document.getElementById('btn-lock-data');
     parkedDrawer = document.getElementById('parked-drawer');
     paramsModal = document.getElementById('params-modal');
     btnCloseModal = document.getElementById('btn-close-modal');
@@ -58,6 +82,7 @@ function bootstrap() {
 
     bindEvents();
     updateProfileSelect();
+    updateLockButtonState();
     
     const state = getState();
     if (!state.primarySpouse.yearOfBirth || !state.primarySpouse.targetRetirementAge) {
@@ -65,6 +90,13 @@ function bootstrap() {
     }
     
     updateApp();
+}
+
+function updateLockButtonState() {
+    if (!btnLockData) return;
+    const isConfigured = isStoragePinConfigured();
+    btnLockData.textContent = isConfigured ? '🛡️' : '🔒';
+    btnLockData.title = isConfigured ? 'PIN Protection Active (Click to manage/lock)' : 'Set PIN Lock Security';
 }
 
 function bindProfileEvents() {
@@ -105,6 +137,25 @@ function bindProfileEvents() {
             settingsModalInstance.open();
         });
     }
+
+    if (btnLockData) {
+        btnLockData.addEventListener('click', () => {
+            if (pinLockModalInstance) pinLockModalInstance.open();
+        });
+    }
+
+    document.addEventListener('pin-status-changed', () => {
+        updateLockButtonState();
+    });
+
+    document.addEventListener('session-locked', () => {
+        updateLockButtonState();
+        if (pinUnlockModalInstance) pinUnlockModalInstance.open();
+        document.addEventListener('plan-unlocked', () => {
+            updateLockButtonState();
+            updateApp(true);
+        }, { once: true });
+    });
     
     document.addEventListener('import-ready', (passedEvent) => {
         const { data, filename } = passedEvent.detail;

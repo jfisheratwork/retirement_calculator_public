@@ -17,7 +17,7 @@
     <!-- chartjs-plugin-annotation v2.1.0: https://github.com/chartjs/chartjs-plugin-annotation/releases/tag/v2.1.0 -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0/dist/chartjs-plugin-annotation.min.js" integrity="sha384-dB7WWqy9+vERwKo2atAKw+KLNhfY0RX5ZjV1l4HHMBZz5wfSvX/GsytIpOyBY8dG" crossorigin="anonymous"></script>
 
-    <link rel="stylesheet" href="styles/main.css?v=1791573549348">
+    <link rel="stylesheet" href="styles/main.css?v=1791574688479">
 </head>
 
 <body>
@@ -37,6 +37,8 @@
     <settings-modal></settings-modal>
     <profile-manager-modal></profile-manager-modal>
     <cost-basis-modal></cost-basis-modal>
+    <pin-lock-modal id="pin-lock-modal"></pin-lock-modal>
+    <pin-unlock-modal id="pin-unlock-modal"></pin-unlock-modal>
 
     <div class="app-container">
         <!-- Prominent Hobby Sandbox / No Warranties Disclaimer Banner -->
@@ -70,6 +72,8 @@
                     style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; padding: 0.45rem 0.85rem; border-radius: 6px; cursor: pointer; border: 1px solid rgba(234, 179, 8, 0.4); background: rgba(234, 179, 8, 0.12); color: #fde047; white-space: nowrap; transition: all 0.2s ease;">
                     <span>🔮 What If?</span>
                 </button>
+                <button id="btn-lock-data" class="btn btn-icon" title="PIN Lock Security"
+                    style="font-size: 1.25rem; background: none; border: none; cursor: pointer;">🔒</button>
                 <button id="btn-edit-params" class="btn btn-icon" title="Settings"
                     style="font-size: 1.5rem; background: none; border: none; cursor: pointer;">⚙️</button>
             </div>
@@ -261,7 +265,7 @@
     <!-- What If Sandbox Drawer Component -->
     <what-if-drawer id="what-if-drawer"></what-if-drawer>
 
-    <script type="module" src="src/app.js?v=1791573549348"></script>
+    <script type="module" src="src/app.js?v=1791574688479"></script>
 </body>
 
 </html>

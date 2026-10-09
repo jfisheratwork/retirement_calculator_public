@@ -1,4 +1,5 @@
 import { normalizeDateStr } from '../utils/date.js';
+import { StorageShield } from './StorageShield.js';
 
 const LOCAL_STORAGE_KEY = 'retirement_calculator_state';
 
@@ -353,12 +354,22 @@ function saveStore() {
     if (profiles[currentProfileId] && currentState) {
         profiles[currentProfileId].data = currentState;
     }
-    safeSetStorage(LOCAL_STORAGE_KEY, JSON.stringify({
+    const rawJson = JSON.stringify({
         dataVersion: MODEL_VERSION,
         activeProfileId: currentProfileId,
         profiles: profiles,
         globalSettings: globalSettings
-    }));
+    });
+    const encoded = StorageShield.encodeForStorage(rawJson);
+    if (encoded instanceof Promise) {
+        encoded.then(payload => {
+            safeSetStorage(LOCAL_STORAGE_KEY, payload);
+        }).catch(err => {
+            console.error('Failed to encrypt storage with session key:', err);
+        });
+    } else {
+        safeSetStorage(LOCAL_STORAGE_KEY, encoded);
+    }
 }
 
 function _migrateSpouseSsn(spouse) {
@@ -377,9 +388,30 @@ function _migrateSpouseSsn(spouse) {
 
 /**
  * Initializes the state from LocalStorage or falls back to default.
+ * @param {string|null} [unlockedJsonStr] - Optional cleartext JSON string when unlocked via PIN
+ * @returns {{ locked: boolean }|void}
  */
-export function initState() {
-    const saved = safeGetStorage(LOCAL_STORAGE_KEY);
+export function initState(unlockedJsonStr = null) {
+    let saved = unlockedJsonStr;
+    let shouldMigrateToShield = false;
+    if (!saved) {
+        const raw = safeGetStorage(LOCAL_STORAGE_KEY);
+        if (raw) {
+            const format = StorageShield.inspectFormat(raw);
+            if (format === 'option_b' && !StorageShield.hasActiveSessionKey()) {
+                return { locked: true };
+            }
+            if (format === 'cleartext') {
+                shouldMigrateToShield = true;
+            }
+            try {
+                saved = StorageShield.syncDecode(raw);
+            } catch (err) {
+                console.error('Storage decryption error:', err);
+                saved = null;
+            }
+        }
+    }
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
@@ -416,7 +448,7 @@ export function initState() {
             currentState = deepMerge(structuredClone(defaultState), profiles[currentProfileId].data);
             
             // Migration for SSN Benefit
-            let migrated = false;
+            let migrated = shouldMigrateToShield;
             if (_migrateSpouseSsn(currentState.primarySpouse)) migrated = true;
             if (_migrateSpouseSsn(currentState.secondarySpouse)) migrated = true;
             if (currentState.assumptions && !currentState.assumptions.startDate) {
@@ -475,16 +507,22 @@ export function initState() {
  */
 export function getState() {
     if (!currentState) {
-        initState();
+        const res = initState();
+        if (res && res.locked) {
+            return structuredClone(defaultState);
+        }
     }
-    return currentState;
+    return currentState || structuredClone(defaultState);
 }
 
 /**
  * Updates the state and persists it to LocalStorage.
  */
 export function updateState(newState) {
-    if (!currentState) initState();
+    if (!currentState) {
+        const res = initState();
+        if (res && res.locked) return; // Do not overwrite while locked
+    }
     currentState = normalizeState(deepMerge(currentState, newState));
     saveStore();
 }
@@ -493,13 +531,20 @@ export function updateState(newState) {
  * Profile Management API
  */
 export function getProfiles() {
-    if (Object.keys(profiles).length === 0) initState();
+    if (Object.keys(profiles).length === 0) {
+        const res = initState();
+        if (res && res.locked) {
+            return [{ id: 'default', name: 'Default Profile' }];
+        }
+    }
     return Object.values(profiles).map(p => ({ id: p.id, name: p.name }));
 }
 
 export function getActiveProfileId() {
-    if (!currentProfileId) initState();
-    return currentProfileId;
+    if (!currentProfileId) {
+        initState();
+    }
+    return currentProfileId || 'default';
 }
 
 export function switchProfile(id) {
@@ -581,3 +626,112 @@ export function updateGlobalSettings(newSettings) {
     globalSettings = { ...globalSettings, ...newSettings };
     saveStore();
 }
+
+/**
+ * Unlocks the storage using a user-supplied PIN and initializes application state.
+ * @param {string} pin
+ * @returns {Promise<boolean>}
+ */
+export async function unlockStorageWithPin(pin) {
+    const raw = safeGetStorage(LOCAL_STORAGE_KEY);
+    if (!raw) return true;
+    const envelope = JSON.parse(raw);
+    const decryptedJson = await StorageShield.decryptWithPin(envelope, pin);
+    initState(decryptedJson);
+    return true;
+}
+
+/**
+ * Locks storage with a new user PIN via WebCrypto AES-GCM (Option B).
+ * @param {string} pin
+ * @returns {Promise<boolean>}
+ */
+export async function setStoragePin(pin) {
+    if (!profiles[currentProfileId] && currentState) {
+        profiles[currentProfileId] = {
+            id: currentProfileId,
+            name: 'Default Profile',
+            data: currentState
+        };
+    } else if (profiles[currentProfileId] && currentState) {
+        profiles[currentProfileId].data = currentState;
+    }
+    const rawJson = JSON.stringify({
+        dataVersion: MODEL_VERSION,
+        activeProfileId: currentProfileId,
+        profiles,
+        globalSettings
+    });
+    const encryptedEnvelope = await StorageShield.encryptWithPin(rawJson, pin);
+    safeSetStorage(LOCAL_STORAGE_KEY, encryptedEnvelope);
+    return true;
+}
+
+/**
+ * Removes PIN protection and returns storage to Option A split-key obfuscation.
+ * @param {string} currentPin
+ * @returns {Promise<boolean>}
+ */
+export async function removeStoragePin(currentPin) {
+    const raw = safeGetStorage(LOCAL_STORAGE_KEY);
+    if (!raw) return true;
+    if (!StorageShield.hasActiveSessionKey()) {
+        const envelope = JSON.parse(raw);
+        await StorageShield.decryptWithPin(envelope, currentPin);
+    }
+    StorageShield.clearSessionKey();
+    saveStore();
+    return true;
+}
+
+/**
+ * Changes an existing PIN to a new PIN.
+ * @param {string} currentPin
+ * @param {string} newPin
+ * @returns {Promise<boolean>}
+ */
+export async function changeStoragePin(currentPin, newPin) {
+    await removeStoragePin(currentPin);
+    await setStoragePin(newPin);
+    return true;
+}
+
+/**
+ * Checks if storage is currently locked with a PIN and not unlocked in this session.
+ * @returns {boolean}
+ */
+export function isStoragePinLocked() {
+    const raw = safeGetStorage(LOCAL_STORAGE_KEY);
+    return StorageShield.inspectFormat(raw) === 'option_b' && !StorageShield.hasActiveSessionKey();
+}
+
+/**
+ * Checks if a PIN lock is configured in storage.
+ * @returns {boolean}
+ */
+export function isStoragePinConfigured() {
+    const raw = safeGetStorage(LOCAL_STORAGE_KEY);
+    return StorageShield.inspectFormat(raw) === 'option_b';
+}
+
+/**
+ * Immediately purges the active session CryptoKey from memory.
+ */
+export function lockStorageSessionNow() {
+    StorageShield.clearSessionKey();
+}
+
+/**
+ * Resets storage to a clean default state (destructive recovery).
+ */
+export function resetStorageToDefault() {
+    StorageShield.clearSessionKey();
+    if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+    }
+    currentProfileId = 'default';
+    profiles = {};
+    currentState = null;
+    initState();
+}
+
