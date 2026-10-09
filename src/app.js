@@ -55,10 +55,60 @@ function bootstrap() {
     initAppPostUnlock();
 }
 
+function initInspectorState() {
+    const showInspector = typeof localStorage !== 'undefined' && localStorage.getItem('show_data_inspector') === 'true';
+    document.body.classList.toggle('show-inspector', showInspector);
+    const layout = document.querySelector('.dashboard-layout');
+    if (layout) {
+        layout.classList.toggle('show-inspector', showInspector);
+    }
+}
+
+function initDisclaimerBanner() {
+    const banner = document.getElementById('disclaimer-banner');
+    const dismissBtn = document.getElementById('btn-dismiss-disclaimer');
+    if (!banner) return;
+
+    if (dismissBtn) {
+        dismissBtn.addEventListener('click', () => {
+            banner.classList.add('dismissed');
+        });
+    }
+
+    // Auto-hide after 2 minutes (120,000ms)
+    setTimeout(() => {
+        if (banner && !banner.classList.contains('dismissed')) {
+            banner.classList.add('dismissed');
+        }
+    }, 120000);
+}
+
+function initCollapsibleChartResize() {
+    const chartDetails = document.querySelectorAll('details.chart-card');
+    chartDetails.forEach((detailsEl) => {
+        detailsEl.addEventListener('toggle', () => {
+            if (detailsEl.open) {
+                setTimeout(() => {
+                    const canvas = detailsEl.querySelector('canvas');
+                    if (canvas && window.Chart) {
+                        const chartInstance = window.Chart.getChart(canvas);
+                        if (chartInstance) {
+                            chartInstance.resize();
+                        }
+                    }
+                }, 50);
+            }
+        });
+    });
+}
+
 function initAppPostUnlock() {
     initState();
     initFinancialDetailsInspector();
     initGlobalTooltips();
+    initInspectorState();
+    initDisclaimerBanner();
+    initCollapsibleChartResize();
     
     // Select DOM nodes
     btnLoadSample = document.getElementById('btn-load-sample');
@@ -109,7 +159,7 @@ function bindProfileEvents() {
                 updateProfileSelect();
                 updateApp(true);
             } finally {
-                btnLoadSample.innerHTML = '<span>📊 Load Sample Profile</span>';
+                btnLoadSample.innerHTML = '<span>📊 Samples</span>';
                 btnLoadSample.disabled = false;
             }
         });

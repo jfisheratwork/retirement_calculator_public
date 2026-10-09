@@ -18,6 +18,10 @@ export class SettingsModal extends BaseComponent {
                         <button class="btn-close-settings btn-close" style="font-size: 1.5rem;">&times;</button>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="checkbox-group" style="display: flex; align-items: center; gap: 0.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                            <input type="checkbox" id="setting-show-inspector" style="cursor: pointer; width: 1.1rem; height: 1.1rem;">
+                            <label for="setting-show-inspector" style="cursor: pointer; font-size: 0.9rem; color: var(--text-color); margin: 0;">Show Data Inspector Sidebar</label>
+                        </div>
                         <button class="btn-export btn btn-secondary" style="width: 100%;">Export Current Profile (JSON)</button>
                         <button class="btn-import btn btn-secondary" style="width: 100%;">Import Profile (JSON File)</button>
                         <input type="file" class="file-import" style="display: none;" accept=".json">
@@ -33,6 +37,23 @@ export class SettingsModal extends BaseComponent {
         const btnExport = this.querySelector('.btn-export');
         const btnImport = this.querySelector('.btn-import');
         const fileImport = this.querySelector('.file-import');
+        const chkInspector = this.querySelector('#setting-show-inspector');
+
+        if (chkInspector) {
+            chkInspector.checked = localStorage.getItem('show_data_inspector') === 'true';
+            chkInspector.addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                localStorage.setItem('show_data_inspector', isChecked ? 'true' : 'false');
+                document.body.classList.toggle('show-inspector', isChecked);
+                const layout = document.querySelector('.dashboard-layout');
+                if (layout) {
+                    layout.classList.toggle('show-inspector', isChecked);
+                }
+                window.dispatchEvent(new CustomEvent('inspector-visibility-changed', {
+                    detail: { visible: isChecked }
+                }));
+            });
+        }
 
         btnClose.addEventListener('click', () => this.close());
         
@@ -70,6 +91,10 @@ export class SettingsModal extends BaseComponent {
     }
 
     open() {
+        const chkInspector = this.querySelector('#setting-show-inspector');
+        if (chkInspector) {
+            chkInspector.checked = localStorage.getItem('show_data_inspector') === 'true';
+        }
         const modal = this.querySelector('.drawer-overlay');
         modal.classList.remove('hidden');
     }

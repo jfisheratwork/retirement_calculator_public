@@ -458,8 +458,33 @@ function mapData(yearlyData, state, selector) {
     });
 }
 
-function buildPortfolioConfig(yearlyData, state, labels, annotations, s1Name, s2Name) {
+export function buildPortfolioConfig(yearlyData, state, labels, annotations, s1Name, s2Name) {
+    const totalNetWorth = mapData(yearlyData, state, d => 
+        (d.balances.s1Brokerage || 0) + (d.balances.s2Brokerage || 0) + 
+        (d.balances.s1Hysa || 0) + (d.balances.s2Hysa || 0) + 
+        (d.balances.s1Cd || 0) + (d.balances.s2Cd || 0) + 
+        (d.balances.s1Hsa || 0) + (d.balances.s2Hsa || 0) + 
+        (d.balances.s1RothIra || 0) + (d.balances.s2RothIra || 0) + 
+        (d.balances.s1Trad401k || 0) + (d.balances.s2Trad401k || 0) + 
+        (d.balances.s1Trad403b || 0) + (d.balances.s2Trad403b || 0) + 
+        (d.balances.s1StandardIra || 0) + (d.balances.s2StandardIra || 0) + 
+        (d.balances.cashCushion || 0) +
+        (d.balances.college529 || 0) +
+        (d.balances.primaryResidenceEquity || 0)
+    );
+
     const datasets = [
+        { 
+            label: 'Total Net Worth', 
+            data: totalNetWorth, 
+            borderColor: '#10b981', 
+            backgroundColor: '#10b981', 
+            borderWidth: 2.5, 
+            fill: false, 
+            tension: 0.4, 
+            yAxisID: 'yNetWorth', 
+            order: 0 
+        },
         { label: 'Cash Cushion', data: mapData(yearlyData, state, d => d.balances.cashCushion), borderColor: '#00b894', backgroundColor: '#00b894', fill: false, tension: 0.4 },
         { label: 'High-Yield Savings (HYSA)', data: mapData(yearlyData, state, d => d.balances.s1Hysa + d.balances.s2Hysa), borderColor: '#10ac84', backgroundColor: '#10ac84', fill: false, tension: 0.4 },
         { label: 'Certificates of Deposit (CD)', data: mapData(yearlyData, state, d => (d.balances.s1Cd || 0) + (d.balances.s2Cd || 0)), borderColor: '#1dd1a1', backgroundColor: '#1dd1a1', fill: false, tension: 0.4, hidden: !yearlyData.some(d => (d.balances.s1Cd || 0) > 0 || (d.balances.s2Cd || 0) > 0) },
@@ -505,11 +530,36 @@ function buildPortfolioConfig(yearlyData, state, labels, annotations, s1Name, s2
                     } 
                 },
                 y: { 
+                    type: 'linear',
+                    position: 'left',
                     stacked: false, 
+                    title: {
+                        display: true,
+                        text: 'Account Balances',
+                        color: '#b2bec3',
+                        font: { size: 11, weight: 'bold' }
+                    },
                     ticks: { 
                         color: '#b2bec3', 
                         callback: value => '$' + (value / 1000) + 'k' 
                     } 
+                },
+                yNetWorth: {
+                    type: 'linear',
+                    position: 'right',
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Total Net Worth',
+                        color: '#10b981',
+                        font: { size: 11, weight: 'bold' }
+                    },
+                    ticks: {
+                        color: '#10b981',
+                        callback: value => '$' + (value / 1000) + 'k'
+                    }
                 }
             }
         }

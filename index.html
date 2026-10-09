@@ -17,7 +17,7 @@
     <!-- chartjs-plugin-annotation v2.1.0: https://github.com/chartjs/chartjs-plugin-annotation/releases/tag/v2.1.0 -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0/dist/chartjs-plugin-annotation.min.js" integrity="sha384-dB7WWqy9+vERwKo2atAKw+KLNhfY0RX5ZjV1l4HHMBZz5wfSvX/GsytIpOyBY8dG" crossorigin="anonymous"></script>
 
-    <link rel="stylesheet" href="styles/main.css?v=1791578357644">
+    <link rel="stylesheet" href="styles/main.css?v=1791585307592">
 </head>
 
 <body>
@@ -28,7 +28,7 @@
 
     <!-- Calculation Methodology & Financial Engine Parked Drawer -->
     <div id="explain-parked-drawer" title="Open Calculation Methodology & Financial Engine">
-        <span>Calculation Methodology</span>
+        <span>Methodology</span>
     </div>
 
     <!-- Chart Inspector (Custom Tooltip) - Moved to dashboard sidebar -->
@@ -42,11 +42,12 @@
 
     <div class="app-container">
         <!-- Prominent Hobby Sandbox / No Warranties Disclaimer Banner -->
-        <aside class="disclaimer-banner" role="note" aria-label="Sandbox Experiment Disclaimer">
+        <aside class="disclaimer-banner" id="disclaimer-banner" role="note" aria-label="Sandbox Experiment Disclaimer">
             <div class="disclaimer-icon">⚠️</div>
             <div class="disclaimer-content">
                 <strong>Sandbox Experiment:</strong> This tool is strictly a personal hobby project created for fun and computational modeling. Calculations, tax projections, and actuarial models are provided as-is without warranties or guarantees of accuracy, and do not constitute financial, legal, investment, or tax advice.
             </div>
+            <button type="button" class="disclaimer-dismiss-btn" id="btn-dismiss-disclaimer" aria-label="Dismiss disclaimer" title="Dismiss disclaimer">&times;</button>
         </aside>
 
         <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
@@ -54,28 +55,22 @@
                 <h1 style="margin: 0; font-size: 2rem; color: var(--primary);">Detailed Retirement Calculator</h1>
                 <p style="margin: 0; color: var(--text-muted);">Retirement strategy with detailed scenario modeling.</p>
             </div>
-            <div class="header-actions" style="display: flex; align-items: center; gap: 0.5rem;">
-                <button id="btn-load-sample" class="btn btn-secondary" title="Load Sample Household Profile (Couple 45 & 41, 2 Kids, $180k Income, $1.5M at 52)"
-                    style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; padding: 0.45rem 0.85rem; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.06); color: var(--text-color); white-space: nowrap; transition: background 0.2s ease;">
-                    <span>📊 Load Sample Profile</span>
+            <div class="header-actions">
+                <button id="btn-load-sample" class="btn btn-sample-profile" title="Load Sample Household Profile (Couple 45 & 41, 2 Kids, $180k Income, $1.5M at 52)">
+                    <span>📊 Samples</span>
                 </button>
-                <select id="profile-select"
-                    style="margin: 0; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-color); font-weight: bold;"></select>
-                <button id="btn-add-profile" class="btn btn-icon" title="Add Profile"
-                    style="font-size: 1.2rem; background: none; border: none; cursor: pointer;">➕</button>
-                <button id="btn-rename-profile" class="btn btn-icon" title="Rename Profile"
-                    style="font-size: 1.2rem; background: none; border: none; cursor: pointer;">✏️</button>
-                <button id="btn-delete-profile" class="btn btn-icon" title="Delete Profile"
-                    style="font-size: 1.2rem; background: none; border: none; cursor: pointer;">🗑️</button>
-                <div style="width: 1px; height: 24px; background: var(--border); margin: 0 0.5rem;"></div>
-                <button id="btn-open-whatif" class="btn btn-secondary" title="Open What-If Scenario Sandbox"
-                    style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; padding: 0.45rem 0.85rem; border-radius: 6px; cursor: pointer; border: 1px solid rgba(234, 179, 8, 0.4); background: rgba(234, 179, 8, 0.12); color: #fde047; white-space: nowrap; transition: all 0.2s ease;">
+                <div class="scenario-pill-group">
+                    <select id="profile-select" title="Active Plan Scenario"></select>
+                    <div class="scenario-pill-divider"></div>
+                    <button id="btn-add-profile" class="scenario-pill-btn" title="Add Profile">➕</button>
+                    <button id="btn-rename-profile" class="scenario-pill-btn" title="Rename Profile">✏️</button>
+                    <button id="btn-delete-profile" class="scenario-pill-btn" title="Delete Profile">🗑️</button>
+                </div>
+                <button id="btn-open-whatif" class="btn btn-whatif-amber" title="Open What-If Scenario Sandbox">
                     <span>🔮 What If?</span>
                 </button>
-                <button id="btn-lock-data" class="btn btn-icon" title="PIN Lock Security"
-                    style="font-size: 1.25rem; background: none; border: none; cursor: pointer;">🔒</button>
-                <button id="btn-edit-params" class="btn btn-icon" title="Settings"
-                    style="font-size: 1.5rem; background: none; border: none; cursor: pointer;">⚙️</button>
+                <button id="btn-lock-data" class="btn-header-icon" title="PIN Lock Security">🔒</button>
+                <button id="btn-edit-params" class="btn-header-icon" title="Settings">⚙️</button>
             </div>
         </header>
 
@@ -121,7 +116,7 @@
 
                 <!-- Sequence of Returns Risk (SORR) Relocated Directly Below Financial Details -->
                 <section style="margin-top: 1.5rem;">
-                    <details class="chart-card glass-panel" style="cursor: pointer;" open>
+                    <details class="chart-card glass-panel" style="cursor: pointer;">
                         <summary style="display: flex; justify-content: space-between; align-items: center;">
                             <h3 style="display: inline-block; margin: 0;">📉 Sequence of Returns Risk (SORR) & Stress Testing</h3>
                             <select id="sorr-scenario-select" style="margin-bottom: 0; margin-top: -2px;"
@@ -168,50 +163,6 @@
                             <canvas id="taxChart"></canvas>
                         </div>
                     </details>
-                </section>
-
-
-                <section class="advisor-insights" style="margin-top: 2rem;">
-                    <div class="glass-panel" style="padding: 1.5rem; border-left: 4px solid var(--accent);">
-                        <h2
-                            style="margin-top: 0; color: var(--accent); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
-                            <span>💡</span> Advisor Insights
-                        </h2>
-
-                        <div class="static-advice">
-                            <details
-                                style="margin-bottom: 1rem; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; cursor: pointer;">
-                                <summary style="font-weight: 600; color: var(--primary);">Rule of 55 (Penalty-Free 401k
-                                    Withdrawals)</summary>
-                                <p style="margin-top: 0.5rem; line-height: 1.5; color: var(--text-muted);">If you leave
-                                    your job in or after the year you turn 55, you can pull funds from <strong>that
-                                        specific employer's 401k</strong> without paying the standard 10% early
-                                    withdrawal penalty. This is a great way to bridge the gap if you retire slightly
-                                    before 59.5, without locking yourself into a rigid 72(t) schedule.</p>
-                            </details>
-                            <details
-                                style="margin-bottom: 1rem; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; cursor: pointer;">
-                                <summary style="font-weight: 600; color: var(--primary);">72(t) SEPP (Substantially
-                                    Equal Periodic Payments)</summary>
-                                <p style="margin-top: 0.5rem; line-height: 1.5; color: var(--text-muted);">IRS Rule
-                                    72(t) allows you to avoid the 10% early withdrawal penalty on retirement accounts
-                                    prior to age 59.5 by taking a series of substantially equal periodic payments
-                                    (SEPP). Once started, these payments must continue for at least 5 years or until you
-                                    reach 59.5, whichever is later. Breaking this schedule triggers retroactive
-                                    penalties!</p>
-                            </details>
-                            <details
-                                style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 0.5rem; cursor: pointer;">
-                                <summary style="font-weight: 600; color: var(--primary);">Sequence of Returns Risk &
-                                    Cash Buffers</summary>
-                                <p style="margin-top: 0.5rem; line-height: 1.5; color: var(--text-muted);">Selling
-                                    investments during a market downturn early in retirement can permanently damage your
-                                    portfolio (Sequence of Returns Risk). Building a "Cash Cushion" or CD Ladder (e.g.,
-                                    3-5 years of expenses) allows you to spend down cash during bear markets and gives
-                                    your portfolio time to recover.</p>
-                            </details>
-                        </div>
-                    </div>
                 </section>
             </main>
 
@@ -265,7 +216,7 @@
     <!-- What If Sandbox Drawer Component -->
     <what-if-drawer id="what-if-drawer"></what-if-drawer>
 
-    <script type="module" src="src/app.js?v=1791578357644"></script>
+    <script type="module" src="src/app.js?v=1791585307592"></script>
 </body>
 
 </html>

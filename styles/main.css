@@ -87,7 +87,129 @@ header p {
 
 .header-actions {
     display: flex;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Modernized Header Actions Toolbar */
+.scenario-pill-group {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.scenario-pill-group select {
+    margin: 0;
+    padding: 0.45rem 0.65rem;
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+}
+
+.scenario-pill-group select:focus {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.scenario-pill-divider {
+    width: 1px;
+    height: 18px;
+    background: var(--border);
+    flex-shrink: 0;
+}
+
+.scenario-pill-btn {
+    background: transparent;
+    border: none;
+    padding: 0.4rem 0.5rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    transition: background 0.15s ease, color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.scenario-pill-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+}
+
+.btn-sample-profile {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-color);
+    white-space: nowrap;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-sample-profile:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.btn-whatif-amber {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.12);
+    color: #fbbf24;
+    white-space: nowrap;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+}
+
+.btn-whatif-amber:hover {
+    background: rgba(245, 158, 11, 0.22);
+    border-color: rgba(245, 158, 11, 0.6);
+    color: #fef08a;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+}
+
+.btn-header-icon {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    font-size: 1.15rem;
+    line-height: 1;
+    padding: 0;
+    color: var(--text-color);
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.btn-header-icon:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
 }
 
 main {
@@ -632,7 +754,8 @@ main {
     transform: translateY(-50%);
     background: var(--surface);
     color: var(--text-main);
-    padding: 0.8rem 1rem;
+    padding: 0.85rem 0.5rem;
+    white-space: nowrap;
     border-radius: 0.5rem 0 0 0.5rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-right: none;
@@ -647,7 +770,7 @@ main {
 }
 #explain-parked-drawer:hover {
     background: rgba(255, 255, 255, 0.1);
-    padding-right: 1.2rem;
+    padding-right: 0.75rem;
 }
 
 #chart-inspector {
@@ -716,22 +839,35 @@ main {
 /* Dashboard Sidebar Tooltip Layout */
 .dashboard-layout {
     display: grid;
-    grid-template-columns: 1fr 21.25rem;
+    grid-template-columns: 1fr;
     gap: 1.5rem;
     align-items: start;
     width: 100%;
 }
 .dashboard-sidebar {
+    display: none;
     position: sticky;
     top: 2rem;
     width: 100%;
 }
 
+.dashboard-layout.show-inspector,
+body.show-inspector .dashboard-layout {
+    grid-template-columns: 1fr 21.25rem;
+}
+
+.dashboard-layout.show-inspector .dashboard-sidebar,
+body.show-inspector .dashboard-sidebar {
+    display: block;
+}
+
 @media (max-width: 75rem) {
-    .dashboard-layout {
+    .dashboard-layout.show-inspector,
+    body.show-inspector .dashboard-layout {
         grid-template-columns: 1fr;
     }
-    .dashboard-sidebar {
+    .dashboard-layout.show-inspector .dashboard-sidebar,
+    body.show-inspector .dashboard-sidebar {
         position: static;
         margin-top: 2rem;
     }
@@ -887,7 +1023,6 @@ main {
 }
 
 /* ==========================================================================
-/* ==========================================================================
    Sandbox Experiment Disclaimer Banner (Compact Single-Line)
    ========================================================================== */
 
@@ -895,7 +1030,7 @@ main {
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: -1.25rem;
     padding: 0.45rem 1rem;
     background: rgba(234, 179, 8, 0.08);
     border: 1px solid rgba(234, 179, 8, 0.35);
@@ -904,6 +1039,20 @@ main {
     font-size: 0.70rem;
     line-height: 1.35;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+    max-height: 100px;
+    opacity: 1;
+    overflow: hidden;
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), margin-bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.5s cubic-bezier(0.4, 0, 0.2, 1), border 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.disclaimer-banner.dismissed {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+    border: none;
+    pointer-events: none;
 }
 
 .disclaimer-banner .disclaimer-icon {
@@ -920,6 +1069,27 @@ main {
 .disclaimer-banner .disclaimer-content strong {
     color: #fde047;
     margin-right: 0.25rem;
+}
+
+.disclaimer-dismiss-btn {
+    background: transparent;
+    border: none;
+    color: #fef08a;
+    font-size: 1.15rem;
+    cursor: pointer;
+    padding: 0 0.35rem;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.disclaimer-dismiss-btn:hover {
+    opacity: 1;
+    transform: scale(1.15);
 }
 
 /* ==========================================================================
