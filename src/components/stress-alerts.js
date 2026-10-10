@@ -1,9 +1,9 @@
 /**
  * Historical Stress-Test Alert Component (SPEC-034)
- * 
+ *
  * Renders a slim, compact summary banner indicating historical crash sequence risks,
  * with an interactive accordion that expands to reveal detailed scenario badges on click.
- * 
+ *
  * Written with the assistance of Google Gemini
  */
 
@@ -19,7 +19,7 @@ export function getStressDetailsExpanded() {
 
 /**
  * Sets the expansion state of the stress details panel.
- * @param {boolean} expanded 
+ * @param {boolean} expanded
  */
 export function setStressDetailsExpanded(expanded) {
     isStressDetailsExpanded = !!expanded;
@@ -27,48 +27,51 @@ export function setStressDetailsExpanded(expanded) {
 
 /**
  * Formats a depleted failure scenario badge.
- * @param {Object} r 
+ * @param {Object} r
  * @returns {string}
  */
 function renderDepletedBadge(r) {
-    const tooltip = `${r.name}: Portfolio fully exhausts to $0 in Year ${r.failureYear} `
-        + `(Age ${r.failureAge}). Max Drawdown: -${r.maxDrawdownPct}%. Total Shortfall: $${r.totalShortfall.toLocaleString()}`;
+    const tooltip =
+        `${r.name}: Portfolio fully exhausts to $0 in Year ${r.failureYear} ` +
+        `(Age ${r.failureAge}). Max Drawdown: -${r.maxDrawdownPct}%. Total Shortfall: $${r.totalShortfall.toLocaleString()}`;
     return `
         <div class="stress-badge failure-badge" title="${tooltip}">
             <span>⚠️</span>
             <span><strong>Fails ${r.shortName}:</strong> Depletes in ${r.failureYear} (Age ${r.failureAge})</span>
-            <span class="stress-badge-dd">-${r.maxDrawdownPct}% DD</span>
+            <span class="stress-badge-dd" title="Max Peak-to-Trough Market Drop: -${r.maxDrawdownPct}%">Max Drop: -${r.maxDrawdownPct}%</span>
         </div>
     `;
 }
 
 /**
  * Formats a pre-59.5 bridge lockout scenario badge.
- * @param {Object} r 
+ * @param {Object} r
  * @returns {string}
  */
 function renderBridgeLockoutBadge(r) {
     const portK = `$${Math.round((r.portfolioAtFailure || 0) / 1000)}k`;
-    const tooltip = `${r.name}: Portfolio remains funded with $${(r.portfolioAtFailure || 0).toLocaleString()} `
-        + `in assets, but funds are locked in pre-tax accounts (401k/IRA) before age 59½ without active 72(t) SEPP `
-        + `or taxable bridge cash. Shortfall during lockout: $${r.totalShortfall.toLocaleString()}.`;
+    const tooltip =
+        `${r.name}: Portfolio remains funded with $${(r.portfolioAtFailure || 0).toLocaleString()} ` +
+        `in assets, but funds are locked in pre-tax accounts (401k/IRA) before age 59½ without active 72(t) SEPP ` +
+        `or taxable bridge cash. Shortfall during lockout: $${r.totalShortfall.toLocaleString()}.`;
     return `
         <div class="stress-badge bridge-badge" title="${tooltip}">
             <span>⚠️</span>
             <span><strong>Bridge Gap ${r.shortName}:</strong> Pre-59½ Lock at Age ${r.failureAge} (${portK} Portfolio)</span>
-            <span class="stress-badge-dd">-${r.maxDrawdownPct}% DD</span>
+            <span class="stress-badge-dd" title="Max Peak-to-Trough Market Drop: -${r.maxDrawdownPct}%">Max Drop: -${r.maxDrawdownPct}%</span>
         </div>
     `;
 }
 
 /**
  * Formats a passed historical scenario badge.
- * @param {Object} r 
+ * @param {Object} r
  * @returns {string}
  */
 function renderPassedBadge(r) {
-    const tooltip = `${r.name}: 100% Fully Funded. Lowest Portfolio Trough: $${r.minPortfolio.toLocaleString()}. `
-        + `Max Drawdown: -${r.maxDrawdownPct}%`;
+    const tooltip =
+        `${r.name}: 100% Fully Funded. Lowest Portfolio Trough: $${r.minPortfolio.toLocaleString()}. ` +
+        `Max Drawdown: -${r.maxDrawdownPct}%`;
     const troughK = (r.minPortfolio / 1000).toFixed(0);
     return `
         <div class="stress-badge success-badge" title="${tooltip}">
@@ -81,9 +84,9 @@ function renderPassedBadge(r) {
 
 /**
  * Derives presentation summary metadata based on scenario counts.
- * @param {Array} depleted 
- * @param {Array} bridgeGap 
- * @param {Array} passed 
+ * @param {Array} depleted
+ * @param {Array} bridgeGap
+ * @param {Array} passed
  * @returns {Object}
  */
 function computeStressSummary(depleted, bridgeGap, passed) {
@@ -126,8 +129,8 @@ function computeStressSummary(depleted, bridgeGap, passed) {
 
 /**
  * Builds HTML for the slim summary bar.
- * @param {Object} summary 
- * @param {boolean} isExpanded 
+ * @param {Object} summary
+ * @param {boolean} isExpanded
  * @returns {string}
  */
 function renderSummaryBar(summary, isExpanded) {
@@ -149,11 +152,39 @@ function renderSummaryBar(summary, isExpanded) {
 }
 
 /**
+ * Builds HTML for the plain-English stress testing educational guide card.
+ * @returns {string}
+ */
+function renderPlainEnglishGuide() {
+    return `
+        <div class="stress-plain-english-card">
+            <div class="stress-guide-header">
+                <span class="stress-guide-icon">🎢</span>
+                <strong>The Rollercoaster Analogy (Max Drop):</strong>
+            </div>
+            <p class="stress-guide-text">
+                Think of 'Max Drop' like a rollercoaster. If your portfolio reaches $1,000,000 at the top of the hill, and a market crash drops it to $600,000 before recovering, that is a -40% drop. You don't actually lose money permanently unless you are forced to sell your stocks at the bottom of the drop to pay your living expenses.
+            </p>
+            <div class="stress-guide-comparison">
+                <div class="stress-guide-col">
+                    <span class="guide-badge-pill danger-pill">⚠️ True Depletion</span>
+                    <p>Your portfolio runs completely out of money ($0 balance across all accounts) because sustained living expenses forced you to liquidate assets at depressed market prices.</p>
+                </div>
+                <div class="stress-guide-col">
+                    <span class="guide-badge-pill warning-pill">⚠️ Pre-59½ Bridge Gap</span>
+                    <p>Your portfolio still holds sufficient funds, but money is locked inside pre-tax retirement accounts (401k/IRA) before age 59½ without taxable bridge cash or a 72(t) SEPP plan to access it penalty-free.</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
  * Builds HTML for the expandable details panel.
- * @param {Array} depleted 
- * @param {Array} bridgeGap 
- * @param {Array} passed 
- * @param {boolean} isExpanded 
+ * @param {Array} depleted
+ * @param {Array} bridgeGap
+ * @param {Array} passed
+ * @param {boolean} isExpanded
  * @returns {string}
  */
 function renderDetailsPanel(depleted, bridgeGap, passed, isExpanded) {
@@ -167,6 +198,7 @@ function renderDetailsPanel(depleted, bridgeGap, passed, isExpanded) {
 
     return `
         <div class="stress-details-panel is-expanded" id="stress-details-panel">
+            ${renderPlainEnglishGuide()}
             <div class="stress-details-hint">Hover over badges for detailed drawdown analysis</div>
             <div class="stress-badges-grid">
                 ${depletedHtml}
@@ -179,8 +211,8 @@ function renderDetailsPanel(depleted, bridgeGap, passed, isExpanded) {
 
 /**
  * Main render function mounting the stress alert accordion into containerId.
- * @param {string} containerId 
- * @param {Array} stressResults 
+ * @param {string} containerId
+ * @param {Array} stressResults
  */
 export function renderStressAlerts(containerId, stressResults = []) {
     const container = document.getElementById(containerId);
@@ -191,9 +223,9 @@ export function renderStressAlerts(containerId, stressResults = []) {
         return;
     }
 
-    const depleted = stressResults.filter(r => r.status === 'depleted');
-    const bridgeGap = stressResults.filter(r => r.status === 'pre59_lockout');
-    const passed = stressResults.filter(r => r.status === 'passed' || (!r.status && r.passed));
+    const depleted = stressResults.filter((r) => r.status === 'depleted');
+    const bridgeGap = stressResults.filter((r) => r.status === 'pre59_lockout');
+    const passed = stressResults.filter((r) => r.status === 'passed' || (!r.status && r.passed));
 
     const summary = computeStressSummary(depleted, bridgeGap, passed);
 
