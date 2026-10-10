@@ -32,7 +32,7 @@ export class Account {
     }
 
     grow(returnRate) {
-        const rate = (returnRate !== undefined) ? returnRate : (this.expectedReturn / 100);
+        const rate = returnRate !== undefined ? returnRate : this.expectedReturn / 100;
         const growth = this.balance * rate;
         this.balance += growth;
         this.yearGrowth += growth;
@@ -55,7 +55,13 @@ export class Account {
         this.balance -= drawn;
         this.yearWithdrawals += drawn;
         if (drawn < amount && events) {
-            events.push({ type: 'withdrawal_shortfall', account: accountName || this.name, requested: amount, fulfilled: drawn, reason: 'Insufficient funds' });
+            events.push({
+                type: 'withdrawal_shortfall',
+                account: accountName || this.name,
+                requested: amount,
+                fulfilled: drawn,
+                reason: 'Insufficient funds'
+            });
         }
         return drawn;
     }
@@ -69,9 +75,15 @@ export class PreTaxAccount extends Account {
     withdraw(amount, ownerAge = 0, is72tActive = false, events = null, accountName = '') {
         if (ownerAge < 59.5 && !is72tActive) {
             if (events) {
-                events.push({ type: 'withdrawal_blocked', account: accountName || this.name, requested: amount, fulfilled: 0, reason: `Blocked by age restriction (Age ${Math.floor(ownerAge)} < 59.5) and no 72(t) active.` });
+                events.push({
+                    type: 'withdrawal_blocked',
+                    account: accountName || this.name,
+                    requested: amount,
+                    fulfilled: 0,
+                    reason: `Blocked by age restriction (Age ${Math.floor(ownerAge)} < 59.5) and no 72(t) active.`
+                });
             }
-            return 0; 
+            return 0;
         }
         return super.withdraw(amount, ownerAge, is72tActive, events, accountName);
     }
@@ -104,7 +116,7 @@ export class TaxableBrokerage extends Account {
     constructor(id, name, balance, expectedReturn, contributionPercentage, costBasis = null) {
         super(id, name, balance, expectedReturn, contributionPercentage);
         this.type = 'taxableBrokerage';
-        this.costBasis = (costBasis !== null && costBasis !== undefined) ? Number(costBasis) : (this.balance * 0.5);
+        this.costBasis = costBasis !== null && costBasis !== undefined ? Number(costBasis) : this.balance * 0.5;
     }
 
     contribute(amount) {
@@ -138,11 +150,13 @@ export class CdAccount extends Account {
     constructor(id, name, balance, expectedReturn = 5, contributionPercentage = 0, config = {}) {
         super(id, name, balance, expectedReturn, contributionPercentage);
         this.type = 'cd';
-        this.rate = (config.rate !== undefined && config.rate !== null) ? Number(config.rate) : (Number(expectedReturn) || 5);
+        this.rate =
+            config.rate !== undefined && config.rate !== null ? Number(config.rate) : Number(expectedReturn) || 5;
         this.maturityDate = config.maturityDate || `${new Date().getFullYear() + 1}-01`;
         this.maturityAction = config.maturityAction || 'sweep'; // 'sweep' or 'rollover'
         this.sweepTargetAccountId = config.sweepTargetAccountId || '';
-        this.rolloverCount = (config.rolloverCount !== undefined && config.rolloverCount !== null) ? Number(config.rolloverCount) : 1;
+        this.rolloverCount =
+            config.rolloverCount !== undefined && config.rolloverCount !== null ? Number(config.rolloverCount) : 1;
         this.rolloversCompleted = 0;
         this.isMatured = false;
         this.termMonths = Number(config.termMonths) || (Number(config.termYears) ? Number(config.termYears) * 12 : 12);
@@ -150,7 +164,7 @@ export class CdAccount extends Account {
     }
 
     grow(returnRate) {
-        const rate = (returnRate !== undefined) ? returnRate : (this.rate / 100);
+        const rate = returnRate !== undefined ? returnRate : this.rate / 100;
         super.grow(rate);
     }
 }
@@ -159,15 +173,19 @@ export class RothIra extends Account {
     constructor(id, name, balance, expectedReturn, contributionPercentage = 0, config = {}) {
         super(id, name, balance, expectedReturn, contributionPercentage);
         this.type = 'rothIra';
-        this.annualContribution = (config.annualContribution !== undefined && config.annualContribution !== null && config.annualContribution !== '')
-            ? Number(config.annualContribution)
-            : 7000;
+        this.annualContribution =
+            config.annualContribution !== undefined &&
+            config.annualContribution !== null &&
+            config.annualContribution !== ''
+                ? Number(config.annualContribution)
+                : 7000;
         this.autoContribute = Boolean(config.autoContribute);
         this.startYear = config.startYear ? Number(config.startYear) : null;
         this.stopYear = config.stopYear ? Number(config.stopYear) : null;
-        this.principle = (config.principle !== undefined && config.principle !== null && config.principle !== '')
-            ? Number(config.principle)
-            : this.balance;
+        this.principle =
+            config.principle !== undefined && config.principle !== null && config.principle !== ''
+                ? Number(config.principle)
+                : this.balance;
         this.cohorts = [];
         if (this.balance > 0) {
             const initialPrincipal = Math.min(this.balance, Math.max(0, this.principle));
@@ -205,7 +223,7 @@ export class RothIra extends Account {
         super.grow(returnRate);
         for (const c of this.cohorts) {
             if (c.balance > 0) {
-                c.balance *= (1 + returnRate);
+                c.balance *= 1 + returnRate;
             }
         }
     }
@@ -241,7 +259,7 @@ export class RothIra extends Account {
         let drawn = 0;
         for (const c of this.cohorts) {
             if (amountLeft - drawn <= 0) break;
-            const isMatured = (currentYear >= c.maturityYear) || (ownerAge >= 59.5);
+            const isMatured = currentYear >= c.maturityYear || ownerAge >= 59.5;
             if (isMatured && c.originalAmount > 0) {
                 const principalAvailable = Math.min(c.balance, c.originalAmount);
                 if (principalAvailable > 0) {
@@ -276,7 +294,7 @@ export class RothIra extends Account {
     withdraw(amount, ownerAge, currentYear, events = null, accountName = '') {
         if (amount <= 0) return 0;
         let amountLeft = amount;
-        
+
         // 1. Pull from matured principal (5-year rule OR age >= 59.5 per IRC § 408A(d)(3)(F))
         const principalDrawn = this.withdrawMaturedPrincipal(amountLeft, currentYear, ownerAge);
         amountLeft -= principalDrawn;
@@ -300,10 +318,17 @@ export class RothIra extends Account {
                 }
             }
             const reasons = [];
-            if (principalBlocked > 0) reasons.push(`$${Math.round(principalBlocked).toLocaleString()} principal blocked by 5-year rule.`);
+            if (principalBlocked > 0)
+                reasons.push(`$${Math.round(principalBlocked).toLocaleString()} principal blocked by 5-year rule.`);
             if (earningsBlocked) reasons.push(`Earnings blocked (Age ${Math.floor(ownerAge)} < 59.5).`);
             if (reasons.length === 0) reasons.push('Insufficient funds.');
-            events.push({ type: 'withdrawal_shortfall', account: accountName || this.name, requested: amount, fulfilled: totalDrawn, reason: reasons.join(' ') });
+            events.push({
+                type: 'withdrawal_shortfall',
+                account: accountName || this.name,
+                requested: amount,
+                fulfilled: totalDrawn,
+                reason: reasons.join(' ')
+            });
         }
         return totalDrawn;
     }
@@ -314,9 +339,12 @@ export class Hsa extends Account {
         super(id, name, balance, expectedReturn, contributionPercentage);
         this.type = 'hsa';
         this.coverageTier = config.coverageTier || 'single';
-        this.annualContribution = (config.annualContribution !== undefined && config.annualContribution !== null && config.annualContribution !== '')
-            ? Number(config.annualContribution)
-            : null;
+        this.annualContribution =
+            config.annualContribution !== undefined &&
+            config.annualContribution !== null &&
+            config.annualContribution !== ''
+                ? Number(config.annualContribution)
+                : null;
         this.employerContribution = Number(config.employerContribution) || 0;
     }
 }

@@ -215,7 +215,9 @@ export class MicroExpandDrawer extends BaseComponent {
             `;
         }
 
-        return this._items.map((item, idx) => `
+        return this._items
+            .map(
+                (item, idx) => `
             <div class="child-item-row" data-item-id="${escapeHtml(String(item.id || idx))}" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: rgba(255, 255, 255, 0.03); padding: 0.4rem 0.6rem; border-radius: 0.4rem; border: 1px solid rgba(255, 255, 255, 0.06);">
                 <div style="flex: 1; min-width: 0;">
                     <div style="font-size: 0.82rem; font-weight: 500; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
@@ -229,7 +231,9 @@ export class MicroExpandDrawer extends BaseComponent {
                     <button type="button" class="btn-remove-item" data-item-id="${escapeHtml(String(item.id || idx))}" title="Remove item" style="background: none; border: none; color: #fca5a5; font-size: 0.85rem; cursor: pointer; padding: 0 0.2rem;">&times;</button>
                 </div>
             </div>
-        `).join('');
+        `
+            )
+            .join('');
     }
 
     _renderAddItemForm() {
@@ -312,11 +316,11 @@ export class MicroExpandDrawer extends BaseComponent {
     }
 
     _bindItemInputs() {
-        this.querySelectorAll('.input-item-val').forEach(input => {
+        this.querySelectorAll('.input-item-val').forEach((input) => {
             input.addEventListener('change', (e) => {
                 const id = e.target.getAttribute('data-item-id');
                 const newVal = Number(e.target.value) || ZERO;
-                const it = this._items.find(item => String(item.id) === String(id));
+                const it = this._items.find((item) => String(item.id) === String(id));
                 if (it) {
                     it.value = newVal;
                     this._emitUpdate(ACTION_UPDATE, { id, value: newVal, item: it });
@@ -326,10 +330,10 @@ export class MicroExpandDrawer extends BaseComponent {
             });
         });
 
-        this.querySelectorAll('.btn-remove-item').forEach(btn => {
+        this.querySelectorAll('.btn-remove-item').forEach((btn) => {
             btn.addEventListener('click', (e) => {
                 const id = e.target.getAttribute('data-item-id');
-                this._items = this._items.filter(item => String(item.id) !== String(id));
+                this._items = this._items.filter((item) => String(item.id) !== String(id));
                 this._emitUpdate(ACTION_REMOVE, { id });
                 this.render();
                 this.afterRender();
@@ -380,29 +384,33 @@ export class MicroExpandDrawer extends BaseComponent {
     }
 
     _emitUpdate(action, payload) {
-        this.dispatchEvent(new CustomEvent('update-child', {
-            detail: {
-                field: this._field,
-                action,
-                ...payload,
-                items: [...this._items],
-                sum: this._calculateSum()
-            },
-            bubbles: true,
-            composed: true
-        }));
+        this.dispatchEvent(
+            new CustomEvent('update-child', {
+                detail: {
+                    field: this._field,
+                    action,
+                    ...payload,
+                    items: [...this._items],
+                    sum: this._calculateSum()
+                },
+                bubbles: true,
+                composed: true
+            })
+        );
     }
 
     _emitConsolidate() {
-        this.dispatchEvent(new CustomEvent('consolidate-field', {
-            detail: {
-                field: this._field,
-                aggregateValue: this._pendingConsolidateValue,
-                itemCount: this._items.length
-            },
-            bubbles: true,
-            composed: true
-        }));
+        this.dispatchEvent(
+            new CustomEvent('consolidate-field', {
+                detail: {
+                    field: this._field,
+                    aggregateValue: this._pendingConsolidateValue,
+                    itemCount: this._items.length
+                },
+                bubbles: true,
+                composed: true
+            })
+        );
     }
 }
 

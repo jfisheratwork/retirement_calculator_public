@@ -32,7 +32,7 @@ export class AccountDetailsPanel extends BaseComponent {
         if (!spouseObj) return '';
 
         let out = this._startSection(`${escapeHtml(spouseObj.name || 'Spouse')} Accounts`, true);
-        
+
         // Header with Account Type Selector + Add Button
         out += `<div class="pane-section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
             <span>Accounts</span>
@@ -62,22 +62,26 @@ export class AccountDetailsPanel extends BaseComponent {
 
     afterRender() {
         this.addEvent('input, select', 'change', (e) => {
-            this.dispatchEvent(new CustomEvent('stateChange', {
-                detail: { element: e.target },
-                bubbles: true
-            }));
+            this.dispatchEvent(
+                new CustomEvent('stateChange', {
+                    detail: { element: e.target },
+                    bubbles: true
+                })
+            );
         });
 
-        this.querySelectorAll('.add-account-btn').forEach(btn => {
+        this.querySelectorAll('.add-account-btn').forEach((btn) => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const prefix = btn.getAttribute('data-prefix');
                 const selectEl = this.querySelector(`#${prefix}-new-account-type`);
                 const type = selectEl ? selectEl.value : 'traditional401k';
-                this.dispatchEvent(new CustomEvent('addAccount', {
-                    detail: { prefix, type },
-                    bubbles: true
-                }));
+                this.dispatchEvent(
+                    new CustomEvent('addAccount', {
+                        detail: { prefix, type },
+                        bubbles: true
+                    })
+                );
             });
         });
     }

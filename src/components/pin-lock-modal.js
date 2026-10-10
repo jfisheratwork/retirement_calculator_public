@@ -132,17 +132,25 @@ export class PinLockModal extends BaseComponent {
                         <button type="button" class="btn-close-lock btn-close" aria-label="Close dialog" style="font-size: 1.5rem; background: none; border: none; color: #94a3b8; cursor: pointer; line-height: 1;">&times;</button>
                     </div>
 
-                    ${this._errorMsg ? `
+                    ${
+                        this._errorMsg
+                            ? `
                         <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.6rem 0.85rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem;">
                             ⚠️ ${escapeHtml(this._errorMsg)}
                         </div>
-                    ` : ''}
+                    `
+                            : ''
+                    }
 
-                    ${this._successMsg ? `
+                    ${
+                        this._successMsg
+                            ? `
                         <div style="background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #86efac; padding: 0.6rem 0.85rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem;">
                             ✅ ${escapeHtml(this._successMsg)}
                         </div>
-                    ` : ''}
+                    `
+                            : ''
+                    }
 
                     ${!isConfigured ? this._renderSetupView() : this._renderManageView()}
                 </div>
@@ -189,9 +197,13 @@ export class PinLockModal extends BaseComponent {
                     <button type="button" class="btn btn-secondary btn-cancel-setup" ${this._isSubmitting ? 'disabled' : ''} style="padding: 0.5rem 1rem;">Cancel</button>
                     <button type="submit" id="btn-submit-setup-pin" class="btn btn-primary btn-save-pin" ${this._isSubmitting ? 'disabled' : ''}
                         style="padding: 0.5rem 1.25rem; background: ${this._isSuccess ? '#22c55e' : '#eab308'}; color: #000; font-weight: 700; border: none; cursor: ${this._isSubmitting ? 'not-allowed' : 'pointer'}; min-width: 190px; text-align: center;">
-                        ${this._isSubmitting 
-                            ? `<span class="pin-spinner"></span> Encrypting & Locking...` 
-                            : (this._isSuccess ? `✅ Encrypted & Locked!` : `🔒 Encrypt & Lock with PIN`)}
+                        ${
+                            this._isSubmitting
+                                ? `<span class="pin-spinner"></span> Encrypting & Locking...`
+                                : this._isSuccess
+                                  ? `✅ Encrypted & Locked!`
+                                  : `🔒 Encrypt & Lock with PIN`
+                        }
                     </button>
                 </div>
             </form>
@@ -305,7 +317,7 @@ export class PinLockModal extends BaseComponent {
         this.render();
 
         // Brief delay to ensure browser paints spinner before PBKDF2 runs
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
         try {
             await setStoragePin(pin);
@@ -351,7 +363,7 @@ export class PinLockModal extends BaseComponent {
 
         this._isSubmitting = true;
         this.render();
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
         try {
             await changeStoragePin(curr, next);
@@ -378,7 +390,7 @@ export class PinLockModal extends BaseComponent {
 
         this._isSubmitting = true;
         this.render();
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
         try {
             await removeStoragePin(curr);

@@ -1,6 +1,6 @@
 /**
  * Global Tooltip & Interactive Guide Popover Service
- * 
+ *
  * Provides interactive, substantial floating tooltips with heavy rounded borders,
  * clear typography, and responsive positioning for all parameter inputs and settings.
  */
@@ -71,7 +71,7 @@ function positionTooltip(triggerEl, tooltip) {
     const margin = 12;
 
     let top = triggerRect.bottom + margin;
-    let left = triggerRect.left + (triggerRect.width / 2) - (tooltipRect.width / 2);
+    let left = triggerRect.left + triggerRect.width / 2 - tooltipRect.width / 2;
 
     // If overflowing bottom, position above trigger
     if (top + tooltipRect.height > viewportHeight - margin) {

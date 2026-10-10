@@ -1,6 +1,6 @@
 /**
  * Security & Sanitization Utilities
- * 
+ *
  * Provides robust HTML escaping to prevent Cross-Site Scripting (XSS)
  * when rendering dynamic user inputs, profile data, or AI-generated strings.
  */

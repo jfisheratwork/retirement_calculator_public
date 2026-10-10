@@ -43,11 +43,13 @@ export class FinancialInputPanel extends BaseComponent {
 
     setDirty(dirty) {
         this.isDirty = Boolean(dirty);
-        this.dispatchEvent(new CustomEvent('drawer-dirty-change', {
-            detail: { isDirty: this.isDirty },
-            bubbles: true,
-            composed: true
-        }));
+        this.dispatchEvent(
+            new CustomEvent('drawer-dirty-change', {
+                detail: { isDirty: this.isDirty },
+                bubbles: true,
+                composed: true
+            })
+        );
     }
 
     save() {
@@ -124,7 +126,11 @@ export class FinancialInputPanel extends BaseComponent {
         if (element.type === 'number') {
             return Number(element.value);
         }
-        if (element.type === 'date' || element.type === 'month' || (typeof element.value === 'string' && path.toLowerCase().includes('date') && element.value.includes('-'))) {
+        if (
+            element.type === 'date' ||
+            element.type === 'month' ||
+            (typeof element.value === 'string' && path.toLowerCase().includes('date') && element.value.includes('-'))
+        ) {
             const rawVal = element.value;
             if (rawVal) {
                 const normalized = normalizeDateStr(rawVal);
@@ -135,8 +141,15 @@ export class FinancialInputPanel extends BaseComponent {
             }
             return rawVal;
         }
-        const intPaths = ['.month', '.startMonth', '.socialSecurityStartMonth', '.year', '.rolloverCount', '.termMonths'];
-        if (intPaths.some(p => path.endsWith(p))) {
+        const intPaths = [
+            '.month',
+            '.startMonth',
+            '.socialSecurityStartMonth',
+            '.year',
+            '.rolloverCount',
+            '.termMonths'
+        ];
+        if (intPaths.some((p) => path.endsWith(p))) {
             return parseInt(element.value, 10) || 1;
         }
         return element.value;
@@ -159,7 +172,7 @@ export class FinancialInputPanel extends BaseComponent {
         if (path.endsWith('.targetRetirementDate') && typeof val === 'string') {
             const parts = val.split('-');
             const birthYear = Number(current.yearOfBirth || current.birthYear) || 1980;
-            const retYear = parseInt(parts[0], 10) || (birthYear + 65);
+            const retYear = parseInt(parts[0], 10) || birthYear + 65;
             current.targetRetirementAge = retYear - birthYear;
         } else if (path.endsWith('.socialSecurityMonthlyBenefit')) {
             current.socialSecurityAnnualBenefit = Number(val) * 12;
@@ -215,7 +228,7 @@ export class FinancialInputPanel extends BaseComponent {
         if (rolloverObj.isFullBalance === undefined) rolloverObj.isFullBalance = true;
         if (!rolloverObj.targetAccount) {
             const spouse = workingState[spouseKey];
-            const firstIra = (spouse?.accounts || []).find(a => a.type === 'standardIra');
+            const firstIra = (spouse?.accounts || []).find((a) => a.type === 'standardIra');
             if (firstIra) {
                 rolloverObj.targetAccount = firstIra.id || firstIra.name || 'standardIra';
             }
@@ -234,9 +247,11 @@ export class FinancialInputPanel extends BaseComponent {
 
     _handleSweepAccountToggle(workingState, current, val) {
         if (val === true) {
-            [workingState.primarySpouse, workingState.secondarySpouse].forEach(s => {
+            [workingState.primarySpouse, workingState.secondarySpouse].forEach((s) => {
                 if (s?.accounts) {
-                    s.accounts.forEach(a => { a.isSweepAccount = false; });
+                    s.accounts.forEach((a) => {
+                        a.isSweepAccount = false;
+                    });
                 }
             });
             current.isSweepAccount = true;
@@ -247,7 +262,7 @@ export class FinancialInputPanel extends BaseComponent {
 
     _snapshotOpenDisclosures() {
         const workingState = this.getWorkingState();
-        this.querySelectorAll('details').forEach(d => {
+        this.querySelectorAll('details').forEach((d) => {
             if (d.classList.contains('job-card')) {
                 const card = d.closest('job-panel');
                 const prefix = card?.getAttribute('prefix');
@@ -311,13 +326,13 @@ export class FinancialInputPanel extends BaseComponent {
         if (!spouse.accounts) spouse.accounts = [];
 
         const prettyNames = {
-            'traditional401k': '401k',
-            'trad403b': '403b',
-            'standardIra': 'Standard IRA',
-            'rothIra': 'Roth IRA',
-            'taxableBrokerage': 'Taxable Brokerage',
-            'hysa': 'HYSA',
-            'cd': 'CD'
+            traditional401k: '401k',
+            trad403b: '403b',
+            standardIra: 'Standard IRA',
+            rothIra: 'Roth IRA',
+            taxableBrokerage: 'Taxable Brokerage',
+            hysa: 'HYSA',
+            cd: 'CD'
         };
         const prettyType = prettyNames[type] || type;
 
@@ -398,7 +413,7 @@ export class FinancialInputPanel extends BaseComponent {
         }
         const rates = workingState.assumptions.marketReturnRates;
         const lastTier = rates[rates.length - 1];
-        const nextYear = (lastTier && lastTier.startYear) ? Number(lastTier.startYear) + 5 : new Date().getFullYear() + 5;
+        const nextYear = lastTier && lastTier.startYear ? Number(lastTier.startYear) + 5 : new Date().getFullYear() + 5;
         rates.push({ startYear: nextYear, rate: 7.0 });
         this._applyStructuralChange();
     }
@@ -487,10 +502,11 @@ export class FinancialInputPanel extends BaseComponent {
     }
 
     afterRender() {
-        this.querySelectorAll('.tab-button').forEach(btn => {
+        this.querySelectorAll('.tab-button').forEach((btn) => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                const targetTab = btn.getAttribute('data-tab') || e.target.closest('.tab-button')?.getAttribute('data-tab');
+                const targetTab =
+                    btn.getAttribute('data-tab') || e.target.closest('.tab-button')?.getAttribute('data-tab');
                 if (targetTab && targetTab !== this.activeTab) {
                     this._snapshotOpenDisclosures();
                     this.activeTab = targetTab;
@@ -500,7 +516,7 @@ export class FinancialInputPanel extends BaseComponent {
             });
         });
 
-        this.querySelectorAll('.add-job-btn').forEach(btn => {
+        this.querySelectorAll('.add-job-btn').forEach((btn) => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const prefix = btn.getAttribute('data-prefix');
@@ -508,7 +524,7 @@ export class FinancialInputPanel extends BaseComponent {
             });
         });
 
-        this.querySelectorAll('.remove-job-btn').forEach(btn => {
+        this.querySelectorAll('.remove-job-btn').forEach((btn) => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const prefix = btn.getAttribute('data-prefix');
@@ -517,7 +533,7 @@ export class FinancialInputPanel extends BaseComponent {
             });
         });
 
-        this.querySelectorAll('.remove-account-btn').forEach(btn => {
+        this.querySelectorAll('.remove-account-btn').forEach((btn) => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const prefix = btn.getAttribute('data-prefix');
@@ -545,7 +561,7 @@ if (typeof customElements !== 'undefined' && !customElements.get('financial-inpu
 export function renderInputPanel(containerId, onStateChange, forceFullRender = false) {
     const container = document.getElementById(containerId);
     if (!container) return null;
-    
+
     let panel = container.querySelector('financial-input-panel');
     if (!panel) {
         container.innerHTML = '';

@@ -142,9 +142,7 @@ export const defaultState = {
         initialCashCushion: 0,
         displayRealDollars: true,
         graphYears: 50,
-        marketReturnRates: [
-            { startYear: new Date().getFullYear(), rate: 7.0 }
-        ],
+        marketReturnRates: [{ startYear: new Date().getFullYear(), rate: 7.0 }],
         conservativeShift: {
             enabled: false,
             startAge: 60,
@@ -168,9 +166,11 @@ export function deepMerge(target, source) {
     if (!target || typeof target !== 'object') return structuredClone(source);
     const output = Array.isArray(target) ? [...target] : Object.assign({}, target);
     if (source && typeof source === 'object') {
-        Object.keys(source).forEach(key => {
+        Object.keys(source).forEach((key) => {
             if (Array.isArray(source[key])) {
-                output[key] = source[key].map(item => (item && typeof item === 'object') ? structuredClone(item) : item);
+                output[key] = source[key].map((item) =>
+                    item && typeof item === 'object' ? structuredClone(item) : item
+                );
             } else if (source[key] && typeof source[key] === 'object') {
                 if (!(key in target) || !target[key] || typeof target[key] !== 'object') {
                     output[key] = structuredClone(source[key]);
@@ -191,25 +191,41 @@ function normalizeState(state) {
     if (!state.assumptions.startDate) {
         state.assumptions.startDate = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
     } else {
-        state.assumptions.startDate = normalizeDateStr(state.assumptions.startDate, new Date().getFullYear(), new Date().getMonth() + 1);
+        state.assumptions.startDate = normalizeDateStr(
+            state.assumptions.startDate,
+            new Date().getFullYear(),
+            new Date().getMonth() + 1
+        );
     }
     if (state.assumptions.stateTaxRate === undefined) {
         state.assumptions.stateTaxRate = 0.0;
     }
     if (!Array.isArray(state.assumptions.marketReturnRates) || state.assumptions.marketReturnRates.length === 0) {
         state.assumptions.marketReturnRates = [
-            { startYear: new Date().getFullYear(), rate: state.assumptions.generalReturnRate !== undefined ? Number(state.assumptions.generalReturnRate) : 7.0 }
+            {
+                startYear: new Date().getFullYear(),
+                rate:
+                    state.assumptions.generalReturnRate !== undefined
+                        ? Number(state.assumptions.generalReturnRate)
+                        : 7.0
+            }
         ];
     }
 
-    [state.primarySpouse, state.secondarySpouse].forEach(spouse => {
+    [state.primarySpouse, state.secondarySpouse].forEach((spouse) => {
         if (!spouse) return;
         const birthYear = Number(spouse.yearOfBirth) || 1980;
 
         // Clean up jobs
         if (Array.isArray(spouse.jobs)) {
-            spouse.jobs = spouse.jobs.filter(j => j && typeof j === 'object' && j.id && (Boolean(j.title) || Number(j.baseSalary || 0) > 0 || Boolean(j.startDate)));
-            spouse.jobs.forEach(j => {
+            spouse.jobs = spouse.jobs.filter(
+                (j) =>
+                    j &&
+                    typeof j === 'object' &&
+                    j.id &&
+                    (Boolean(j.title) || Number(j.baseSalary || 0) > 0 || Boolean(j.startDate))
+            );
+            spouse.jobs.forEach((j) => {
                 if (j.startDate) j.startDate = normalizeDateStr(j.startDate);
                 if (j.endDate) j.endDate = normalizeDateStr(j.endDate);
             });
@@ -217,15 +233,21 @@ function normalizeState(state) {
 
         // Normalize accounts & clean up empty placeholders
         if (Array.isArray(spouse.accounts)) {
-            spouse.accounts = spouse.accounts.filter(a => {
+            spouse.accounts = spouse.accounts.filter((a) => {
                 if (!a || typeof a !== 'object') return false;
-                if (a.id && a.id.startsWith('acc-') && a.name === '401k' && Number(a.balance || 0) === 0 && Number(a.contributionPercentage || 0) === 0) {
+                if (
+                    a.id &&
+                    a.id.startsWith('acc-') &&
+                    a.name === '401k' &&
+                    Number(a.balance || 0) === 0 &&
+                    Number(a.contributionPercentage || 0) === 0
+                ) {
                     return false;
                 }
                 return true;
             });
 
-            spouse.accounts.forEach(acc => {
+            spouse.accounts.forEach((acc) => {
                 if (acc.type === 'traditional401k' || acc.type === 'trad403b') {
                     if (!acc.rollover) {
                         acc.rollover = {
@@ -297,16 +319,20 @@ function normalizeState(state) {
             const advYr = state.strategies.advancedRothStrategy.startYear || new Date().getFullYear();
             state.strategies.advancedRothStrategy.startDate = `${advYr}-01`;
         } else {
-            state.strategies.advancedRothStrategy.startDate = normalizeDateStr(state.strategies.advancedRothStrategy.startDate);
+            state.strategies.advancedRothStrategy.startDate = normalizeDateStr(
+                state.strategies.advancedRothStrategy.startDate
+            );
         }
     }
 
     if (state.primaryResidenceMortgage && state.primaryResidenceMortgage.originationDate) {
-        state.primaryResidenceMortgage.originationDate = normalizeDateStr(state.primaryResidenceMortgage.originationDate);
+        state.primaryResidenceMortgage.originationDate = normalizeDateStr(
+            state.primaryResidenceMortgage.originationDate
+        );
     }
 
     if (Array.isArray(state.dependents)) {
-        state.dependents.forEach(dep => {
+        state.dependents.forEach((dep) => {
             if (!dep || typeof dep !== 'object') return;
             if (dep.contributionMode === undefined) {
                 dep.contributionMode = 'fixed';
@@ -362,11 +388,13 @@ function saveStore() {
     });
     const encoded = StorageShield.encodeForStorage(rawJson);
     if (encoded instanceof Promise) {
-        encoded.then(payload => {
-            safeSetStorage(LOCAL_STORAGE_KEY, payload);
-        }).catch(err => {
-            console.error('Failed to encrypt storage with session key:', err);
-        });
+        encoded
+            .then((payload) => {
+                safeSetStorage(LOCAL_STORAGE_KEY, payload);
+            })
+            .catch((err) => {
+                console.error('Failed to encrypt storage with session key:', err);
+            });
     } else {
         safeSetStorage(LOCAL_STORAGE_KEY, encoded);
     }
@@ -415,18 +443,18 @@ export function initState(unlockedJsonStr = null) {
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
-            
+
             if (parsed.dataVersion !== MODEL_VERSION) {
                 console.warn('Data version mismatch. Resetting to default state.');
                 throw new Error('Data version mismatch');
             }
-            
+
             // Check if it's the old format (no activeProfileId)
             if (!parsed.activeProfileId) {
                 // Migrate
                 currentProfileId = 'default';
                 profiles = {
-                    'default': {
+                    default: {
                         id: 'default',
                         name: 'Default Profile',
                         data: parsed
@@ -436,17 +464,17 @@ export function initState(unlockedJsonStr = null) {
                 currentProfileId = parsed.activeProfileId;
                 profiles = parsed.profiles;
             }
-            
+
             if (parsed.globalSettings) {
                 globalSettings = parsed.globalSettings;
             }
-            
+
             if (!profiles[currentProfileId]) {
                 currentProfileId = Object.keys(profiles)[0];
             }
-            
+
             currentState = deepMerge(structuredClone(defaultState), profiles[currentProfileId].data);
-            
+
             // Migration for SSN Benefit
             let migrated = shouldMigrateToShield;
             if (_migrateSpouseSsn(currentState.primarySpouse)) migrated = true;
@@ -455,9 +483,9 @@ export function initState(unlockedJsonStr = null) {
                 currentState.assumptions.startDate = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
                 migrated = true;
             }
-            
+
             if (migrated) saveStore();
-            
+
             // Clean up legacy keys
             if ('rothConversions' in currentState) {
                 delete currentState.rothConversions;
@@ -484,17 +512,16 @@ export function initState(unlockedJsonStr = null) {
                 delete currentState.secondarySpouse.rule72tEarlyWithdrawalStartAge;
                 saveStore();
             }
-            
         } catch (e) {
-            console.error("Failed to parse saved state, falling back to default.", e);
+            console.error('Failed to parse saved state, falling back to default.', e);
             currentProfileId = 'default';
-            profiles = { 'default': { id: 'default', name: 'Default Profile', data: structuredClone(defaultState) } };
+            profiles = { default: { id: 'default', name: 'Default Profile', data: structuredClone(defaultState) } };
             currentState = structuredClone(defaultState);
             saveStore();
         }
     } else {
         currentProfileId = 'default';
-        profiles = { 'default': { id: 'default', name: 'Default Profile', data: structuredClone(defaultState) } };
+        profiles = { default: { id: 'default', name: 'Default Profile', data: structuredClone(defaultState) } };
         currentState = structuredClone(defaultState);
         saveStore();
     }
@@ -537,7 +564,7 @@ export function getProfiles() {
             return [{ id: 'default', name: 'Default Profile' }];
         }
     }
-    return Object.values(profiles).map(p => ({ id: p.id, name: p.name }));
+    return Object.values(profiles).map((p) => ({ id: p.id, name: p.name }));
 }
 
 export function getActiveProfileId() {
@@ -578,7 +605,7 @@ export function renameProfile(id, name) {
 export function deleteProfile(id) {
     const profileIds = Object.keys(profiles);
     if (profileIds.length <= 1) return; // Must have at least one profile
-    
+
     if (profiles[id]) {
         delete profiles[id];
         if (currentProfileId === id) {
@@ -606,10 +633,10 @@ export function replaceProfileData(id, importedData) {
  * Exports the current state as a JSON file download.
  */
 export function exportState() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(getState(), null, 2));
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(getState(), null, 2));
     const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "retirement_plan.json");
+    downloadAnchorNode.setAttribute('href', dataStr);
+    downloadAnchorNode.setAttribute('download', 'retirement_plan.json');
     document.body.appendChild(downloadAnchorNode); // required for firefox
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
@@ -734,4 +761,3 @@ export function resetStorageToDefault() {
     currentState = null;
     initState();
 }
-

@@ -269,7 +269,8 @@ export const SAMPLE_FAMILY_DATA = {
     },
     metadata: {
         profileName: 'Sample Household (Family of 4)',
-        description: 'Upper-middle-class household (Couple 45 & 41, 2 kids, $180k income, reaching $1.5M liquid portfolio at Age 52).',
+        description:
+            'Upper-middle-class household (Couple 45 & 41, 2 kids, $180k income, reaching $1.5M liquid portfolio at Age 52).',
         version: '2.0'
     }
 };
@@ -288,7 +289,9 @@ export async function loadSampleHouseholdProfile() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
             // Fetch API documentation: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
-            const res = await fetch(`./Scenarios/Sample_FamilyScenario.json?v=${Date.now()}`, { signal: controller.signal });
+            const res = await fetch(`./Scenarios/Sample_FamilyScenario.json?v=${Date.now()}`, {
+                signal: controller.signal
+            });
             clearTimeout(timeoutId);
             if (res.ok) {
                 profileData = await res.json();
@@ -303,7 +306,7 @@ export async function loadSampleHouseholdProfile() {
     }
 
     // Check if profile already exists in profile store
-    const existing = getProfiles().find(p => p.name === SAMPLE_FAMILY_PROFILE_NAME);
+    const existing = getProfiles().find((p) => p.name === SAMPLE_FAMILY_PROFILE_NAME);
     let targetProfileId;
 
     if (existing) {

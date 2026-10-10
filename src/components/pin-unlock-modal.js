@@ -51,11 +51,15 @@ export class PinUnlockModal extends BaseComponent {
                         Your financial scenarios are protected with <strong>AES-256-GCM encryption</strong>. Enter your PIN to decrypt and load your data into memory.
                     </p>
 
-                    ${this._errorMsg ? `
+                    ${
+                        this._errorMsg
+                            ? `
                         <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.6rem 0.85rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1.25rem; text-align: left;">
                             ⚠️ ${escapeHtml(this._errorMsg)}
                         </div>
-                    ` : ''}
+                    `
+                            : ''
+                    }
 
                     <form id="pin-unlock-form" style="display: flex; flex-direction: column; gap: 1rem;">
                         <input type="text" name="username" value="local-user" autocomplete="username" style="display:none;" aria-hidden="true">
@@ -109,7 +113,7 @@ export class PinUnlockModal extends BaseComponent {
         this._errorMsg = '';
         this.render();
 
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
         try {
             await unlockStorageWithPin(pin);

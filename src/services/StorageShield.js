@@ -35,7 +35,9 @@ function computeAdler32(str) {
 
 // Helper: Hex / Uint8Array conversion
 function bytesToHex(bytes) {
-    return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    return Array.from(bytes)
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
 }
 
 function hexToBytes(hex) {
@@ -83,20 +85,19 @@ function generateKeystream(compositeKey, saltHex, length) {
         const charCode = seedStr.charCodeAt(i % seedStr.length);
         hash ^= charCode;
         hash = Math.imul(hash, 0x01000193);
-        keystream[i] = (hash >>> 24) ^ (hash & 0xFF);
+        keystream[i] = (hash >>> 24) ^ (hash & 0xff);
     }
     return keystream;
 }
 
 export class StorageShield {
-
     // ==========================================
     // Option A: Split-Key Obfuscation (Synchronous)
     // ==========================================
 
     /**
      * Obfuscates a cleartext JSON string using Option A split-key transformation.
-     * @param {string} plaintextStr 
+     * @param {string} plaintextStr
      * @returns {string} Serialized JSON envelope
      */
     static encodeOptionA(plaintextStr) {
@@ -126,7 +127,7 @@ export class StorageShield {
 
     /**
      * Decodes an Option A envelope.
-     * @param {Object} envelope 
+     * @param {Object} envelope
      * @returns {string} Plaintext JSON string
      */
     static decodeOptionA(envelope) {
@@ -159,12 +160,12 @@ export class StorageShield {
 
     /**
      * Derives a 256-bit AES-GCM CryptoKey from a PIN using PBKDF2 SHA-256.
-     * 
+     *
      * Web Cryptography API PBKDF2: https://www.w3.org/TR/WebCryptoAPI/#pbkdf2
      * Web Cryptography API SubtleCrypto: https://www.w3.org/TR/WebCryptoAPI/#subtlecrypto-interface
-     * 
-     * @param {string} pin 
-     * @param {Uint8Array} saltBytes 
+     *
+     * @param {string} pin
+     * @param {Uint8Array} saltBytes
      * @returns {Promise<CryptoKey>}
      */
     static async deriveKeyFromPin(pin, saltBytes) {
@@ -172,13 +173,7 @@ export class StorageShield {
         const pinBytes = encoder.encode(pin);
 
         // Import raw PIN bytes as PBKDF2 base key
-        const baseKey = await crypto.subtle.importKey(
-            'raw',
-            pinBytes,
-            'PBKDF2',
-            false,
-            ['deriveKey']
-        );
+        const baseKey = await crypto.subtle.importKey('raw', pinBytes, 'PBKDF2', false, ['deriveKey']);
 
         // Derive AES-GCM key with 100,000 iterations
         return crypto.subtle.deriveKey(
@@ -200,11 +195,11 @@ export class StorageShield {
 
     /**
      * Encrypts a cleartext JSON string using a user PIN via WebCrypto AES-GCM.
-     * 
+     *
      * Web Cryptography API AES-GCM: https://www.w3.org/TR/WebCryptoAPI/#aes-gcm
-     * 
-     * @param {string} plaintextStr 
-     * @param {string} pin 
+     *
+     * @param {string} plaintextStr
+     * @param {string} pin
      * @returns {Promise<string>} Serialized JSON envelope
      */
     static async encryptWithPin(plaintextStr, pin) {
@@ -218,11 +213,7 @@ export class StorageShield {
         const encoder = new TextEncoder();
         const dataBytes = encoder.encode(plaintextStr);
 
-        const ciphertextBuffer = await crypto.subtle.encrypt(
-            { name: 'AES-GCM', iv: ivBytes },
-            key,
-            dataBytes
-        );
+        const ciphertextBuffer = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: ivBytes }, key, dataBytes);
 
         const ciphertext = bytesToBase64(new Uint8Array(ciphertextBuffer));
 
@@ -242,9 +233,9 @@ export class StorageShield {
 
     /**
      * Decrypts an Option B envelope using a user PIN.
-     * 
-     * @param {Object} envelope 
-     * @param {string} pin 
+     *
+     * @param {Object} envelope
+     * @param {string} pin
      * @returns {Promise<string>} Plaintext JSON string
      */
     static async decryptWithPin(envelope, pin) {
@@ -258,11 +249,7 @@ export class StorageShield {
 
         const key = await this.deriveKeyFromPin(pin, saltBytes);
 
-        const decryptedBuffer = await crypto.subtle.decrypt(
-            { name: 'AES-GCM', iv: ivBytes },
-            key,
-            ciphertextBytes
-        );
+        const decryptedBuffer = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: ivBytes }, key, ciphertextBytes);
 
         const decoder = new TextDecoder();
         const plaintextStr = decoder.decode(decryptedBuffer);
@@ -276,7 +263,7 @@ export class StorageShield {
 
     /**
      * Encrypts using the active session CryptoKey without needing re-entry of the PIN.
-     * @param {string} plaintextStr 
+     * @param {string} plaintextStr
      * @returns {Promise<string>}
      */
     static async encryptWithSessionKey(plaintextStr) {
@@ -323,7 +310,7 @@ export class StorageShield {
 
     /**
      * Inspects a stored raw string from localStorage to determine its format.
-     * @param {string|null} rawStr 
+     * @param {string|null} rawStr
      * @returns {'cleartext'|'option_a'|'option_b'|'empty'}
      */
     static inspectFormat(rawStr) {
@@ -349,7 +336,7 @@ export class StorageShield {
     /**
      * Synchronously decodes storage if possible (cleartext or Option A).
      * If Option B is detected, returns null (indicating async PIN unlock is required).
-     * @param {string|null} rawStr 
+     * @param {string|null} rawStr
      * @returns {string|null}
      */
     static syncDecode(rawStr) {
@@ -369,7 +356,7 @@ export class StorageShield {
     /**
      * Universal save method: writes Option B if session PIN lock is active,
      * otherwise writes Option A obfuscated envelope.
-     * @param {string} plaintextStr 
+     * @param {string} plaintextStr
      * @returns {string|Promise<string>}
      */
     static encodeForStorage(plaintextStr) {

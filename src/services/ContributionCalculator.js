@@ -1,7 +1,7 @@
 /**
  * ContributionCalculator.js
- * 
- * Domain logic for calculating spouse W2 contributions, pre-tax deductions, 
+ *
+ * Domain logic for calculating spouse W2 contributions, pre-tax deductions,
  * post-tax deductions, employer matching, HSA, and Roth IRA contributions.
  */
 export const HSA_BASE_CAP_SINGLE = 4300;
@@ -39,12 +39,12 @@ export class ContributionCalculator {
      */
     static calculatePreTaxDeductionsEstimate({ spouse, jobs, year }) {
         if (!jobs) return 0;
-        const spouseAge = spouse.getAge ? spouse.getAge(year) : (year - spouse.birthYear);
+        const spouseAge = spouse.getAge ? spouse.getAge(year) : year - spouse.birthYear;
         const electiveCap = this.getElectiveDeferralLimit(spouseAge);
         let total401k = 0;
         let totalHsa = 0;
 
-        jobs.forEach(job => {
+        jobs.forEach((job) => {
             const est = this._estimateJobPreTax(spouse, job, year, spouseAge);
             total401k += est.preTax401k;
             totalHsa += est.preTaxHsa;
@@ -59,24 +59,35 @@ export class ContributionCalculator {
         if (job.linked401kAccountId && job.total > 0) {
             const acc = spouse.getAccount(job.linked401kAccountId);
             if (acc && (acc.type === 'traditional401k' || acc.type === 'trad403b')) {
-                const jobDef = (spouse.jobs || []).find(j => (j.id && j.id === job.id) || (j.title && j.title === job.title)) || {};
-                const p = Number(job.contributionPercentage ?? jobDef.contributionPercentage ?? acc.contributionPercentage ?? 0);
+                const jobDef =
+                    (spouse.jobs || []).find((j) => (j.id && j.id === job.id) || (j.title && j.title === job.title)) ||
+                    {};
+                const p = Number(
+                    job.contributionPercentage ?? jobDef.contributionPercentage ?? acc.contributionPercentage ?? 0
+                );
                 preTax401k += job.total * (p / 100);
             }
         }
         if (job.linkedHsaAccountId && job.total > 0 && spouseAge < 65) {
             const acc = spouse.getAccount(job.linkedHsaAccountId);
             if (acc && acc.type === 'hsa') {
-                const startYear = Number(job.hsaStartYear) || (job.startDate ? parseInt(job.startDate.split('-')[0], 10) : year);
-                const endYear = (job.hsaEndYear !== undefined && job.hsaEndYear !== null && job.hsaEndYear !== '') ? Number(job.hsaEndYear) : null;
+                const startYear =
+                    Number(job.hsaStartYear) || (job.startDate ? parseInt(job.startDate.split('-')[0], 10) : year);
+                const endYear =
+                    job.hsaEndYear !== undefined && job.hsaEndYear !== null && job.hsaEndYear !== ''
+                        ? Number(job.hsaEndYear)
+                        : null;
                 const inWindow = year >= startYear && (!endYear || year <= endYear);
                 if (inWindow) {
                     const baseCap = acc.coverageTier === 'family' ? HSA_BASE_CAP_FAMILY : HSA_BASE_CAP_SINGLE;
                     const catchUp = spouseAge >= 55 ? HSA_CATCHUP_55 : 0;
                     const statutoryLimit = baseCap + catchUp;
-                    const rawTarget = (job.hsaAnnualContribution !== undefined && job.hsaAnnualContribution !== null && job.hsaAnnualContribution !== '')
-                        ? Number(job.hsaAnnualContribution)
-                        : (acc.annualContribution || statutoryLimit);
+                    const rawTarget =
+                        job.hsaAnnualContribution !== undefined &&
+                        job.hsaAnnualContribution !== null &&
+                        job.hsaAnnualContribution !== ''
+                            ? Number(job.hsaAnnualContribution)
+                            : acc.annualContribution || statutoryLimit;
                     preTaxHsa += Math.min(statutoryLimit, Math.max(0, rawTarget));
                 }
             }
@@ -86,7 +97,7 @@ export class ContributionCalculator {
 
     /**
      * Processes contributions and employer matches for a single spouse based on their W2 Gross income.
-     * 
+     *
      * @param {Object} params
      * @param {Person} params.spouse - The person making contributions.
      * @param {number} params.w2Gross - The person's gross W2 income for the year.
@@ -138,20 +149,25 @@ export class ContributionCalculator {
         let totalEmployerMatch = 0;
         if (!jobs) return { preTaxDeductions, totalEmployerMatch };
 
-        const spouseAge = spouse.getAge ? spouse.getAge(year) : (year - spouse.birthYear);
+        const spouseAge = spouse.getAge ? spouse.getAge(year) : year - spouse.birthYear;
         const electiveCap = this.getElectiveDeferralLimit(spouseAge);
         let accumulatedElective = 0;
 
-        jobs.forEach(job => {
+        jobs.forEach((job) => {
             if (job.linked401kAccountId && job.total > 0) {
                 const acc = spouse.getAccount(job.linked401kAccountId);
                 if (acc && (acc.type === 'traditional401k' || acc.type === 'trad403b')) {
-                    const jobDef = (spouse.jobs || []).find(j => (j.id && j.id === job.id) || (j.title && j.title === job.title)) || {};
-                    const p = Number(job.contributionPercentage !== undefined && job.contributionPercentage !== null
-                        ? job.contributionPercentage
-                        : (jobDef.contributionPercentage !== undefined && jobDef.contributionPercentage !== null
-                            ? jobDef.contributionPercentage
-                            : (acc.contributionPercentage || 0)));
+                    const jobDef =
+                        (spouse.jobs || []).find(
+                            (j) => (j.id && j.id === job.id) || (j.title && j.title === job.title)
+                        ) || {};
+                    const p = Number(
+                        job.contributionPercentage !== undefined && job.contributionPercentage !== null
+                            ? job.contributionPercentage
+                            : jobDef.contributionPercentage !== undefined && jobDef.contributionPercentage !== null
+                              ? jobDef.contributionPercentage
+                              : acc.contributionPercentage || 0
+                    );
                     const rawCont = job.total * (p / 100);
                     const remainingCap = Math.max(0, electiveCap - accumulatedElective);
                     const cont = Math.min(rawCont, remainingCap);
@@ -175,40 +191,65 @@ export class ContributionCalculator {
 
     static _calculateEmployerMatch(job, jobDef, acc, p) {
         const conf = acc.employerMatchConfig || {};
-        const match100 = Number(job.employer100PercentMatchOnTheFirstXPercent ?? jobDef.employer100PercentMatchOnTheFirstXPercent ?? conf.employer100PercentMatchOnTheFirstXPercent ?? acc.employer100PercentMatchOnTheFirstXPercent ?? 0);
-        const match50 = Number(job.employer50PercentMatchOnTheNextXPercent ?? jobDef.employer50PercentMatchOnTheNextXPercent ?? conf.employer50PercentMatchOnTheNextXPercent ?? acc.employer50PercentMatchOnTheNextXPercent ?? 0);
-        const matchBonus = Number(job.employerMatchBonusPercentage ?? jobDef.employerMatchBonusPercentage ?? conf.employerMatchBonusPercentage ?? acc.employerMatchBonusPercentage ?? 0);
+        const match100 = Number(
+            job.employer100PercentMatchOnTheFirstXPercent ??
+                jobDef.employer100PercentMatchOnTheFirstXPercent ??
+                conf.employer100PercentMatchOnTheFirstXPercent ??
+                acc.employer100PercentMatchOnTheFirstXPercent ??
+                0
+        );
+        const match50 = Number(
+            job.employer50PercentMatchOnTheNextXPercent ??
+                jobDef.employer50PercentMatchOnTheNextXPercent ??
+                conf.employer50PercentMatchOnTheNextXPercent ??
+                acc.employer50PercentMatchOnTheNextXPercent ??
+                0
+        );
+        const matchBonus = Number(
+            job.employerMatchBonusPercentage ??
+                jobDef.employerMatchBonusPercentage ??
+                conf.employerMatchBonusPercentage ??
+                acc.employerMatchBonusPercentage ??
+                0
+        );
 
         let matchPct = 0;
         if (p > 0) {
             matchPct += Math.min(p, match100);
-            matchPct += (Math.min(Math.max(0, p - match100), match50) * 0.5);
+            matchPct += Math.min(Math.max(0, p - match100), match50) * 0.5;
         }
         matchPct += matchBonus;
-        return matchPct > 0 ? (job.total * (matchPct / 100)) : 0;
+        return matchPct > 0 ? job.total * (matchPct / 100) : 0;
     }
 
     static _processLinkedHsa({ spouse, jobs, year }) {
         let preTaxHsa = 0;
-        const spouseAge = spouse.getAge ? spouse.getAge(year) : (year - spouse.birthYear);
+        const spouseAge = spouse.getAge ? spouse.getAge(year) : year - spouse.birthYear;
         if (spouseAge >= 65 || !jobs) return { preTaxHsa };
 
-        jobs.forEach(job => {
+        jobs.forEach((job) => {
             if (!job.linkedHsaAccountId || job.total <= 0) return;
             const acc = spouse.getAccount(job.linkedHsaAccountId);
             if (!acc || acc.type !== 'hsa') return;
 
-            const startYear = Number(job.hsaStartYear) || (job.startDate ? parseInt(job.startDate.split('-')[0], 10) : year);
-            const endYear = (job.hsaEndYear !== undefined && job.hsaEndYear !== null && job.hsaEndYear !== '') ? Number(job.hsaEndYear) : null;
+            const startYear =
+                Number(job.hsaStartYear) || (job.startDate ? parseInt(job.startDate.split('-')[0], 10) : year);
+            const endYear =
+                job.hsaEndYear !== undefined && job.hsaEndYear !== null && job.hsaEndYear !== ''
+                    ? Number(job.hsaEndYear)
+                    : null;
             if (year < startYear || (endYear && year > endYear)) return;
 
             const baseCap = acc.coverageTier === 'family' ? HSA_BASE_CAP_FAMILY : HSA_BASE_CAP_SINGLE;
             const catchUp = spouseAge >= 55 ? HSA_CATCHUP_55 : 0;
             const statutoryLimit = baseCap + catchUp;
 
-            const rawTarget = (job.hsaAnnualContribution !== undefined && job.hsaAnnualContribution !== null && job.hsaAnnualContribution !== '')
-                ? Number(job.hsaAnnualContribution)
-                : (acc.annualContribution || statutoryLimit);
+            const rawTarget =
+                job.hsaAnnualContribution !== undefined &&
+                job.hsaAnnualContribution !== null &&
+                job.hsaAnnualContribution !== ''
+                    ? Number(job.hsaAnnualContribution)
+                    : acc.annualContribution || statutoryLimit;
 
             const cont = Math.min(statutoryLimit, Math.max(0, rawTarget));
             if (cont > 0) {
@@ -219,18 +260,26 @@ export class ContributionCalculator {
         return { preTaxHsa };
     }
 
-    static _processDirectAccounts({ spouse, w2Gross, jobs, year, filingStatus, householdMagi, accumulatedElective = 0 }) {
+    static _processDirectAccounts({
+        spouse,
+        w2Gross,
+        jobs,
+        year,
+        filingStatus,
+        householdMagi,
+        accumulatedElective = 0
+    }) {
         let preTaxDeductions = 0;
         let postTaxDeductions = 0;
         const totalEmployerMatch = 0;
 
-        const spouseAge = spouse.getAge ? spouse.getAge(year) : (year - spouse.birthYear);
+        const spouseAge = spouse.getAge ? spouse.getAge(year) : year - spouse.birthYear;
         const electiveCap = this.getElectiveDeferralLimit(spouseAge);
         let currentElective = accumulatedElective;
 
-        spouse.accounts.forEach(acc => {
+        spouse.accounts.forEach((acc) => {
             if (acc.type === 'traditional401k' || acc.type === 'trad403b') {
-                const isLinked = jobs && jobs.some(j => j.linked401kAccountId === acc.id);
+                const isLinked = jobs && jobs.some((j) => j.linked401kAccountId === acc.id);
                 if (!isLinked && acc.isActiveContributor) {
                     const rawCont = w2Gross * ((acc.contributionPercentage || 0) / 100);
                     const remainingCap = Math.max(0, electiveCap - currentElective);
@@ -246,7 +295,14 @@ export class ContributionCalculator {
                 preTaxDeductions += cont;
                 acc.contribute(cont);
             } else if (acc.type === 'rothIra') {
-                const rothCont = this._calculateRothContribution({ acc, spouse, w2Gross, year, filingStatus, householdMagi });
+                const rothCont = this._calculateRothContribution({
+                    acc,
+                    spouse,
+                    w2Gross,
+                    year,
+                    filingStatus,
+                    householdMagi
+                });
                 postTaxDeductions += rothCont;
             } else if (acc.type === 'taxableBrokerage' || acc.type === 'hysa') {
                 const cont = w2Gross * ((acc.contributionPercentage || 0) / 100);
@@ -263,18 +319,21 @@ export class ContributionCalculator {
         if (acc.startYear && year < Number(acc.startYear)) return 0;
         if (acc.stopYear && year > Number(acc.stopYear)) return 0;
 
-        const spouseAge = spouse.getAge ? spouse.getAge(year) : (year - spouse.birthYear);
-        const statutoryCap = spouseAge >= 50 ? (ROTH_BASE_CAP + ROTH_CATCHUP_50) : ROTH_BASE_CAP;
-        const target = (acc.annualContribution !== undefined && acc.annualContribution !== null && acc.annualContribution !== '')
-            ? Number(acc.annualContribution)
-            : (acc.contributionPercentage ? (w2Gross * (acc.contributionPercentage / 100)) : statutoryCap);
+        const spouseAge = spouse.getAge ? spouse.getAge(year) : year - spouse.birthYear;
+        const statutoryCap = spouseAge >= 50 ? ROTH_BASE_CAP + ROTH_CATCHUP_50 : ROTH_BASE_CAP;
+        const target =
+            acc.annualContribution !== undefined && acc.annualContribution !== null && acc.annualContribution !== ''
+                ? Number(acc.annualContribution)
+                : acc.contributionPercentage
+                  ? w2Gross * (acc.contributionPercentage / 100)
+                  : statutoryCap;
 
         const baseCont = Math.min(statutoryCap, Math.min(w2Gross, Math.max(0, target)));
         if (baseCont <= 0) return 0;
 
         let ratio = 1.0;
         if (householdMagi !== null && householdMagi !== undefined) {
-            const isSingle = (filingStatus === 'single');
+            const isSingle = filingStatus === 'single';
             const floor = isSingle ? ROTH_PHASEOUT_SINGLE_FLOOR : ROTH_PHASEOUT_MFJ_FLOOR;
             const ceiling = isSingle ? ROTH_PHASEOUT_SINGLE_CEILING : ROTH_PHASEOUT_MFJ_CEILING;
             if (householdMagi >= ceiling) {

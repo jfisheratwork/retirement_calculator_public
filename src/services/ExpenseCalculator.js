@@ -11,7 +11,7 @@ export class ExpenseCalculator {
         let hasTeenagers = false;
         let hasCollege = false;
 
-        for (const child of (dependents || [])) {
+        for (const child of dependents || []) {
             const childAge = year - child.yearOfBirth;
             if (childAge >= 0 && childAge < 13) hasPreTeens = true;
             else if (childAge >= 13 && childAge <= 17) hasTeenagers = true;
@@ -19,13 +19,30 @@ export class ExpenseCalculator {
         }
 
         if (hasTeenagers) {
-            return ExpenseCalculator._resolvePhase(phases, ['teenagers', 'preTeens', 'college', 'earlyRetirement', 'preRetirementWithKids']);
+            return ExpenseCalculator._resolvePhase(phases, [
+                'teenagers',
+                'preTeens',
+                'college',
+                'earlyRetirement',
+                'preRetirementWithKids'
+            ]);
         }
         if (hasPreTeens) {
-            return ExpenseCalculator._resolvePhase(phases, ['preTeens', 'teenagers', 'college', 'earlyRetirement', 'preRetirementWithKids']);
+            return ExpenseCalculator._resolvePhase(phases, [
+                'preTeens',
+                'teenagers',
+                'college',
+                'earlyRetirement',
+                'preRetirementWithKids'
+            ]);
         }
         if (hasCollege) {
-            return ExpenseCalculator._resolvePhase(phases, ['college', 'teenagers', 'preRetirementNoKids', 'earlyRetirement']);
+            return ExpenseCalculator._resolvePhase(phases, [
+                'college',
+                'teenagers',
+                'preRetirementNoKids',
+                'earlyRetirement'
+            ]);
         }
 
         return ExpenseCalculator._getEmptyNesterExpense(year, s1, phases, strategies);
@@ -47,20 +64,34 @@ export class ExpenseCalculator {
         const currentAge = (s1 ? s1.getAge(year) : 65) + healthOffset;
 
         if (currentAge < retAge) {
-            return ExpenseCalculator._resolvePhase(phases, ['preRetirementNoKids', 'earlyRetirement', 'college', 'preRetirementWithKids']);
+            return ExpenseCalculator._resolvePhase(phases, [
+                'preRetirementNoKids',
+                'earlyRetirement',
+                'college',
+                'preRetirementWithKids'
+            ]);
         }
 
         const yearsRetired = currentAge - retAge;
-        const isFrontLoaded = strategies?.decumulationMode === 'front_loaded' || Number(strategies?.gogoMultiplier || 1.0) > 1.0;
+        const isFrontLoaded =
+            strategies?.decumulationMode === 'front_loaded' || Number(strategies?.gogoMultiplier || 1.0) > 1.0;
         const gogo = isFrontLoaded ? Number(strategies?.gogoMultiplier || 1.25) : 1.0;
 
         if (yearsRetired < 5) {
-            const baseAmt = ExpenseCalculator._resolvePhase(phases, ['earlyRetirement', 'preRetirementNoKids', 'midRetirement']);
+            const baseAmt = ExpenseCalculator._resolvePhase(phases, [
+                'earlyRetirement',
+                'preRetirementNoKids',
+                'midRetirement'
+            ]);
             return baseAmt * gogo;
         }
         if (yearsRetired < 10) {
-            const baseAmt = ExpenseCalculator._resolvePhase(phases, ['midRetirement', 'earlyRetirement', 'olderRetirement']);
-            const midGogo = isFrontLoaded ? (1 + ((gogo - 1) / 2)) : 1.0;
+            const baseAmt = ExpenseCalculator._resolvePhase(phases, [
+                'midRetirement',
+                'earlyRetirement',
+                'olderRetirement'
+            ]);
+            const midGogo = isFrontLoaded ? 1 + (gogo - 1) / 2 : 1.0;
             return baseAmt * midGogo;
         }
         if (yearsRetired < 15) {
@@ -69,17 +100,13 @@ export class ExpenseCalculator {
         return ExpenseCalculator._resolvePhase(phases, ['bonusYears', 'olderRetirement', 'midRetirement']);
     }
 
-
-
     static _calculateTargetGoalContribution({ targetGoal, startBal, yearsRemaining, annualGrowthRate }) {
         const r = annualGrowthRate;
         const projectedExisting = startBal * Math.pow(1 + r, yearsRemaining);
         const netGap = Math.max(0, targetGoal - projectedExisting);
         if (netGap <= 0) return 0;
 
-        const pmt = r > 0
-            ? (netGap * r) / (Math.pow(1 + r, yearsRemaining) - 1)
-            : (netGap / yearsRemaining);
+        const pmt = r > 0 ? (netGap * r) / (Math.pow(1 + r, yearsRemaining) - 1) : netGap / yearsRemaining;
         const requiredAnnual = Math.round(pmt);
         return Math.min(requiredAnnual, Math.max(0, targetGoal - startBal));
     }
@@ -130,13 +157,24 @@ export class ExpenseCalculator {
         return { cost, drawn };
     }
 
-    static _processSingleChildCollegeCost({ child, index, year, currentYear, inflationMultiplier, assumptions, events }) {
+    static _processSingleChildCollegeCost({
+        child,
+        index,
+        year,
+        currentYear,
+        inflationMultiplier,
+        assumptions,
+        events
+    }) {
         const childAge = year - child.yearOfBirth;
         const childId = child.id || `child_${index}`;
         const childName = child.name || `Child ${index + 1}`;
-        const annualGrowthRate = (child.expectedReturn !== undefined && child.expectedReturn !== null)
-            ? (Number(child.expectedReturn) / 100)
-            : ((assumptions?.collegeReturnRate !== undefined ? assumptions.collegeReturnRate : (assumptions?.generalReturnRate || 7)) / 100);
+        const annualGrowthRate =
+            child.expectedReturn !== undefined && child.expectedReturn !== null
+                ? Number(child.expectedReturn) / 100
+                : (assumptions?.collegeReturnRate !== undefined
+                      ? assumptions.collegeReturnRate
+                      : assumptions?.generalReturnRate || 7) / 100;
 
         const startBal = child.currentCollegeSavingsBalance || 0;
         let interest = 0;
@@ -159,7 +197,7 @@ export class ExpenseCalculator {
             child.currentCollegeSavingsBalance += contribution;
         }
 
-        if (childAge === 18 && !events.find(e => e.type === 'child_grad' && e.dependentId === childId)) {
+        if (childAge === 18 && !events.find((e) => e.type === 'child_grad' && e.dependentId === childId)) {
             events.push({ year, label: `${childName} turns 18`, type: 'child_grad', dependentId: childId });
         }
 
@@ -167,7 +205,15 @@ export class ExpenseCalculator {
         const endBal = child.currentCollegeSavingsBalance || 0;
 
         return {
-            childRecord: { id: childId, name: childName, startBalance: startBal, contribution, interest, drawn: tuitionResult.drawn, balance: endBal },
+            childRecord: {
+                id: childId,
+                name: childName,
+                startBalance: startBal,
+                contribution,
+                interest,
+                drawn: tuitionResult.drawn,
+                balance: endBal
+            },
             collegeCost: tuitionResult.cost,
             contribution,
             interest,
@@ -202,8 +248,8 @@ export class ExpenseCalculator {
             children529.push(res.childRecord);
         });
 
-        snapshot.expenses += (collegeCost + total529Contributed);
-        snapshot.expenseBreakdown.childcare += (collegeCost + total529Contributed);
+        snapshot.expenses += collegeCost + total529Contributed;
+        snapshot.expenseBreakdown.childcare += collegeCost + total529Contributed;
         snapshot.college529 = {
             totalBalance: total529Balance,
             totalInterest: total529Interest,
@@ -213,9 +259,21 @@ export class ExpenseCalculator {
         };
     }
 
-    static calculate({ year, currentYear, firstActiveMonth = 1, s1, dependents, phases, assumptions, strategies, mortgage, snapshot, events }) {
+    static calculate({
+        year,
+        currentYear,
+        firstActiveMonth = 1,
+        s1,
+        dependents,
+        phases,
+        assumptions,
+        strategies,
+        mortgage,
+        snapshot,
+        events
+    }) {
         const yearsFromStart = year - currentYear;
-        const inflationMultiplier = Math.pow(1 + ((assumptions?.inflationRate || 0) / 100), yearsFromStart);
+        const inflationMultiplier = Math.pow(1 + (assumptions?.inflationRate || 0) / 100, yearsFromStart);
         const activeMonths = year === currentYear ? Math.max(1, 12 - firstActiveMonth + 1) : 12;
         const monthFraction = activeMonths / 12;
 
@@ -245,4 +303,3 @@ export class ExpenseCalculator {
         this.processCollegeCosts({ dependents, year, currentYear, inflationMultiplier, assumptions, snapshot, events });
     }
 }
-

@@ -221,7 +221,10 @@ export class ExpressOnboardingModal extends BaseComponent {
      */
     _hydrateCoreFields(inputViewModel) {
         if (inputViewModel.currentAge !== undefined) {
-            this._formData.currentAge = Math.max(MIN_ACTUARIAL_AGE, Number(inputViewModel.currentAge) || DEFAULT_CURRENT_AGE);
+            this._formData.currentAge = Math.max(
+                MIN_ACTUARIAL_AGE,
+                Number(inputViewModel.currentAge) || DEFAULT_CURRENT_AGE
+            );
         }
         const retAge = inputViewModel.targetRetirementAge ?? inputViewModel.retirementAge;
         if (retAge !== undefined) {
@@ -247,7 +250,8 @@ export class ExpressOnboardingModal extends BaseComponent {
      */
     _hydrateDeeperFields(inputViewModel) {
         if (inputViewModel.filingStatus) {
-            this._formData.filingStatus = inputViewModel.filingStatus === FILING_MARRIED ? FILING_MARRIED : FILING_SINGLE;
+            this._formData.filingStatus =
+                inputViewModel.filingStatus === FILING_MARRIED ? FILING_MARRIED : FILING_SINGLE;
         }
         if (inputViewModel.housingStatus) {
             this._formData.housingStatus = inputViewModel.housingStatus === HOUSING_OWN ? HOUSING_OWN : HOUSING_RENT;
@@ -259,7 +263,10 @@ export class ExpressOnboardingModal extends BaseComponent {
             this._formData.homeValue = Math.max(0, Number(inputViewModel.homeValue) || DEFAULT_HOME_VALUE);
         }
         if (inputViewModel.mortgageBalance !== undefined) {
-            this._formData.mortgageBalance = Math.max(0, Number(inputViewModel.mortgageBalance) || DEFAULT_MORTGAGE_BALANCE);
+            this._formData.mortgageBalance = Math.max(
+                0,
+                Number(inputViewModel.mortgageBalance) || DEFAULT_MORTGAGE_BALANCE
+            );
         }
     }
 
@@ -275,8 +282,13 @@ export class ExpressOnboardingModal extends BaseComponent {
         const incInput = queryElem('#expr-income');
         const expInput = queryElem('#expr-expenses');
 
-        if (ageInput) this._formData.currentAge = Math.max(MIN_ACTUARIAL_AGE, Number(ageInput.value) || DEFAULT_CURRENT_AGE);
-        if (retInput) this._formData.retirementAge = Math.max(MIN_ACTUARIAL_AGE, Number(retInput.value) || DEFAULT_RETIREMENT_AGE);
+        if (ageInput)
+            this._formData.currentAge = Math.max(MIN_ACTUARIAL_AGE, Number(ageInput.value) || DEFAULT_CURRENT_AGE);
+        if (retInput)
+            this._formData.retirementAge = Math.max(
+                MIN_ACTUARIAL_AGE,
+                Number(retInput.value) || DEFAULT_RETIREMENT_AGE
+            );
         if (portInput) this._formData.portfolio = Math.max(0, Number(portInput.value) || 0);
         if (incInput) this._formData.income = Math.max(0, Number(incInput.value) || 0);
         if (expInput) this._formData.expenses = Math.max(0, Number(expInput.value) || 0);
@@ -336,14 +348,16 @@ export class ExpressOnboardingModal extends BaseComponent {
         const expensesNum = this._formData.expenses;
 
         const annualSavingsNum = Math.max(0, incomeNum - expensesNum);
-        const savingsRatePct = incomeNum > 0
-            ? Math.max(0, Math.min(PERCENT_SCALE, Math.round((annualSavingsNum / incomeNum) * PERCENT_SCALE)))
-            : 0;
+        const savingsRatePct =
+            incomeNum > 0
+                ? Math.max(0, Math.min(PERCENT_SCALE, Math.round((annualSavingsNum / incomeNum) * PERCENT_SCALE)))
+                : 0;
 
         const targetNestEggNum = expensesNum * SWR_MULTIPLIER;
-        const fundedRatioPct = targetNestEggNum > 0
-            ? Math.min(PERCENT_SCALE, Math.round((portfolioNum / targetNestEggNum) * PERCENT_SCALE))
-            : 0;
+        const fundedRatioPct =
+            targetNestEggNum > 0
+                ? Math.min(PERCENT_SCALE, Math.round((portfolioNum / targetNestEggNum) * PERCENT_SCALE))
+                : 0;
 
         const projectedFIAgeNum = this._projectFIAge(currentAgeNum, portfolioNum, annualSavingsNum, targetNestEggNum);
 
@@ -368,12 +382,12 @@ export class ExpressOnboardingModal extends BaseComponent {
         if (startPortfolioNum >= targetNestEggNum) return currentAgeNum;
         if (annualSavingsNum <= 0 && startPortfolioNum <= 0) return null;
 
-        const realCompoundRate = ((1 + NOMINAL_RETURN_RATE) / (1 + INFLATION_RATE)) - 1;
+        const realCompoundRate = (1 + NOMINAL_RETURN_RATE) / (1 + INFLATION_RATE) - 1;
         let runningBalance = startPortfolioNum;
         let testAge = currentAgeNum;
 
         while (testAge < MAX_ACTUARIAL_AGE) {
-            runningBalance = (runningBalance * (1 + realCompoundRate)) + annualSavingsNum;
+            runningBalance = runningBalance * (1 + realCompoundRate) + annualSavingsNum;
             testAge += 1;
             if (runningBalance >= targetNestEggNum) {
                 return testAge;
@@ -397,12 +411,12 @@ export class ExpressOnboardingModal extends BaseComponent {
 
         if (!freedomAgeEl || !this._metrics) return;
 
-        const freedomAgeText = this._metrics.projectedFIAge !== null
-            ? `Age ${this._metrics.projectedFIAge}`
-            : 'Age 65+';
-        const yearsDiffText = this._metrics.projectedFIAge !== null
-            ? `In ${Math.max(0, this._metrics.projectedFIAge - this._formData.currentAge)} years`
-            : 'Requires higher savings';
+        const freedomAgeText =
+            this._metrics.projectedFIAge !== null ? `Age ${this._metrics.projectedFIAge}` : 'Age 65+';
+        const yearsDiffText =
+            this._metrics.projectedFIAge !== null
+                ? `In ${Math.max(0, this._metrics.projectedFIAge - this._formData.currentAge)} years`
+                : 'Requires higher savings';
 
         freedomAgeEl.textContent = freedomAgeText;
         if (freedomSubEl) freedomSubEl.textContent = yearsDiffText;
@@ -429,11 +443,13 @@ export class ExpressOnboardingModal extends BaseComponent {
             applyDefaults: true
         };
 
-        this.dispatchEvent(new CustomEvent('express-complete', {
-            detail: payloadObj,
-            bubbles: true,
-            composed: true
-        }));
+        this.dispatchEvent(
+            new CustomEvent('express-complete', {
+                detail: payloadObj,
+                bubbles: true,
+                composed: true
+            })
+        );
 
         this.close();
     }
@@ -511,9 +527,10 @@ export class ExpressOnboardingModal extends BaseComponent {
     _renderHeroCard() {
         const metricsObj = this._metrics || this._calculateMetrics();
         const projectedAge = metricsObj.projectedFIAge !== null ? `Age ${metricsObj.projectedFIAge}` : 'Age 65+';
-        const yearsToFI = metricsObj.projectedFIAge !== null
-            ? `In ${Math.max(0, metricsObj.projectedFIAge - this._formData.currentAge)} years`
-            : 'Adjust inputs to reach FI';
+        const yearsToFI =
+            metricsObj.projectedFIAge !== null
+                ? `In ${Math.max(0, metricsObj.projectedFIAge - this._formData.currentAge)} years`
+                : 'Adjust inputs to reach FI';
 
         return `
             <div class="express-hero-card"
@@ -644,11 +661,13 @@ export class ExpressOnboardingModal extends BaseComponent {
                     <span style="color: #94a3b8;">${arrowChar}</span>
                 </button>
 
-                ${this._isAssumptionsOpen ? `
+                ${
+                    this._isAssumptionsOpen
+                        ? `
                     <div style="padding: 0 1.25rem 1.25rem 1.25rem; font-size: 0.8rem; color: #94a3b8; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem; border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 1rem;">
                         <div style="background: rgba(15, 23, 42, 0.5); padding: 0.65rem 0.85rem; border-radius: 0.5rem;">
                             <strong style="color: #cbd5e1; display: block; margin-bottom: 0.15rem;">🏛️ Social Security</strong>
-                            ~28% wage replacement (${formatDollar(Math.round(this._formData.income * SOCIAL_SECURITY_BENEFIT_RATIO / MONTHS_PER_YEAR))}/mo) starting at Age 67.
+                            ~28% wage replacement (${formatDollar(Math.round((this._formData.income * SOCIAL_SECURITY_BENEFIT_RATIO) / MONTHS_PER_YEAR))}/mo) starting at Age 67.
                         </div>
                         <div style="background: rgba(15, 23, 42, 0.5); padding: 0.65rem 0.85rem; border-radius: 0.5rem;">
                             <strong style="color: #cbd5e1; display: block; margin-bottom: 0.15rem;">📈 Compound Returns</strong>
@@ -671,7 +690,9 @@ export class ExpressOnboardingModal extends BaseComponent {
                             Standard lifestyle smile (100% early, 90% mid, 85% late retirement).
                         </div>
                     </div>
-                ` : ''}
+                `
+                        : ''
+                }
             </div>
         `;
     }
@@ -693,13 +714,17 @@ export class ExpressOnboardingModal extends BaseComponent {
                     <span style="color: #94a3b8;">${arrowChar}</span>
                 </button>
 
-                ${this._isDeeperOpen ? `
+                ${
+                    this._isDeeperOpen
+                        ? `
                     <div style="padding: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.06); display: flex; flex-direction: column; gap: 1.25rem;">
                         ${this._renderHouseholdOptions()}
                         ${this._renderHousingOptions()}
                         ${this._renderAssetBuckets()}
                     </div>
-                ` : ''}
+                `
+                        : ''
+                }
             </div>
         `;
     }
@@ -753,13 +778,16 @@ export class ExpressOnboardingModal extends BaseComponent {
                     </label>
                 </div>
 
-                ${isRent ? `
+                ${
+                    isRent
+                        ? `
                     <div style="max-width: 280px;">
                         <label for="expr-rent" style="display: block; font-size: 0.78rem; color: #94a3b8; margin-bottom: 0.25rem;">Monthly Rent ($/mo)</label>
                         <input type="number" id="expr-rent" value="${escapeHtml(this._formData.monthlyRent)}"
                             style="width: 100%; padding: 0.5rem; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.375rem; color: #fff; font-size: 0.85rem;">
                     </div>
-                ` : `
+                `
+                        : `
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                         <div>
                             <label for="expr-home-value" style="display: block; font-size: 0.78rem; color: #94a3b8; margin-bottom: 0.25rem;">Home Market Value ($)</label>
@@ -772,7 +800,8 @@ export class ExpressOnboardingModal extends BaseComponent {
                                 style="width: 100%; padding: 0.5rem; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.375rem; color: #fff; font-size: 0.85rem;">
                         </div>
                     </div>
-                `}
+                `
+                }
             </div>
         `;
     }

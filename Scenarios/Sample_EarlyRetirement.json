@@ -1,232 +1,232 @@
 {
-  "dataVersion": 2,
-  "currentYear": 2026,
-  "primarySpouse": {
-    "name": "Alex",
-    "yearOfBirth": 1984,
-    "targetRetirementAge": 48,
-    "socialSecurityStartAge": 67,
-    "socialSecurityAnnualBenefit": 26000,
-    "totalYearsWorked": 18,
-    "estimatedLifeExpectancy": 86,
-    "rothConversion": {
-      "enabled": false,
-      "sourceAccount": "standardIra",
-      "amountPerYear": 20000,
-      "startDelayYears": 1,
-      "durationYears": 5
+    "dataVersion": 2,
+    "currentYear": 2026,
+    "primarySpouse": {
+        "name": "Alex",
+        "yearOfBirth": 1984,
+        "targetRetirementAge": 48,
+        "socialSecurityStartAge": 67,
+        "socialSecurityAnnualBenefit": 26000,
+        "totalYearsWorked": 18,
+        "estimatedLifeExpectancy": 86,
+        "rothConversion": {
+            "enabled": false,
+            "sourceAccount": "standardIra",
+            "amountPerYear": 20000,
+            "startDelayYears": 1,
+            "durationYears": 5
+        },
+        "rolloverEvent": {
+            "enabled": false,
+            "sourceAccount": "traditional401k",
+            "targetAccount": "standardIra",
+            "year": 2030,
+            "amount": 0,
+            "isFullBalance": true
+        },
+        "rule72t": {
+            "enabled": false,
+            "sourceAccount": "standardIra",
+            "startAge": 55
+        },
+        "jobs": [
+            {
+                "id": "job-1",
+                "title": "Operations Specialist",
+                "baseSalary": 125000,
+                "startDate": "2026-01",
+                "bonusAmount": 12000,
+                "bonusMonth": "03",
+                "ltiAmount": 0,
+                "ltiMonth": "03"
+            }
+        ],
+        "accounts": [
+            {
+                "id": "acc-1",
+                "name": "Alex 401(k)",
+                "type": "traditional401k",
+                "balance": 280000,
+                "contributionPercentage": 6,
+                "expectedReturn": 7,
+                "isActiveContributor": true,
+                "isSweepAccount": false,
+                "employerMatchConfig": {
+                    "matchPercentage": 50,
+                    "maxSalaryPercentage": 6
+                }
+            },
+            {
+                "id": "acc-2",
+                "name": "Alex Traditional IRA",
+                "type": "standardIra",
+                "balance": 40000,
+                "contributionPercentage": 0,
+                "expectedReturn": 7,
+                "isActiveContributor": false,
+                "isSweepAccount": false
+            },
+            {
+                "id": "acc-3",
+                "name": "Alex Roth IRA",
+                "type": "rothIra",
+                "balance": 90000,
+                "principle": 60000,
+                "contributionPercentage": 0,
+                "expectedReturn": 7,
+                "isActiveContributor": false,
+                "isSweepAccount": false
+            },
+            {
+                "id": "acc-4",
+                "name": "Taxable Brokerage",
+                "type": "taxableBrokerage",
+                "balance": 160000,
+                "contributionPercentage": 0,
+                "expectedReturn": 7,
+                "isActiveContributor": false,
+                "isSweepAccount": true
+            },
+            {
+                "id": "acc-5",
+                "name": "Emergency HYSA",
+                "type": "hysa",
+                "balance": 30000,
+                "contributionPercentage": 0,
+                "expectedReturn": 4,
+                "isActiveContributor": false,
+                "isSweepAccount": false
+            }
+        ]
     },
-    "rolloverEvent": {
-      "enabled": false,
-      "sourceAccount": "traditional401k",
-      "targetAccount": "standardIra",
-      "year": 2030,
-      "amount": 0,
-      "isFullBalance": true
+    "secondarySpouse": {
+        "name": "Taylor",
+        "yearOfBirth": 1984,
+        "targetRetirementAge": 48,
+        "socialSecurityStartAge": 67,
+        "socialSecurityAnnualBenefit": 22000,
+        "totalYearsWorked": 18,
+        "estimatedLifeExpectancy": 88,
+        "rothConversion": {
+            "enabled": false,
+            "sourceAccount": "standardIra",
+            "amountPerYear": 0,
+            "startDelayYears": 0,
+            "durationYears": 5
+        },
+        "rolloverEvent": {
+            "enabled": false,
+            "sourceAccount": "traditional401k",
+            "targetAccount": "standardIra",
+            "year": 2030,
+            "amount": 0,
+            "isFullBalance": true
+        },
+        "rule72t": {
+            "enabled": false,
+            "sourceAccount": "standardIra",
+            "startAge": 55
+        },
+        "jobs": [
+            {
+                "id": "job-s2-1",
+                "title": "Administrative Coordinator",
+                "baseSalary": 95000,
+                "startDate": "2026-01",
+                "bonusAmount": 0,
+                "bonusMonth": "",
+                "ltiAmount": 0,
+                "ltiMonth": ""
+            }
+        ],
+        "accounts": [
+            {
+                "id": "acc-s2-1",
+                "name": "Taylor Traditional IRA",
+                "type": "standardIra",
+                "balance": 210000,
+                "contributionPercentage": 0,
+                "expectedReturn": 7,
+                "isActiveContributor": false,
+                "isSweepAccount": false
+            },
+            {
+                "id": "acc-s2-2",
+                "name": "Taylor Roth IRA",
+                "type": "rothIra",
+                "balance": 50000,
+                "principle": 35000,
+                "contributionPercentage": 0,
+                "expectedReturn": 7,
+                "isActiveContributor": false,
+                "isSweepAccount": false
+            }
+        ]
     },
-    "rule72t": {
-      "enabled": false,
-      "sourceAccount": "standardIra",
-      "startAge": 55
+    "dependents": [],
+    "phaseBasedExpensesPerMonth": {
+        "preTeens": 4500,
+        "teenagers": 4500,
+        "college": 4500,
+        "preRetirementNoKids": 4500,
+        "earlyRetirement": 4500,
+        "midRetirement": 4200,
+        "olderRetirement": 3800,
+        "bonusYears": 3800
     },
-    "jobs": [
-      {
-        "id": "job-1",
-        "title": "Operations Specialist",
-        "baseSalary": 125000,
-        "startDate": "2026-01",
-        "bonusAmount": 12000,
-        "bonusMonth": "03",
-        "ltiAmount": 0,
-        "ltiMonth": "03"
-      }
-    ],
-    "accounts": [
-      {
-        "id": "acc-1",
-        "name": "Alex 401(k)",
-        "type": "traditional401k",
-        "balance": 280000,
-        "contributionPercentage": 6,
-        "expectedReturn": 7,
-        "isActiveContributor": true,
-        "isSweepAccount": false,
-        "employerMatchConfig": {
-          "matchPercentage": 50,
-          "maxSalaryPercentage": 6
+    "primaryResidenceMortgage": {
+        "enabled": true,
+        "currentBalance": 160000,
+        "interestRate": 3.5,
+        "originationDate": "2020-08-01",
+        "originationAmount": 280000,
+        "termYears": 30,
+        "yearlyInsurance": 1500,
+        "yearlyTaxes": 4000,
+        "yearlyRepairs": 1200
+    },
+    "primaryResidenceEquity": {
+        "enabled": false,
+        "reverseMortgageEnabled": false,
+        "currentValue": 450000,
+        "annualGrowthRate": 3,
+        "reverseMortgageStartAge": 65
+    },
+    "strategies": {
+        "sorrScenario": "average",
+        "rule72tInterestRate": 5,
+        "decumulationMode": "capital_preservation",
+        "targetLegacyBalance": 0,
+        "gogoMultiplier": 1,
+        "healthAgingOffset": 0,
+        "advancedRothStrategy": {
+            "enabled": false,
+            "safetyMargin": 0
         }
-      },
-      {
-        "id": "acc-2",
-        "name": "Alex Traditional IRA",
-        "type": "standardIra",
-        "balance": 40000,
-        "contributionPercentage": 0,
-        "expectedReturn": 7,
-        "isActiveContributor": false,
-        "isSweepAccount": false
-      },
-      {
-        "id": "acc-3",
-        "name": "Alex Roth IRA",
-        "type": "rothIra",
-        "balance": 90000,
-        "principle": 60000,
-        "contributionPercentage": 0,
-        "expectedReturn": 7,
-        "isActiveContributor": false,
-        "isSweepAccount": false
-      },
-      {
-        "id": "acc-4",
-        "name": "Taxable Brokerage",
-        "type": "taxableBrokerage",
-        "balance": 160000,
-        "contributionPercentage": 0,
-        "expectedReturn": 7,
-        "isActiveContributor": false,
-        "isSweepAccount": true
-      },
-      {
-        "id": "acc-5",
-        "name": "Emergency HYSA",
-        "type": "hysa",
-        "balance": 30000,
-        "contributionPercentage": 0,
-        "expectedReturn": 4,
-        "isActiveContributor": false,
-        "isSweepAccount": false
-      }
-    ]
-  },
-  "secondarySpouse": {
-    "name": "Taylor",
-    "yearOfBirth": 1984,
-    "targetRetirementAge": 48,
-    "socialSecurityStartAge": 67,
-    "socialSecurityAnnualBenefit": 22000,
-    "totalYearsWorked": 18,
-    "estimatedLifeExpectancy": 88,
-    "rothConversion": {
-      "enabled": false,
-      "sourceAccount": "standardIra",
-      "amountPerYear": 0,
-      "startDelayYears": 0,
-      "durationYears": 5
     },
-    "rolloverEvent": {
-      "enabled": false,
-      "sourceAccount": "traditional401k",
-      "targetAccount": "standardIra",
-      "year": 2030,
-      "amount": 0,
-      "isFullBalance": true
+    "assumptions": {
+        "inflationRate": 3,
+        "w2RaiseRate": 2,
+        "stateTaxRate": 0,
+        "initialCashCushion": 0,
+        "displayRealDollars": true,
+        "graphYears": 50,
+        "marketReturnRates": [
+            {
+                "startYear": 2026,
+                "rate": 7
+            }
+        ],
+        "conservativeShift": {
+            "enabled": false,
+            "startAge": 60,
+            "returnRate": 5.5
+        },
+        "generalReturnRate": 7
     },
-    "rule72t": {
-      "enabled": false,
-      "sourceAccount": "standardIra",
-      "startAge": 55
-    },
-    "jobs": [
-      {
-        "id": "job-s2-1",
-        "title": "Administrative Coordinator",
-        "baseSalary": 95000,
-        "startDate": "2026-01",
-        "bonusAmount": 0,
-        "bonusMonth": "",
-        "ltiAmount": 0,
-        "ltiMonth": ""
-      }
-    ],
-    "accounts": [
-      {
-        "id": "acc-s2-1",
-        "name": "Taylor Traditional IRA",
-        "type": "standardIra",
-        "balance": 210000,
-        "contributionPercentage": 0,
-        "expectedReturn": 7,
-        "isActiveContributor": false,
-        "isSweepAccount": false
-      },
-      {
-        "id": "acc-s2-2",
-        "name": "Taylor Roth IRA",
-        "type": "rothIra",
-        "balance": 50000,
-        "principle": 35000,
-        "contributionPercentage": 0,
-        "expectedReturn": 7,
-        "isActiveContributor": false,
-        "isSweepAccount": false
-      }
-    ]
-  },
-  "dependents": [],
-  "phaseBasedExpensesPerMonth": {
-    "preTeens": 4500,
-    "teenagers": 4500,
-    "college": 4500,
-    "preRetirementNoKids": 4500,
-    "earlyRetirement": 4500,
-    "midRetirement": 4200,
-    "olderRetirement": 3800,
-    "bonusYears": 3800
-  },
-  "primaryResidenceMortgage": {
-    "enabled": true,
-    "currentBalance": 160000,
-    "interestRate": 3.5,
-    "originationDate": "2020-08-01",
-    "originationAmount": 280000,
-    "termYears": 30,
-    "yearlyInsurance": 1500,
-    "yearlyTaxes": 4000,
-    "yearlyRepairs": 1200
-  },
-  "primaryResidenceEquity": {
-    "enabled": false,
-    "reverseMortgageEnabled": false,
-    "currentValue": 450000,
-    "annualGrowthRate": 3,
-    "reverseMortgageStartAge": 65
-  },
-  "strategies": {
-    "sorrScenario": "average",
-    "rule72tInterestRate": 5,
-    "decumulationMode": "capital_preservation",
-    "targetLegacyBalance": 0,
-    "gogoMultiplier": 1,
-    "healthAgingOffset": 0,
-    "advancedRothStrategy": {
-      "enabled": false,
-      "safetyMargin": 0
+    "metadata": {
+        "profileName": "Barista FIRE Benchmark (No Children)",
+        "description": "Synthetic dual-income household with 1 child, median 401(k), IRA balances, and mortgage.",
+        "version": "2.0"
     }
-  },
-  "assumptions": {
-    "inflationRate": 3,
-    "w2RaiseRate": 2,
-    "stateTaxRate": 0,
-    "initialCashCushion": 0,
-    "displayRealDollars": true,
-    "graphYears": 50,
-    "marketReturnRates": [
-      {
-        "startYear": 2026,
-        "rate": 7
-      }
-    ],
-    "conservativeShift": {
-      "enabled": false,
-      "startAge": 60,
-      "returnRate": 5.5
-    },
-    "generalReturnRate": 7
-  },
-  "metadata": {
-    "profileName": "Barista FIRE Benchmark (No Children)",
-    "description": "Synthetic dual-income household with 1 child, median 401(k), IRA balances, and mortgage.",
-    "version": "2.0"
-  }
 }

@@ -2,16 +2,16 @@
  * Manages portfolio withdrawals, reverse mortgage draws, cash cushion buffers, and shortfall fulfillment.
  */
 export class CashFlowManager {
-    static withdrawFromPortfolios({ 
-        amountNeeded, 
-        year, 
-        s1, 
-        s2, 
-        stateRate, 
-        snapshot, 
-        cashCushion, 
-        primaryResidenceEquity, 
-        onPreTaxTaxable, 
+    static withdrawFromPortfolios({
+        amountNeeded,
+        year,
+        s1,
+        s2,
+        stateRate,
+        snapshot,
+        cashCushion,
+        primaryResidenceEquity,
+        onPreTaxTaxable,
         onLtcgRealized,
         drawdownStrategy = 'standard',
         drawdownTierAge = 60,
@@ -79,7 +79,13 @@ export class CashFlowManager {
             if (amountLeft <= 0 || !spouse?.accounts?.rothIra || spouse.accounts.rothIra.enabled === false) return;
             const age = spouse.getAge(year);
             if (age >= 59.5) {
-                const d = spouse.accounts.rothIra.withdraw(amountLeft, age, year, snapshot.events, `${spouse.name} Roth IRA Earnings`);
+                const d = spouse.accounts.rothIra.withdraw(
+                    amountLeft,
+                    age,
+                    year,
+                    snapshot.events,
+                    `${spouse.name} Roth IRA Earnings`
+                );
                 if (d > 0) {
                     amountLeft -= d;
                     snapshot.recordDrawdown(spouse.key, 'rothIra', d);
@@ -146,7 +152,11 @@ export class CashFlowManager {
         }
 
         // 6. Home Equity (Reverse Mortgage manual draw)
-        const isReverseMortgageEnabled = Boolean(primaryResidenceEquity?.reverseMortgageEnabled ?? primaryResidenceEquity?.reverseMortgage?.enabled ?? primaryResidenceEquity?.enabled);
+        const isReverseMortgageEnabled = Boolean(
+            primaryResidenceEquity?.reverseMortgageEnabled ??
+                primaryResidenceEquity?.reverseMortgage?.enabled ??
+                primaryResidenceEquity?.enabled
+        );
         if (amountLeft > 0 && isReverseMortgageEnabled && primaryResidenceEquity.active) {
             const d = Math.min(primaryResidenceEquity.currentValue, amountLeft);
             primaryResidenceEquity.currentValue -= d;
@@ -159,15 +169,23 @@ export class CashFlowManager {
 
     static processReverseMortgage({ year, s1, s2, primaryResidenceEquity, mortgage, snapshot, events }) {
         let rmIncome = 0;
-        const isReverseMortgageEnabled = Boolean(primaryResidenceEquity?.reverseMortgageEnabled ?? primaryResidenceEquity?.reverseMortgage?.enabled ?? primaryResidenceEquity?.enabled);
-        const startAge = primaryResidenceEquity?.reverseMortgageStartAge || primaryResidenceEquity?.reverseMortgage?.startAge || 65;
+        const isReverseMortgageEnabled = Boolean(
+            primaryResidenceEquity?.reverseMortgageEnabled ??
+                primaryResidenceEquity?.reverseMortgage?.enabled ??
+                primaryResidenceEquity?.enabled
+        );
+        const startAge =
+            primaryResidenceEquity?.reverseMortgageStartAge || primaryResidenceEquity?.reverseMortgage?.startAge || 65;
 
         if (isReverseMortgageEnabled && s1.getAge(year) >= startAge) {
             if (!primaryResidenceEquity.active) {
                 primaryResidenceEquity.active = true;
                 if (mortgage.enabled && mortgage.currentBalance > 0) {
                     const payoffAmount = Math.max(0, mortgage.currentBalance);
-                    primaryResidenceEquity.currentValue = Math.max(0, primaryResidenceEquity.currentValue - payoffAmount);
+                    primaryResidenceEquity.currentValue = Math.max(
+                        0,
+                        primaryResidenceEquity.currentValue - payoffAmount
+                    );
                     mortgage.currentBalance = 0;
                     events.push({ year, label: 'RM Paid Off Mortgage', type: 'rm_payoff' });
                 }
@@ -175,7 +193,10 @@ export class CashFlowManager {
 
             const yearsLeft = Math.max(s1.lifeExpectancy - s1.getAge(year), s2.lifeExpectancy - s2.getAge(year));
             if (yearsLeft > 0 && primaryResidenceEquity.currentValue > 0) {
-                const rate = (primaryResidenceEquity.annualGrowthRate !== undefined ? primaryResidenceEquity.annualGrowthRate : 3) / 100;
+                const rate =
+                    (primaryResidenceEquity.annualGrowthRate !== undefined
+                        ? primaryResidenceEquity.annualGrowthRate
+                        : 3) / 100;
                 if (rate === 0) {
                     rmIncome = primaryResidenceEquity.currentValue / yearsLeft;
                 } else {

@@ -7,7 +7,8 @@ export const STRESS_SCENARIOS_META = {
     '2000-2009': {
         name: 'Lost Decade (2000–2009)',
         shortName: 'Lost Decade',
-        description: 'Dot-Com Crash (-9.1%, -11.9%, -22.1%) followed by 2008 Great Financial Crisis (-37.0%). Severe prolonged drawdown.'
+        description:
+            'Dot-Com Crash (-9.1%, -11.9%, -22.1%) followed by 2008 Great Financial Crisis (-37.0%). Severe prolonged drawdown.'
     },
     '1973-1982': {
         name: 'Stagflation (1973–1982)',
@@ -47,21 +48,29 @@ export const STRESS_SCENARIOS_META = {
 };
 
 const LIQUID_BALANCE_KEYS = [
-    's1Brokerage', 's2Brokerage',
-    's1RothIra', 's2RothIra',
-    's1Trad401k', 's2Trad401k',
-    's1Trad403b', 's2Trad403b',
-    's1StandardIra', 's2StandardIra',
-    's1Hysa', 's2Hysa',
-    's1Cd', 's2Cd',
-    's1Hsa', 's2Hsa',
+    's1Brokerage',
+    's2Brokerage',
+    's1RothIra',
+    's2RothIra',
+    's1Trad401k',
+    's2Trad401k',
+    's1Trad403b',
+    's2Trad403b',
+    's1StandardIra',
+    's2StandardIra',
+    's1Hysa',
+    's2Hysa',
+    's1Cd',
+    's2Cd',
+    's1Hsa',
+    's2Hsa',
     'cashCushion'
 ];
 
 function calculateLiquidTotal(balances = {}) {
     let total = 0;
     for (const key of LIQUID_BALANCE_KEYS) {
-        total += (balances[key] || 0);
+        total += balances[key] || 0;
     }
     return total;
 }
@@ -76,18 +85,22 @@ export class StressTestEvaluator {
         if (!state) return [];
         const results = [];
 
-        Object.keys(SORR_SCENARIOS).forEach(scenarioKey => {
-            const meta = STRESS_SCENARIOS_META[scenarioKey] || { name: scenarioKey, shortName: scenarioKey, description: '' };
+        Object.keys(SORR_SCENARIOS).forEach((scenarioKey) => {
+            const meta = STRESS_SCENARIOS_META[scenarioKey] || {
+                name: scenarioKey,
+                shortName: scenarioKey,
+                description: ''
+            };
             const stateCopy = JSON.parse(JSON.stringify(state));
-            
+
             if (!stateCopy.strategies) stateCopy.strategies = {};
             stateCopy.strategies.sorrScenario = scenarioKey;
 
             const startAge = stateCopy.primarySpouse?.targetRetirementAge || 55;
-            const engine = new SimulationEngine(stateCopy, { 
-                startAge, 
+            const engine = new SimulationEngine(stateCopy, {
+                startAge,
                 returnsArray: SORR_SCENARIOS[scenarioKey],
-                scenarioKey 
+                scenarioKey
             });
             const simResult = engine.run();
             const snapshots = simResult.data || [];
@@ -101,7 +114,7 @@ export class StressTestEvaluator {
             let peakPortfolio = 0;
             let maxDrawdownPct = 0;
 
-            snapshots.forEach(s => {
+            snapshots.forEach((s) => {
                 const totalLiquid = calculateLiquidTotal(s.balances);
 
                 if (totalLiquid > peakPortfolio) {
@@ -111,7 +124,7 @@ export class StressTestEvaluator {
                     minPortfolio = totalLiquid;
                 }
                 if (peakPortfolio > 0) {
-                    const dd = (peakPortfolio - totalLiquid) / peakPortfolio * 100;
+                    const dd = ((peakPortfolio - totalLiquid) / peakPortfolio) * 100;
                     if (dd > maxDrawdownPct) maxDrawdownPct = dd;
                 }
 
@@ -119,7 +132,7 @@ export class StressTestEvaluator {
                 if (shortfall > 1000) {
                     totalShortfall += shortfall;
                     if (status === 'passed') {
-                        const isPre59Lockout = (totalLiquid > 10000) && (s.age1 < 59.5 || s.age2 < 59.5);
+                        const isPre59Lockout = totalLiquid > 10000 && (s.age1 < 59.5 || s.age2 < 59.5);
                         if (isPre59Lockout) {
                             status = 'pre59_lockout';
                         } else {

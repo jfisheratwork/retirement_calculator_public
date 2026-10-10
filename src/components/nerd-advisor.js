@@ -29,11 +29,13 @@ export class FinancialDetailsInspector extends BaseComponent {
 
     goToYear(newIndex) {
         if (!this.allSimData || newIndex < 0 || newIndex >= this.allSimData.length) return;
-        this.dispatchEvent(new CustomEvent('changeYearIndex', {
-            bubbles: true,
-            composed: true,
-            detail: { yearIndex: newIndex }
-        }));
+        this.dispatchEvent(
+            new CustomEvent('changeYearIndex', {
+                bubbles: true,
+                composed: true,
+                detail: { yearIndex: newIndex }
+            })
+        );
     }
 
     prevYear() {
@@ -50,13 +52,20 @@ export class FinancialDetailsInspector extends BaseComponent {
 
     _getNavState() {
         const hasPrev = typeof this.yearIndex === 'number' && this.yearIndex > 0;
-        const hasNext = typeof this.yearIndex === 'number' && Array.isArray(this.allSimData) && this.yearIndex < this.allSimData.length - 1;
+        const hasNext =
+            typeof this.yearIndex === 'number' &&
+            Array.isArray(this.allSimData) &&
+            this.yearIndex < this.allSimData.length - 1;
         const prevYear = hasPrev ? this.allSimData[this.yearIndex - 1]?.year : null;
         const nextYear = hasNext ? this.allSimData[this.yearIndex + 1]?.year : null;
         const prevLabel = hasPrev ? `◀ Prev (${prevYear})` : '◀ Prev (Start)';
         const nextLabel = hasNext ? `Next (${nextYear}) ▶` : 'Next (End) ▶';
-        const prevDisabledAttr = !hasPrev ? 'disabled style="padding: 0.4rem 0.8rem; font-size: 0.85rem; opacity: 0.4; cursor: not-allowed;"' : 'style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"';
-        const nextDisabledAttr = !hasNext ? 'disabled style="padding: 0.4rem 0.8rem; font-size: 0.85rem; opacity: 0.4; cursor: not-allowed;"' : 'style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"';
+        const prevDisabledAttr = !hasPrev
+            ? 'disabled style="padding: 0.4rem 0.8rem; font-size: 0.85rem; opacity: 0.4; cursor: not-allowed;"'
+            : 'style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"';
+        const nextDisabledAttr = !hasNext
+            ? 'disabled style="padding: 0.4rem 0.8rem; font-size: 0.85rem; opacity: 0.4; cursor: not-allowed;"'
+            : 'style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"';
 
         return {
             hasPrev,
@@ -85,7 +94,7 @@ export class FinancialDetailsInspector extends BaseComponent {
         const s2Name = escapeHtml(state?.secondarySpouse?.name || 'Spouse 2');
         const title = `${snapshot.year} (${s1Name}: ${snapshot.age1}, ${s2Name}: ${snapshot.age2})`;
         const nav = this._getNavState();
-        
+
         const html = `
             <div id="financial-details-drawer" class="financial-details-drawer nerd-advisor-drawer" style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 2rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
@@ -105,23 +114,33 @@ export class FinancialDetailsInspector extends BaseComponent {
     }
 
     _buildContent(snapshot, state, s1Name, s2Name) {
-        const prevSnapshot = (this.yearIndex > 0 && this.allSimData) ? this.allSimData[this.yearIndex - 1] : null;
-        
-        const getAgeStr = (snap) => snap ? `<br><span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(${s1Name}: ${snap.age1}, ${s2Name}: ${snap.age2})</span>` : '';
+        const prevSnapshot = this.yearIndex > 0 && this.allSimData ? this.allSimData[this.yearIndex - 1] : null;
+
+        const getAgeStr = (snap) =>
+            snap
+                ? `<br><span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(${s1Name}: ${snap.age1}, ${s2Name}: ${snap.age2})</span>`
+                : '';
 
         let html = '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">';
-        html += this._buildTooltipColumn(prevSnapshot, prevSnapshot ? `Year ${prevSnapshot.year}${getAgeStr(prevSnapshot)}` : 'Previous Year', s1Name, s2Name);
+        html += this._buildTooltipColumn(
+            prevSnapshot,
+            prevSnapshot ? `Year ${prevSnapshot.year}${getAgeStr(prevSnapshot)}` : 'Previous Year',
+            s1Name,
+            s2Name
+        );
         html += this._buildTooltipColumn(snapshot, `Year ${snapshot.year}${getAgeStr(snapshot)}`, s1Name, s2Name);
         html += this._buildPortfolioColumn(snapshot, s1Name, s2Name);
         html += '</div>';
 
         html += this._buildMonthlyBreakdown(snapshot);
-        
+
         return html;
     }
 
     _fmt(v) {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v || 0);
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(
+            v || 0
+        );
     }
 
     _dot(color) {
@@ -131,16 +150,18 @@ export class FinancialDetailsInspector extends BaseComponent {
     _renderJobBreakouts(jobList) {
         if (!jobList || jobList.length === 0) return '';
         let res = '';
-        jobList.forEach(job => {
-            const hasAddons = (job.bonus > 0) || (job.lti > 0);
+        jobList.forEach((job) => {
+            const hasAddons = job.bonus > 0 || job.lti > 0;
             const safeTitle = escapeHtml(job.title);
             const safeRange = escapeHtml(job.rangeLabel);
             if (hasAddons) {
                 const safeBonus = escapeHtml(job.bonusMonthName || 'Bonus');
                 const safeLti = escapeHtml(job.ltiMonthName || 'LTI');
                 res += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; opacity: 0.85;"><span class="inspector-label">↳ ${safeTitle} Base (${safeRange})</span><span class="inspector-value">${this._fmt(job.baseSalary)}</span></div>`;
-                if (job.bonus > 0) res += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; opacity: 0.85;"><span class="inspector-label">↳ ${safeTitle} Bonus (${safeBonus})</span><span class="inspector-value" style="color: var(--success);">+${this._fmt(job.bonus)}</span></div>`;
-                if (job.lti > 0) res += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; opacity: 0.85;"><span class="inspector-label">↳ ${safeTitle} LTI (${safeLti})</span><span class="inspector-value" style="color: var(--success);">+${this._fmt(job.lti)}</span></div>`;
+                if (job.bonus > 0)
+                    res += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; opacity: 0.85;"><span class="inspector-label">↳ ${safeTitle} Bonus (${safeBonus})</span><span class="inspector-value" style="color: var(--success);">+${this._fmt(job.bonus)}</span></div>`;
+                if (job.lti > 0)
+                    res += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; opacity: 0.85;"><span class="inspector-label">↳ ${safeTitle} LTI (${safeLti})</span><span class="inspector-value" style="color: var(--success);">+${this._fmt(job.lti)}</span></div>`;
             } else {
                 res += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; opacity: 0.85;"><span class="inspector-label">↳ ${safeTitle} (${safeRange})</span><span class="inspector-value">${this._fmt(job.total)}</span></div>`;
             }
@@ -174,7 +195,7 @@ export class FinancialDetailsInspector extends BaseComponent {
         }
         if (inflows.totalDrawdowns > 0) {
             html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#fdcb6e')} Portfolio Distributions</span><span class="inspector-value" style="color: #fdcb6e;">+${this._fmt(inflows.totalDrawdowns)}</span></div>`;
-            inflows.drawdownRows.forEach(row => {
+            inflows.drawdownRows.forEach((row) => {
                 html += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px;"><span class="inspector-label">↳ ${row.label}</span><span class="inspector-value">+${this._fmt(row.amount)}</span></div>`;
             });
         }
@@ -193,13 +214,13 @@ export class FinancialDetailsInspector extends BaseComponent {
                     <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Cash Expenses & Outflows</div>`;
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#e74c3c')} Base Lifestyle</span><span class="inspector-value">${this._fmt(outflows.base)}</span></div>`;
         if (outflows.mortgage > 0) {
-             html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#c0392b')} Mortgage Payment</span><span class="inspector-value">${this._fmt(outflows.mortgage)}</span></div>`;
+            html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#c0392b')} Mortgage Payment</span><span class="inspector-value">${this._fmt(outflows.mortgage)}</span></div>`;
         }
         if (outflows.housing > 0) {
-             html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#e67e22')} Housing (Tax/Ins/Repairs)</span><span class="inspector-value">${this._fmt(outflows.housing)}</span></div>`;
+            html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#e67e22')} Housing (Tax/Ins/Repairs)</span><span class="inspector-value">${this._fmt(outflows.housing)}</span></div>`;
         }
         if (outflows.childcare > 0) {
-             html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#d35400')} Childcare / College</span><span class="inspector-value">${this._fmt(outflows.childcare)}</span></div>`;
+            html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${this._dot('#d35400')} Childcare / College</span><span class="inspector-value">${this._fmt(outflows.childcare)}</span></div>`;
         }
         const nonW2Tax = snap.taxDetails?.nonW2Tax ?? snap.taxes?.nonW2TaxesPaid ?? 0;
         if (nonW2Tax > 0) {
@@ -216,7 +237,9 @@ export class FinancialDetailsInspector extends BaseComponent {
         if (snap.surplus > 0) {
             html += `<div class="inspector-row" data-ai-target="row-surplus" style="font-weight: bold; font-size: 0.95rem;"><span class="inspector-label" style="color: var(--success);">Net Cash Surplus</span><span class="inspector-value" style="color: var(--success);">+${this._fmt(snap.surplus)}</span></div>`;
             const sweepAmt = snap.reinvestedToSweep || snap.reinvestedToBrokerage || snap.surplus;
-            const sweepLabel = snap.sweepAccountName ? `Reinvested (${escapeHtml(snap.sweepAccountName)})` : 'Reinvested Surplus';
+            const sweepLabel = snap.sweepAccountName
+                ? `Reinvested (${escapeHtml(snap.sweepAccountName)})`
+                : 'Reinvested Surplus';
             html += `<div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px; color: #74b9ff; margin-top: 4px;"><span class="inspector-label">↳ ${sweepLabel}</span><span class="inspector-value">+${this._fmt(sweepAmt)}</span></div>`;
         } else if (snap.unfundedShortfall > 0) {
             html += `<div class="inspector-row" data-ai-target="row-shortfall" style="font-weight: bold; font-size: 0.95rem; margin-top: 4px;"><span class="inspector-label" style="color: var(--danger);">Unfunded Shortfall (Out of Assets)</span><span class="inspector-value" style="color: var(--danger);">-${this._fmt(snap.unfundedShortfall)}</span></div>`;
@@ -279,7 +302,9 @@ export class FinancialDetailsInspector extends BaseComponent {
         const hsaDeduction = snap.taxDetails?.hsaDeduction ?? tax.hsaDeduction ?? 0;
         const totalStatutoryTaxes = (snap.taxDetails?.totalTax || snap.taxes || 0) + ficaTax;
         const rothBadge = this._getRothStatusBadge(magi, tax.filingStatus);
-        const magiTooltip = escapeHtml(`Modified AGI determines statutory Roth IRA eligibility. Phases out between $150k–$165k (Single) and $236k–$246k (MFJ). Pre-tax 401(k) and workplace HSA contributions reduce MAGI.`);
+        const magiTooltip = escapeHtml(
+            `Modified AGI determines statutory Roth IRA eligibility. Phases out between $150k–$165k (Single) and $236k–$246k (MFJ). Pre-tax 401(k) and workplace HSA contributions reduce MAGI.`
+        );
 
         return `
             <div style="margin-bottom: 12px;">
@@ -307,14 +332,19 @@ export class FinancialDetailsInspector extends BaseComponent {
     }
 
     _buildTooltipColumn(snap, title, s1Name, s2Name) {
-        if (!snap) return `<div class="timeline-container" style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);"><p style="color: var(--text-muted); text-align: center;">No data available.</p></div>`;
-        
+        if (!snap)
+            return `<div class="timeline-container" style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);"><p style="color: var(--text-muted); text-align: center;">No data available.</p></div>`;
+
         let html = `<div class="timeline-container" style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">`;
         html += `<h3 style="color: var(--primary); text-align: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-top: 0;">${title}</h3>`;
-        
+
         const inflows = FinancialPresentationService.computeCashInflows(snap, this.appState);
         const outflows = FinancialPresentationService.computeExpensesAndOutflows(snap);
-        const additions = FinancialPresentationService.computePortfolioAdditions(snap, this.appState, Math.max(0, snap.surplus || 0));
+        const additions = FinancialPresentationService.computePortfolioAdditions(
+            snap,
+            this.appState,
+            Math.max(0, snap.surplus || 0)
+        );
         const tax = FinancialPresentationService.computeTaxProfile(snap);
 
         html += this._renderFinancialInflows(inflows);
@@ -352,11 +382,21 @@ export class FinancialDetailsInspector extends BaseComponent {
         const rolloverOut = data?.rolloverOut || 0;
         const withdrawals = data?.withdrawals || 0;
         const netWithdrawals = Math.max(0, withdrawals - conversionsOut - rolloverOut);
-        
-        if (interest === 0 && contributions === 0 && conversionsIn === 0 && conversionsOut === 0 && rolloverIn === 0 && rolloverOut === 0 && netWithdrawals === 0 && (!balance || balance === 0)) return '';
-        const earningBase = (balance - interest);
+
+        if (
+            interest === 0 &&
+            contributions === 0 &&
+            conversionsIn === 0 &&
+            conversionsOut === 0 &&
+            rolloverIn === 0 &&
+            rolloverOut === 0 &&
+            netWithdrawals === 0 &&
+            (!balance || balance === 0)
+        )
+            return '';
+        const earningBase = balance - interest;
         const pctGrowth = earningBase > 0 ? (interest / earningBase) * 100 : 0;
-        
+
         let out = `<div style="margin-bottom: 12px;">
                     <div style="color: var(--text-main); font-size: 0.9rem; font-weight: bold; margin-bottom: 4px;">${escapeHtml(name)}</div>`;
         out += `<div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px;"><span class="inspector-label">↳ Balance</span><span class="inspector-value" style="font-weight: bold;">${this._fmt(balance)}</span></div>`;
@@ -391,9 +431,12 @@ export class FinancialDetailsInspector extends BaseComponent {
     _renderCollege529Children(children) {
         if (!Array.isArray(children)) return '';
         let out = '';
-        children.forEach(c => {
+        children.forEach((c) => {
             if (c.balance > 0 || c.interest > 0 || c.drawn > 0 || (c.contribution || 0) > 0) {
-                const contribText = (c.contribution || 0) > 0 ? `<span style="color: var(--success); margin-right: 6px;">+${this._fmt(c.contribution)} saved</span>` : '';
+                const contribText =
+                    (c.contribution || 0) > 0
+                        ? `<span style="color: var(--success); margin-right: 6px;">+${this._fmt(c.contribution)} saved</span>`
+                        : '';
                 out += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; opacity: 0.85;">
                     <span class="inspector-label">↳ ${c.name} (Bal: ${this._fmt(c.balance)})</span>
                     <span class="inspector-value">${contribText}<span style="color: var(--success);">+${this._fmt(c.interest)}</span></span>
@@ -406,28 +449,68 @@ export class FinancialDetailsInspector extends BaseComponent {
     _buildPortfolioColumn(snap, s1Name, s2Name) {
         let html = `<div class="timeline-container" style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">`;
         html += `<h3 style="color: var(--secondary); text-align: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-top: 0;">Portfolio Details</h3>`;
-        
+
         if (snap.growth && snap.balances) {
             html += this._renderGrowth(`${s1Name} 401k`, snap.growth.s1Trad401k, snap.balances.s1Trad401k || 0);
             html += this._renderGrowth(`${s1Name} 403b`, snap.growth.s1Trad403b, snap.balances.s1Trad403b || 0);
             html += this._renderGrowth(`${s2Name} 401k`, snap.growth.s2Trad401k, snap.balances.s2Trad401k || 0);
             html += this._renderGrowth(`${s2Name} 403b`, snap.growth.s2Trad403b, snap.balances.s2Trad403b || 0);
-            html += this._renderGrowth(`${s1Name} Std IRA`, snap.growth.s1StandardIra, snap.balances.s1StandardIra || 0);
-            html += this._renderGrowth(`${s2Name} Std IRA`, snap.growth.s2StandardIra, snap.balances.s2StandardIra || 0);
+            html += this._renderGrowth(
+                `${s1Name} Std IRA`,
+                snap.growth.s1StandardIra,
+                snap.balances.s1StandardIra || 0
+            );
+            html += this._renderGrowth(
+                `${s2Name} Std IRA`,
+                snap.growth.s2StandardIra,
+                snap.balances.s2StandardIra || 0
+            );
             html += this._renderGrowth(`${s1Name} Roth IRA`, snap.growth.s1RothIra, snap.balances.s1RothIra || 0);
             html += this._renderGrowth(`${s2Name} Roth IRA`, snap.growth.s2RothIra, snap.balances.s2RothIra || 0);
-            html += this._renderGrowth(`${s1Name} Brokerage & Sweep`, snap.growth.s1Brokerage, snap.balances.s1Brokerage || 0);
+            html += this._renderGrowth(
+                `${s1Name} Brokerage & Sweep`,
+                snap.growth.s1Brokerage,
+                snap.balances.s1Brokerage || 0
+            );
             html += this._renderGrowth(`${s2Name} Brokerage`, snap.growth.s2Brokerage, snap.balances.s2Brokerage || 0);
-            html += this._renderGrowth(`${s1Name} High-Yield Savings (HYSA)`, snap.growth.s1Hysa, snap.balances.s1Hysa || 0);
-            html += this._renderGrowth(`${s2Name} High-Yield Savings (HYSA)`, snap.growth.s2Hysa, snap.balances.s2Hysa || 0);
-            if ((snap.balances.s1Cd || 0) > 0 || (snap.growth.s1Cd?.interest || 0) > 0 || (snap.growth.s1Cd?.rolloverOut || 0) > 0) {
-                html += this._renderGrowth(`${s1Name} Certificates of Deposit (CD)`, snap.growth.s1Cd, snap.balances.s1Cd || 0);
+            html += this._renderGrowth(
+                `${s1Name} High-Yield Savings (HYSA)`,
+                snap.growth.s1Hysa,
+                snap.balances.s1Hysa || 0
+            );
+            html += this._renderGrowth(
+                `${s2Name} High-Yield Savings (HYSA)`,
+                snap.growth.s2Hysa,
+                snap.balances.s2Hysa || 0
+            );
+            if (
+                (snap.balances.s1Cd || 0) > 0 ||
+                (snap.growth.s1Cd?.interest || 0) > 0 ||
+                (snap.growth.s1Cd?.rolloverOut || 0) > 0
+            ) {
+                html += this._renderGrowth(
+                    `${s1Name} Certificates of Deposit (CD)`,
+                    snap.growth.s1Cd,
+                    snap.balances.s1Cd || 0
+                );
             }
-            if ((snap.balances.s2Cd || 0) > 0 || (snap.growth.s2Cd?.interest || 0) > 0 || (snap.growth.s2Cd?.rolloverOut || 0) > 0) {
-                html += this._renderGrowth(`${s2Name} Certificates of Deposit (CD)`, snap.growth.s2Cd, snap.balances.s2Cd || 0);
+            if (
+                (snap.balances.s2Cd || 0) > 0 ||
+                (snap.growth.s2Cd?.interest || 0) > 0 ||
+                (snap.growth.s2Cd?.rolloverOut || 0) > 0
+            ) {
+                html += this._renderGrowth(
+                    `${s2Name} Certificates of Deposit (CD)`,
+                    snap.growth.s2Cd,
+                    snap.balances.s2Cd || 0
+                );
             }
             if ((snap.balances.college529 || 0) > 0 || (snap.growth.college529?.interest || 0) > 0) {
-                html += this._renderGrowth(`529 College Savings`, snap.growth.college529, snap.balances.college529 || 0);
+                html += this._renderGrowth(
+                    `529 College Savings`,
+                    snap.growth.college529,
+                    snap.balances.college529 || 0
+                );
                 html += this._renderCollege529Children(snap.college529?.children);
             }
             if (snap.balances.cashCushion > 0) {
@@ -460,7 +543,7 @@ export class FinancialDetailsInspector extends BaseComponent {
         const w2Milestones = [];
         const otherLabels = [];
 
-        events.forEach(evt => {
+        events.forEach((evt) => {
             if (evt && evt.month === month) {
                 if (evt.type === 'income_bonus' || evt.type === 'income_lti') {
                     w2Milestones.push({
@@ -485,7 +568,7 @@ export class FinancialDetailsInspector extends BaseComponent {
     _buildMonthlyBreakdown(snapshot) {
         let html = `<div style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">`;
         html += `<h3 style="color: var(--accent); margin-top: 0; margin-bottom: 1rem;">Monthly Cash Flow & Timeline (${snapshot.year})</h3>`;
-        
+
         html += `<table style="width: 100%; text-align: right; border-collapse: collapse; font-size: 0.9rem;">
                     <thead>
                         <tr style="color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,0.2);">
@@ -498,40 +581,56 @@ export class FinancialDetailsInspector extends BaseComponent {
                         </tr>
                     </thead>
                     <tbody>`;
-        
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const hasMonthlyData = Array.isArray(snapshot.monthlySnapshots) && snapshot.monthlySnapshots.length === 12;
 
         for (let m = 0; m < 12; m++) {
             const mSnap = hasMonthlyData ? snapshot.monthlySnapshots[m] : null;
             const { externalCash, w2Milestones, otherLabels } = this._getEventsForMonth(snapshot.events, m + 1);
 
-            const takeHome = mSnap ? (mSnap.takeHome !== undefined ? mSnap.takeHome : mSnap.w2Net) : ((snapshot.income?.takeHome || snapshot.income?.w2 || 0) / 12);
-            const otherIncome = mSnap ? ((mSnap.ssn || 0) + (mSnap.rule72t || 0)) : (((snapshot.income?.s1?.ssn || 0) + (snapshot.income?.s2?.ssn || 0)) / 12);
+            const takeHome = mSnap
+                ? mSnap.takeHome !== undefined
+                    ? mSnap.takeHome
+                    : mSnap.w2Net
+                : (snapshot.income?.takeHome || snapshot.income?.w2 || 0) / 12;
+            const otherIncome = mSnap
+                ? (mSnap.ssn || 0) + (mSnap.rule72t || 0)
+                : ((snapshot.income?.s1?.ssn || 0) + (snapshot.income?.s2?.ssn || 0)) / 12;
             const totalMonthlyIncome = takeHome + otherIncome;
-            const convAmount = mSnap ? (mSnap.rothConverted || 0) : 0;
-            const expenses = mSnap ? mSnap.expenses : ((snapshot.expenses || 0) / 12);
-            const netFlow = mSnap ? mSnap.netFlow : (totalMonthlyIncome + externalCash - expenses);
+            const convAmount = mSnap ? mSnap.rothConverted || 0 : 0;
+            const expenses = mSnap ? mSnap.expenses : (snapshot.expenses || 0) / 12;
+            const netFlow = mSnap ? mSnap.netFlow : totalMonthlyIncome + externalCash - expenses;
             const flowColor = netFlow >= 0 ? 'var(--success)' : 'var(--danger)';
 
             let transferText = '-';
             if (convAmount > 0) {
                 transferText = `<span style="color: #a29bfe; font-weight: bold;">+${this._fmt(convAmount)} Roth</span>`;
-            } else if (otherLabels.some(l => l.toLowerCase().includes('rollover'))) {
+            } else if (otherLabels.some((l) => l.toLowerCase().includes('rollover'))) {
                 transferText = `<span style="color: #74b9ff; font-size: 0.8rem;">Rollover</span>`;
             }
 
             const bonusMilestone = mSnap?.bonusMilestone;
-            const totalMilestoneGross = bonusMilestone ? bonusMilestone.gross : w2Milestones.reduce((acc, curr) => acc + curr.amount, 0);
+            const totalMilestoneGross = bonusMilestone
+                ? bonusMilestone.gross
+                : w2Milestones.reduce((acc, curr) => acc + curr.amount, 0);
             const totalMilestoneNet = bonusMilestone ? bonusMilestone.netTakeHome : null;
 
             const milestoneDetails = bonusMilestone?.items
-                ? bonusMilestone.items.map(item => `${item.name}: +$${Math.round(item.gross).toLocaleString()} gross (+$${Math.round(item.netTakeHome).toLocaleString()} take-home)`).join('\n')
-                : w2Milestones.map(item => `${item.name}: +$${Math.round(item.amount).toLocaleString()} gross`).join('\n');
+                ? bonusMilestone.items
+                      .map(
+                          (item) =>
+                              `${item.name}: +$${Math.round(item.gross).toLocaleString()} gross (+$${Math.round(item.netTakeHome).toLocaleString()} take-home)`
+                      )
+                      .join('\n')
+                : w2Milestones
+                      .map((item) => `${item.name}: +$${Math.round(item.amount).toLocaleString()} gross`)
+                      .join('\n');
 
             let eventCellHtml = '-';
             if (externalCash > 0 && totalMilestoneGross > 0) {
-                const takeHomeBadge = totalMilestoneNet !== null ? `(+${this._fmt(totalMilestoneNet)} Take-Home)` : `(in Take-Home)`;
+                const takeHomeBadge =
+                    totalMilestoneNet !== null ? `(+${this._fmt(totalMilestoneNet)} Take-Home)` : `(in Take-Home)`;
                 eventCellHtml = `
                     <div style="color: var(--success); font-weight: bold;">+${this._fmt(externalCash)}</div>
                     <div style="font-size: 0.72rem; color: var(--accent); margin-top: 2px;" title="${milestoneDetails}">+${this._fmt(totalMilestoneGross)} Gross ${takeHomeBadge}</div>
@@ -539,9 +638,10 @@ export class FinancialDetailsInspector extends BaseComponent {
             } else if (externalCash > 0) {
                 eventCellHtml = `<span style="color: var(--success); font-weight: bold;">+${this._fmt(externalCash)}</span>`;
             } else if (totalMilestoneGross > 0) {
-                const takeHomeBadge = totalMilestoneNet !== null
-                    ? `<span style="display: block; font-size: 0.72rem; color: var(--accent); font-weight: normal;">(+${this._fmt(totalMilestoneNet)} Take-Home)</span>`
-                    : `<span style="display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(in Take-Home)</span>`;
+                const takeHomeBadge =
+                    totalMilestoneNet !== null
+                        ? `<span style="display: block; font-size: 0.72rem; color: var(--accent); font-weight: normal;">(+${this._fmt(totalMilestoneNet)} Take-Home)</span>`
+                        : `<span style="display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(in Take-Home)</span>`;
                 eventCellHtml = `
                     <div style="color: var(--success); font-weight: bold; line-height: 1.2;" title="${milestoneDetails}">
                         +${this._fmt(totalMilestoneGross)} Gross
@@ -575,7 +675,7 @@ export class FinancialDetailsInspector extends BaseComponent {
 
     afterRender() {
         if (!this.snapshot) return;
-        
+
         this.addEvent('#btn-unpin-year', 'click', () => {
             this.close();
         });
@@ -618,7 +718,8 @@ export class FinancialDetailsInspector extends BaseComponent {
 
         // Scroll into view on newly rendered data
         setTimeout(() => {
-            const drawer = this.querySelector('#financial-details-drawer') || this.querySelector('#nerd-advisor-drawer');
+            const drawer =
+                this.querySelector('#financial-details-drawer') || this.querySelector('#nerd-advisor-drawer');
             if (drawer) drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }, 50);
     }
@@ -629,7 +730,8 @@ export const NerdAdvisor = FinancialDetailsInspector;
 FinancialDetailsInspector.prototype._renderNerdInflows = FinancialDetailsInspector.prototype._renderFinancialInflows;
 FinancialDetailsInspector.prototype._renderNerdExpenses = FinancialDetailsInspector.prototype._renderFinancialExpenses;
 FinancialDetailsInspector.prototype._renderNerdSurplus = FinancialDetailsInspector.prototype._renderFinancialSurplus;
-FinancialDetailsInspector.prototype._renderNerdAdditions = FinancialDetailsInspector.prototype._renderFinancialAdditions;
+FinancialDetailsInspector.prototype._renderNerdAdditions =
+    FinancialDetailsInspector.prototype._renderFinancialAdditions;
 FinancialDetailsInspector.prototype._renderNerdTaxes = FinancialDetailsInspector.prototype._renderFinancialTaxes;
 
 if (typeof customElements !== 'undefined') {
@@ -644,7 +746,10 @@ if (typeof customElements !== 'undefined') {
 export function renderFinancialDetails(snapshot, state, yearIndex, allSimData) {
     let advisor = document.querySelector('financial-details-inspector') || document.querySelector('nerd-advisor');
     if (!advisor) {
-        const container = document.getElementById('financial-details-container') || document.getElementById('nerd-advisor-container') || document.body;
+        const container =
+            document.getElementById('financial-details-container') ||
+            document.getElementById('nerd-advisor-container') ||
+            document.body;
         advisor = document.createElement('financial-details-inspector');
         container.appendChild(advisor);
     }
@@ -662,4 +767,3 @@ export function initFinancialDetailsInspector() {
     }
 }
 export const initNerdAdvisor = initFinancialDetailsInspector;
-

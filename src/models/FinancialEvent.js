@@ -1,6 +1,6 @@
 /**
  * FinancialEvent.js
- * 
+ *
  * Formal domain models and event representations for intra-year financial lifecycle
  * operations (Rollovers, Roth Conversion schedules, CD reinvestments).
  */
@@ -24,7 +24,7 @@ export class RolloverEvent {
         this.enabled = Boolean(state.enabled);
         this.sourceAccount = state.sourceAccount || 'traditional401k';
         this.targetAccount = state.targetAccount || 'standardIra';
-        
+
         const defaultYear = new Date().getFullYear() + 5;
         const { year, month } = _parseEventDate(state, defaultYear, 1);
 
@@ -90,10 +90,10 @@ export class RothConversionSchedule {
     isActiveInYear(year, currentYear) {
         if (!this.enabled || this.amountPerYear <= 0) return false;
         if (this.startYear !== undefined && this.startYear !== null) {
-            return Number(year) >= this.startYear && Number(year) < (this.startYear + this.durationYears);
+            return Number(year) >= this.startYear && Number(year) < this.startYear + this.durationYears;
         }
         const yearsFromStart = Number(year) - Number(currentYear);
-        return yearsFromStart >= this.startDelayYears && yearsFromStart < (this.startDelayYears + this.durationYears);
+        return yearsFromStart >= this.startDelayYears && yearsFromStart < this.startDelayYears + this.durationYears;
     }
 
     occursIn(year, month, currentYear) {

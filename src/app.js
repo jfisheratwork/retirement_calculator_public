@@ -1,4 +1,13 @@
-import { getState, getProfiles, getActiveProfileId, switchProfile, replaceProfileData, initState, isStoragePinLocked, isStoragePinConfigured } from './services/state.js';
+import {
+    getState,
+    getProfiles,
+    getActiveProfileId,
+    switchProfile,
+    replaceProfileData,
+    initState,
+    isStoragePinLocked,
+    isStoragePinConfigured
+} from './services/state.js';
 import { loadSampleHouseholdProfile } from './services/sample-profile.js';
 import { renderCharts, setPinnedYearIndex, getPinnedYearIndex } from './components/charts.js';
 import { renderInputPanel } from './components/input-panel.js';
@@ -55,9 +64,13 @@ function bootstrap() {
         if (pinUnlockModalInstance) {
             pinUnlockModalInstance.open();
         }
-        document.addEventListener('plan-unlocked', () => {
-            initAppPostUnlock();
-        }, { once: true });
+        document.addEventListener(
+            'plan-unlocked',
+            () => {
+                initAppPostUnlock();
+            },
+            { once: true }
+        );
         return;
     }
 
@@ -123,7 +136,7 @@ function initAppPostUnlock() {
     initInspectorState();
     initDisclaimerBanner();
     initCollapsibleChartResize();
-    
+
     // Select DOM nodes
     btnLoadSample = document.getElementById('btn-load-sample');
     profileSelect = document.getElementById('profile-select');
@@ -152,9 +165,10 @@ function initAppPostUnlock() {
     initModeSwitcher();
     updateProfileSelect();
     updateLockButtonState();
-    
+
     const state = getState();
-    const hasCompletedOnboarding = typeof localStorage !== 'undefined' && localStorage.getItem('has_completed_onboarding') === 'true';
+    const hasCompletedOnboarding =
+        typeof localStorage !== 'undefined' && localStorage.getItem('has_completed_onboarding') === 'true';
     if (!hasCompletedOnboarding && (!state.primarySpouse.yearOfBirth || !state.primarySpouse.targetRetirementAge)) {
         if (setupPickerModalInstance) {
             setupPickerModalInstance.open();
@@ -162,7 +176,7 @@ function initAppPostUnlock() {
             paramsModal.classList.remove('hidden');
         }
     }
-    
+
     updateApp();
 }
 
@@ -196,7 +210,7 @@ function bindProfileEvents() {
             updateApp(true);
         });
     }
-    
+
     if (btnAddProfile) btnAddProfile.addEventListener('click', () => profileManagerModalInstance.openAdd());
     if (btnRenameProfile) btnRenameProfile.addEventListener('click', () => profileManagerModalInstance.openRename());
     if (btnDeleteProfile) {
@@ -205,7 +219,7 @@ function bindProfileEvents() {
             profileManagerModalInstance.openDelete();
         });
     }
-    
+
     if (btnEditParams) {
         btnEditParams.addEventListener('click', () => {
             settingsModalInstance.open();
@@ -225,17 +239,21 @@ function bindProfileEvents() {
     document.addEventListener('session-locked', () => {
         updateLockButtonState();
         if (pinUnlockModalInstance) pinUnlockModalInstance.open();
-        document.addEventListener('plan-unlocked', () => {
-            updateLockButtonState();
-            updateApp(true);
-        }, { once: true });
+        document.addEventListener(
+            'plan-unlocked',
+            () => {
+                updateLockButtonState();
+                updateApp(true);
+            },
+            { once: true }
+        );
     });
-    
+
     document.addEventListener('import-ready', (passedEvent) => {
         const { data, filename } = passedEvent.detail;
         profileManagerModalInstance.openImport(data, filename);
     });
-    
+
     document.addEventListener('profile-updated', () => {
         updateProfileSelect();
         updateApp(true);
@@ -315,7 +333,7 @@ function bindExplainModalEvents() {
             explainModal.classList.remove('hidden');
         });
     }
-    
+
     if (btnCloseExplain && explainModal) {
         btnCloseExplain.addEventListener('click', () => {
             explainModal.classList.add('hidden');
@@ -344,7 +362,7 @@ function bindDrawerEvents() {
 
 function _bindModeButtons(updateActiveModePill) {
     const modeButtons = document.querySelectorAll('.mode-pill-btn');
-    modeButtons.forEach(btn => {
+    modeButtons.forEach((btn) => {
         btn.addEventListener('click', () => {
             const mode = btn.dataset.mode;
             updateActiveModePill(mode);
@@ -452,7 +470,7 @@ function _bindGuidedModalEvents(updateActiveModePill) {
 function initModeSwitcher() {
     const modeButtons = document.querySelectorAll('.mode-pill-btn');
     const updateActiveModePill = (mode) => {
-        modeButtons.forEach(btn => {
+        modeButtons.forEach((btn) => {
             btn.classList.toggle('active', btn.dataset.mode === mode);
         });
         if (typeof localStorage !== 'undefined') {
@@ -473,8 +491,9 @@ function bindEvents() {
     if (focusYearSelect) {
         focusYearSelect.addEventListener('change', (e) => {
             const val = e.target.value;
-            if (val === "") {
-                const advisor = document.querySelector('financial-details-inspector') || document.querySelector('nerd-advisor');
+            if (val === '') {
+                const advisor =
+                    document.querySelector('financial-details-inspector') || document.querySelector('nerd-advisor');
                 if (advisor) {
                     advisor.close();
                 } else {
@@ -502,7 +521,7 @@ function bindEvents() {
     document.addEventListener('closeAdvisor', () => {
         setPinnedYearIndex(null);
         if (focusYearSelect) {
-            focusYearSelect.value = "";
+            focusYearSelect.value = '';
         }
         updateApp();
     });
@@ -530,7 +549,7 @@ function updateProfileSelect() {
     const activeId = getActiveProfileId();
     if (!profileSelect) return;
     profileSelect.innerHTML = '';
-    profiles.forEach(p => {
+    profiles.forEach((p) => {
         const option = document.createElement('option');
         option.value = p.id;
         option.textContent = p.name;
@@ -554,25 +573,25 @@ function updateProfileSelect() {
 
 function populateFocusYearDropdown(simData) {
     if (!focusYearSelect) return;
-    
+
     focusYearSelect.innerHTML = '';
     const defOpt = document.createElement('option');
-    defOpt.value = "";
-    defOpt.textContent = "-- None --";
+    defOpt.value = '';
+    defOpt.textContent = '-- None --';
     focusYearSelect.appendChild(defOpt);
-    
+
     simData.forEach((d, i) => {
         const opt = document.createElement('option');
         opt.value = i;
         opt.textContent = `${d.year} (Age ${d.age1} / ${d.age2})`;
         focusYearSelect.appendChild(opt);
     });
-    
+
     const activePin = getPinnedYearIndex();
     if (activePin !== null && activePin < simData.length) {
         focusYearSelect.value = activePin.toString();
     } else {
-        focusYearSelect.value = "";
+        focusYearSelect.value = '';
     }
 }
 
@@ -587,7 +606,7 @@ export function debouncedUpdateApp(delayMs = 150) {
 
 function updateApp(forceInputPanelRedraw = false) {
     const currentState = getState();
-    
+
     // 1. Re-render input panel
     inputPanelInstance = renderInputPanel('input-container', onInputChanged, forceInputPanelRedraw);
 
@@ -596,7 +615,7 @@ function updateApp(forceInputPanelRedraw = false) {
     if (typeof window !== 'undefined') {
         window.__lastSimResult = simResult;
     }
-    
+
     // Render visual stress alerts above top KPI charts
     renderStressAlerts('stress-test-alerts', stressResults);
 
@@ -614,7 +633,7 @@ function updateApp(forceInputPanelRedraw = false) {
     renderCharts(simResult.data, currentState, simResult.events, sorrData);
 
     populateFocusYearDropdown(simResult.data);
-    
+
     const activeIndex = getPinnedYearIndex();
     if (activeIndex !== null && activeIndex < simResult.data.length) {
         const snap = simResult.data[activeIndex];
@@ -622,7 +641,7 @@ function updateApp(forceInputPanelRedraw = false) {
             renderFinancialDetails(snap, currentState, activeIndex, simResult.data);
         }
     }
-    
+
     const sorrSelect = document.getElementById('sorr-scenario-select');
     if (sorrSelect) {
         sorrSelect.value = currentState.strategies.sorrScenario || 'average';
@@ -640,5 +659,3 @@ function onInputChanged() {
 
 // Start application
 bootstrap();
-
-

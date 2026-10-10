@@ -36,10 +36,12 @@ export class ExpensesPanel extends BaseComponent {
 
     afterRender() {
         this.addEvent('input, select', 'change', (e) => {
-            this.dispatchEvent(new CustomEvent('stateChange', {
-                detail: { element: e.target },
-                bubbles: true
-            }));
+            this.dispatchEvent(
+                new CustomEvent('stateChange', {
+                    detail: { element: e.target },
+                    bubbles: true
+                })
+            );
         });
     }
 }

@@ -1,5 +1,14 @@
 import { BaseComponent } from './base-component.js';
-import { getProfiles, getActiveProfileId, switchProfile, createProfile, renameProfile, deleteProfile, replaceProfileData, exportState } from '../services/state.js';
+import {
+    getProfiles,
+    getActiveProfileId,
+    switchProfile,
+    createProfile,
+    renameProfile,
+    deleteProfile,
+    replaceProfileData,
+    exportState
+} from '../services/state.js';
 
 import { escapeHtml } from '../utils/sanitize.js';
 export { escapeHtml };
@@ -8,7 +17,7 @@ export class SettingsModal extends BaseComponent {
     constructor() {
         super();
     }
-    
+
     getTemplate() {
         return `
             <div id="settings-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999;">
@@ -49,14 +58,16 @@ export class SettingsModal extends BaseComponent {
                 if (layout) {
                     layout.classList.toggle('show-inspector', isChecked);
                 }
-                window.dispatchEvent(new CustomEvent('inspector-visibility-changed', {
-                    detail: { visible: isChecked }
-                }));
+                window.dispatchEvent(
+                    new CustomEvent('inspector-visibility-changed', {
+                        detail: { visible: isChecked }
+                    })
+                );
             });
         }
 
         btnClose.addEventListener('click', () => this.close());
-        
+
         btnExport.addEventListener('click', () => {
             exportState();
         });
@@ -66,20 +77,22 @@ export class SettingsModal extends BaseComponent {
         fileImport.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            
+
             const reader = new FileReader();
             reader.onload = (event) => {
                 try {
                     const data = JSON.parse(event.target.result);
-                    this.dispatchEvent(new CustomEvent('import-ready', { 
-                        detail: { data, filename: file.name },
-                        bubbles: true,
-                        composed: true
-                    }));
+                    this.dispatchEvent(
+                        new CustomEvent('import-ready', {
+                            detail: { data, filename: file.name },
+                            bubbles: true,
+                            composed: true
+                        })
+                    );
                     e.target.value = '';
                     this.close();
                 } catch (err) {
-                    alert("Failed to parse the imported JSON file.");
+                    alert('Failed to parse the imported JSON file.');
                 }
             };
             reader.readAsText(file);
@@ -213,7 +226,7 @@ export class ProfileManagerModal extends BaseComponent {
         });
 
         // Built-in Sample Presets
-        this.querySelectorAll('.btn-load-sample-preset').forEach(btn => {
+        this.querySelectorAll('.btn-load-sample-preset').forEach((btn) => {
             btn.addEventListener('click', async () => {
                 const file = btn.getAttribute('data-file');
                 const defaultName = btn.getAttribute('data-default-name') || 'Sample Profile';
@@ -263,7 +276,7 @@ export class ProfileManagerModal extends BaseComponent {
         });
 
         // Import Profile Radio Toggle
-        this.querySelectorAll('input[name="import-mode"]').forEach(radio => {
+        this.querySelectorAll('input[name="import-mode"]').forEach((radio) => {
             radio.addEventListener('change', (e) => {
                 if (e.target.value === 'new') {
                     this.querySelector('#import-new-name-group').style.display = 'block';
@@ -295,20 +308,19 @@ export class ProfileManagerModal extends BaseComponent {
             this.closeAll();
         });
 
-        this.querySelectorAll('.drawer-overlay').forEach(modal => {
+        this.querySelectorAll('.drawer-overlay').forEach((modal) => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) this.closeAll();
             });
         });
     }
 
-
     dispatchUpdate() {
         this.dispatchEvent(new CustomEvent('profile-updated', { bubbles: true, composed: true }));
     }
 
     closeAll() {
-        this.querySelectorAll('.drawer-overlay').forEach(el => el.classList.add('hidden'));
+        this.querySelectorAll('.drawer-overlay').forEach((el) => el.classList.add('hidden'));
     }
 
     openAdd() {
@@ -321,7 +333,7 @@ export class ProfileManagerModal extends BaseComponent {
     openRename() {
         this.closeAll();
         const activeId = getActiveProfileId();
-        const activeName = getProfiles().find(p => p.id === activeId).name;
+        const activeName = getProfiles().find((p) => p.id === activeId).name;
         this.querySelector('#rename-profile-name').value = activeName;
         this.querySelector('#rename-profile-modal').classList.remove('hidden');
     }
@@ -333,7 +345,7 @@ export class ProfileManagerModal extends BaseComponent {
         }
         this.closeAll();
         const activeId = getActiveProfileId();
-        const activeProfile = getProfiles().find(p => p.id === activeId);
+        const activeProfile = getProfiles().find((p) => p.id === activeId);
         const activeName = activeProfile ? activeProfile.name : 'Current Profile';
         this.querySelector('#delete-profile-target-name').textContent = escapeHtml(activeName);
         this.querySelector('#delete-profile-modal').classList.remove('hidden');
@@ -344,8 +356,8 @@ export class ProfileManagerModal extends BaseComponent {
         this.importData = data;
         const select = this.querySelector('#import-replace-select');
         select.innerHTML = ''; // Safe because it's generating internal IDs/Names, but let's use safe DOM
-        
-        getProfiles().forEach(p => {
+
+        getProfiles().forEach((p) => {
             const option = document.createElement('option');
             option.value = p.id;
             option.textContent = p.name;
@@ -433,7 +445,7 @@ export class CostBasisModal extends BaseComponent {
     }
 
     afterRender() {
-        this.querySelectorAll('.btn-close-cost-basis').forEach(btn => {
+        this.querySelectorAll('.btn-close-cost-basis').forEach((btn) => {
             btn.addEventListener('click', () => this.close());
         });
         const modal = this.querySelector('#cost-basis-modal');
@@ -456,7 +468,8 @@ export class CostBasisModal extends BaseComponent {
 }
 
 if (typeof customElements !== 'undefined') {
-    if (!customElements.get('profile-manager-modal')) customElements.define('profile-manager-modal', ProfileManagerModal);
+    if (!customElements.get('profile-manager-modal'))
+        customElements.define('profile-manager-modal', ProfileManagerModal);
     if (!customElements.get('settings-modal')) customElements.define('settings-modal', SettingsModal);
     if (!customElements.get('cost-basis-modal')) customElements.define('cost-basis-modal', CostBasisModal);
 }

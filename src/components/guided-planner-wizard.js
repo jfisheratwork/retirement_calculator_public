@@ -105,20 +105,20 @@ function formatUsd(amount) {
 function calculateAmortization(originationAmount, interestRate, termYears, originationDateStr) {
     const origAmt = Math.max(ZERO, Number(originationAmount) || ZERO);
     const annualRate = Math.max(ZERO, Number(interestRate) || ZERO);
-    const monthlyRate = (annualRate / PERCENT_SCALE) / MONTHS_IN_YEAR;
+    const monthlyRate = annualRate / PERCENT_SCALE / MONTHS_IN_YEAR;
     const term = Number(termYears) || DEFAULT_MORTGAGE_TERM_YEARS;
     const totalMonths = term * MONTHS_IN_YEAR;
 
     let monthlyPI = ZERO;
     if (origAmt > ZERO && monthlyRate > ZERO && totalMonths > ZERO) {
         const factor = Math.pow(1 + monthlyRate, totalMonths);
-        monthlyPI = Math.round(origAmt * (monthlyRate * factor) / (factor - 1));
+        monthlyPI = Math.round((origAmt * (monthlyRate * factor)) / (factor - 1));
     } else if (origAmt > ZERO && totalMonths > ZERO) {
         monthlyPI = Math.round(origAmt / totalMonths);
     }
 
     const dateParts = String(originationDateStr || '').split('-');
-    const origYear = parseInt(dateParts[0], 10) || (DEFAULT_CURRENT_YEAR - DEFAULT_YEARS_ELAPSED);
+    const origYear = parseInt(dateParts[0], 10) || DEFAULT_CURRENT_YEAR - DEFAULT_YEARS_ELAPSED;
     const origMonth = (parseInt(dateParts[1], 10) || 1) - 1;
 
     const now = new Date();
@@ -284,7 +284,8 @@ export class GuidedPlannerWizard extends BaseComponent {
         if (!step4) return {};
         const res = {};
         if (step4.macro?.nominalReturn !== undefined) res.returnRate = step4.macro.nominalReturn;
-        if (step4.socialSecurity?.primaryClaimAge !== undefined) res.socialSecurityClaimAge = step4.socialSecurity.primaryClaimAge;
+        if (step4.socialSecurity?.primaryClaimAge !== undefined)
+            res.socialSecurityClaimAge = step4.socialSecurity.primaryClaimAge;
         if (step4.milestoneGoals?.goalType) res.endOfLifeGoal = step4.milestoneGoals.goalType;
         return res;
     }
@@ -338,21 +339,31 @@ export class GuidedPlannerWizard extends BaseComponent {
 
     _getStepTitle() {
         switch (this._currentStep) {
-            case STEP_1: return 'People & Timeline';
-            case STEP_2: return 'Income & Lifestyle Expenses';
-            case STEP_3: return 'Asset Buckets & Balance Sheet';
-            case STEP_4: return 'Growth Knobs & Strategy';
-            default: return 'Guided Planner';
+            case STEP_1:
+                return 'People & Timeline';
+            case STEP_2:
+                return 'Income & Lifestyle Expenses';
+            case STEP_3:
+                return 'Asset Buckets & Balance Sheet';
+            case STEP_4:
+                return 'Growth Knobs & Strategy';
+            default:
+                return 'Guided Planner';
         }
     }
 
     _getStepSubtitle() {
         switch (this._currentStep) {
-            case STEP_1: return 'Set demographic anchors and longevity runway.';
-            case STEP_2: return 'Establish core earnings, baseline spending, and housing costs.';
-            case STEP_3: return 'Distribute current net worth across the 4 primary tax buckets.';
-            case STEP_4: return 'Fine-tune portfolio return assumptions, Social Security, and legacy goals.';
-            default: return '';
+            case STEP_1:
+                return 'Set demographic anchors and longevity runway.';
+            case STEP_2:
+                return 'Establish core earnings, baseline spending, and housing costs.';
+            case STEP_3:
+                return 'Distribute current net worth across the 4 primary tax buckets.';
+            case STEP_4:
+                return 'Fine-tune portfolio return assumptions, Social Security, and legacy goals.';
+            default:
+                return '';
         }
     }
 
@@ -365,15 +376,19 @@ export class GuidedPlannerWizard extends BaseComponent {
             { num: STEP_4, label: 'Strategy' }
         ];
 
-        const stepPills = steps.map(s => {
-            const isActive = s.num === this._currentStep;
-            const isCompleted = s.num < this._currentStep;
-            const pillClass = isActive
-                ? 'badge-subtle badge-subtle-blue'
-                : (isCompleted ? 'badge-subtle badge-subtle-emerald' : 'badge-subtle badge-subtle-gray');
-            const check = isCompleted ? '✓ ' : '';
-            return `<span class="${pillClass}" style="cursor: pointer;" data-nav-step="${s.num}">${check}${s.num}. ${s.label}</span>`;
-        }).join('');
+        const stepPills = steps
+            .map((s) => {
+                const isActive = s.num === this._currentStep;
+                const isCompleted = s.num < this._currentStep;
+                const pillClass = isActive
+                    ? 'badge-subtle badge-subtle-blue'
+                    : isCompleted
+                      ? 'badge-subtle badge-subtle-emerald'
+                      : 'badge-subtle badge-subtle-gray';
+                const check = isCompleted ? '✓ ' : '';
+                return `<span class="${pillClass}" style="cursor: pointer;" data-nav-step="${s.num}">${check}${s.num}. ${s.label}</span>`;
+            })
+            .join('');
 
         return `
             <div class="wizard-progress-section" style="margin-bottom: 1.5rem;">
@@ -399,11 +414,16 @@ export class GuidedPlannerWizard extends BaseComponent {
 
     _renderCurrentStepBody() {
         switch (this._currentStep) {
-            case STEP_1: return this._renderStep1();
-            case STEP_2: return this._renderStep2();
-            case STEP_3: return this._renderStep3();
-            case STEP_4: return this._renderStep4();
-            default: return '';
+            case STEP_1:
+                return this._renderStep1();
+            case STEP_2:
+                return this._renderStep2();
+            case STEP_3:
+                return this._renderStep3();
+            case STEP_4:
+                return this._renderStep4();
+            default:
+                return '';
         }
     }
 
@@ -525,14 +545,18 @@ export class GuidedPlannerWizard extends BaseComponent {
                             </label>
                             <input type="number" id="input-primary-salary" class="input-number" step="1000" min="0" value="${this._data.primarySalary}" style="width: 100%;" />
                         </div>
-                        ${this._data.hasSpouse ? `
+                        ${
+                            this._data.hasSpouse
+                                ? `
                         <div>
                             <label style="display: block; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.35rem;">
                                 ${escapeHtml(this._data.spouseName)} Gross Salary ($/yr)
                             </label>
                             <input type="number" id="input-spouse-salary" class="input-number" step="1000" min="0" value="${this._data.spouseSalary}" style="width: 100%;" />
                         </div>
-                        ` : ''}
+                        `
+                                : ''
+                        }
                     </div>
                 </div>
 
@@ -657,14 +681,18 @@ export class GuidedPlannerWizard extends BaseComponent {
                             ${formatUsd(totalLiquid)}
                         </div>
                     </div>
-                    ${isHomeowner ? `
+                    ${
+                        isHomeowner
+                            ? `
                     <div style="text-align: right;">
                         <span style="font-size: 0.85rem; color: var(--text-muted);">Estimated Home Equity</span>
                         <div style="font-size: 1.2rem; font-weight: 600; color: #60a5fa;">
                             + ${formatUsd(homeEquity)}
                         </div>
                     </div>
-                    ` : ''}
+                    `
+                            : ''
+                    }
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;">
@@ -813,22 +841,30 @@ export class GuidedPlannerWizard extends BaseComponent {
         return `
             <div class="wizard-footer-nav" style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--border);">
                 <div>
-                    ${!isFirst ? `
+                    ${
+                        !isFirst
+                            ? `
                     <button type="button" id="btn-wizard-prev" class="btn btn-secondary" style="padding: 0.5rem 1.25rem;">
                         &larr; Previous Step
                     </button>
-                    ` : '<div></div>'}
+                    `
+                            : '<div></div>'
+                    }
                 </div>
                 <div>
-                    ${!isLast ? `
+                    ${
+                        !isLast
+                            ? `
                     <button type="button" id="btn-wizard-next" class="btn btn-primary" style="padding: 0.5rem 1.5rem; background: #3b82f6;">
                         Next Step &rarr;
                     </button>
-                    ` : `
+                    `
+                            : `
                     <button type="button" id="btn-wizard-finish" class="btn btn-primary" style="padding: 0.6rem 2rem; background: linear-gradient(135deg, #3b82f6, #8b5cf6); font-weight: 700; font-size: 1rem; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);">
                         Finish &amp; Launch Simulation 🎉
                     </button>
-                    `}
+                    `
+                    }
                 </div>
             </div>
         `;
@@ -902,7 +938,7 @@ export class GuidedPlannerWizard extends BaseComponent {
     }
 
     _bindStepPillNav() {
-        this.querySelectorAll('[data-nav-step]').forEach(pill => {
+        this.querySelectorAll('[data-nav-step]').forEach((pill) => {
             pill.addEventListener('click', () => {
                 const target = parseInt(pill.getAttribute('data-nav-step'), 10);
                 if (target < this._currentStep || this._validateCurrentStep()) {
@@ -919,27 +955,35 @@ export class GuidedPlannerWizard extends BaseComponent {
         this._currentStep = stepNumber;
         this.render();
         this.afterRender();
-        this.dispatchEvent(new CustomEvent('guided-step-change', {
-            detail: { currentStep: this._currentStep, previousStep: prev },
-            bubbles: true,
-            composed: true
-        }));
+        this.dispatchEvent(
+            new CustomEvent('guided-step-change', {
+                detail: { currentStep: this._currentStep, previousStep: prev },
+                bubbles: true,
+                composed: true
+            })
+        );
     }
 
     _bindStep1Events() {
         const nameInput = this.querySelector('#input-primary-name');
         if (nameInput) {
-            nameInput.addEventListener('input', (e) => { this._data.primaryName = e.target.value; });
+            nameInput.addEventListener('input', (e) => {
+                this._data.primaryName = e.target.value;
+            });
         }
 
         const bYearInput = this.querySelector('#input-primary-birth-year');
         if (bYearInput) {
-            bYearInput.addEventListener('input', (e) => { this._data.primaryBirthYear = Number(e.target.value); });
+            bYearInput.addEventListener('input', (e) => {
+                this._data.primaryBirthYear = Number(e.target.value);
+            });
         }
 
         const retAgeInput = this.querySelector('#input-primary-retirement-age');
         if (retAgeInput) {
-            retAgeInput.addEventListener('input', (e) => { this._data.primaryRetirementAge = Number(e.target.value); });
+            retAgeInput.addEventListener('input', (e) => {
+                this._data.primaryRetirementAge = Number(e.target.value);
+            });
         }
 
         const btnAddSpouse = this.querySelector('#btn-add-spouse');
@@ -983,35 +1027,47 @@ export class GuidedPlannerWizard extends BaseComponent {
         if (!this._data.hasSpouse) return;
         const sName = this.querySelector('#input-spouse-name');
         if (sName) {
-            sName.addEventListener('input', (e) => { this._data.spouseName = e.target.value; });
+            sName.addEventListener('input', (e) => {
+                this._data.spouseName = e.target.value;
+            });
         }
         const sBirth = this.querySelector('#input-spouse-birth-year');
         if (sBirth) {
-            sBirth.addEventListener('input', (e) => { this._data.spouseBirthYear = Number(e.target.value); });
+            sBirth.addEventListener('input', (e) => {
+                this._data.spouseBirthYear = Number(e.target.value);
+            });
         }
         const sRet = this.querySelector('#input-spouse-retirement-age');
         if (sRet) {
-            sRet.addEventListener('input', (e) => { this._data.spouseRetirementAge = Number(e.target.value); });
+            sRet.addEventListener('input', (e) => {
+                this._data.spouseRetirementAge = Number(e.target.value);
+            });
         }
     }
 
     _bindStep2Events() {
         const primSalary = this.querySelector('#input-primary-salary');
         if (primSalary) {
-            primSalary.addEventListener('input', (e) => { this._data.primarySalary = Number(e.target.value); });
+            primSalary.addEventListener('input', (e) => {
+                this._data.primarySalary = Number(e.target.value);
+            });
         }
 
         const spouseSalary = this.querySelector('#input-spouse-salary');
         if (spouseSalary) {
-            spouseSalary.addEventListener('input', (e) => { this._data.spouseSalary = Number(e.target.value); });
+            spouseSalary.addEventListener('input', (e) => {
+                this._data.spouseSalary = Number(e.target.value);
+            });
         }
 
         const budgetInput = this.querySelector('#input-monthly-budget');
         if (budgetInput) {
-            budgetInput.addEventListener('input', (e) => { this._data.monthlyBudget = Number(e.target.value); });
+            budgetInput.addEventListener('input', (e) => {
+                this._data.monthlyBudget = Number(e.target.value);
+            });
         }
 
-        this.querySelectorAll('.btn-housing-toggle').forEach(btn => {
+        this.querySelectorAll('.btn-housing-toggle').forEach((btn) => {
             btn.addEventListener('click', () => {
                 this._data.housingStatus = btn.getAttribute('data-housing');
                 this.render();
@@ -1026,7 +1082,9 @@ export class GuidedPlannerWizard extends BaseComponent {
         if (this._data.housingStatus === HOUSING_RENT) {
             const rentInput = this.querySelector('#input-monthly-rent');
             if (rentInput) {
-                rentInput.addEventListener('input', (e) => { this._data.monthlyRent = Number(e.target.value); });
+                rentInput.addEventListener('input', (e) => {
+                    this._data.monthlyRent = Number(e.target.value);
+                });
             }
             return;
         }
@@ -1157,7 +1215,7 @@ export class GuidedPlannerWizard extends BaseComponent {
             });
         }
 
-        this.querySelectorAll('[data-ss-age]').forEach(el => {
+        this.querySelectorAll('[data-ss-age]').forEach((el) => {
             el.addEventListener('click', () => {
                 this._data.socialSecurityClaimAge = Number(el.getAttribute('data-ss-age'));
                 this.render();
@@ -1165,7 +1223,7 @@ export class GuidedPlannerWizard extends BaseComponent {
             });
         });
 
-        this.querySelectorAll('[data-goal]').forEach(el => {
+        this.querySelectorAll('[data-goal]').forEach((el) => {
             el.addEventListener('click', () => {
                 this._data.endOfLifeGoal = el.getAttribute('data-goal');
                 this.render();
@@ -1176,11 +1234,16 @@ export class GuidedPlannerWizard extends BaseComponent {
 
     _validateCurrentStep() {
         switch (this._currentStep) {
-            case STEP_1: return this._validateStep1();
-            case STEP_2: return this._validateStep2();
-            case STEP_3: return this._validateStep3();
-            case STEP_4: return true;
-            default: return true;
+            case STEP_1:
+                return this._validateStep1();
+            case STEP_2:
+                return this._validateStep2();
+            case STEP_3:
+                return this._validateStep3();
+            case STEP_4:
+                return true;
+            default:
+                return true;
         }
     }
 
@@ -1252,11 +1315,13 @@ export class GuidedPlannerWizard extends BaseComponent {
 
     _finish() {
         const fullPayload = this.getData();
-        this.dispatchEvent(new CustomEvent('guided-complete', {
-            detail: fullPayload,
-            bubbles: true,
-            composed: true
-        }));
+        this.dispatchEvent(
+            new CustomEvent('guided-complete', {
+                detail: fullPayload,
+                bubbles: true,
+                composed: true
+            })
+        );
     }
 }
 

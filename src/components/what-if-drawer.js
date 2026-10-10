@@ -76,14 +76,24 @@ export class WhatIfDrawer extends BaseComponent {
             const engine = new SimulationEngine(state);
             const { data } = engine.run();
             if (data && data.length > 0) {
-                const shortfalls = data.filter(d => (d.unfundedShortfall || 0) > 0);
+                const shortfalls = data.filter((d) => (d.unfundedShortfall || 0) > 0);
                 simulationSummary.hasShortfalls = shortfalls.length > 0;
                 simulationSummary.shortfallYearsCount = shortfalls.length;
                 const endSnap = data[data.length - 1];
                 const liquidKeys = [
-                    's1Brokerage', 's2Brokerage', 's1Hysa', 's2Hysa',
-                    's1RothIra', 's2RothIra', 's1Trad401k', 's2Trad401k',
-                    's1Trad403b', 's2Trad403b', 's1StandardIra', 's2StandardIra', 'cashCushion'
+                    's1Brokerage',
+                    's2Brokerage',
+                    's1Hysa',
+                    's2Hysa',
+                    's1RothIra',
+                    's2RothIra',
+                    's1Trad401k',
+                    's2Trad401k',
+                    's1Trad403b',
+                    's2Trad403b',
+                    's1StandardIra',
+                    's2StandardIra',
+                    'cashCushion'
                 ];
                 const balances = endSnap.balances || {};
                 const endLiquid = liquidKeys.reduce((sum, k) => sum + (balances[k] || 0), 0);
@@ -97,7 +107,9 @@ export class WhatIfDrawer extends BaseComponent {
 
         // Compute baseline monthly budget
         const phaseExpenses = state.phaseBasedExpensesPerMonth || {};
-        const baselineMonthly = Number(phaseExpenses.preTeens || phaseExpenses.teenagers || phaseExpenses.preRetirementNoKids || 6000);
+        const baselineMonthly = Number(
+            phaseExpenses.preTeens || phaseExpenses.teenagers || phaseExpenses.preRetirementNoKids || 6000
+        );
         const adjustedMonthly = Math.round(baselineMonthly * (1 + this.expenseAdjustmentPercent / 100));
         const monthlyDiff = adjustedMonthly - baselineMonthly;
 
@@ -163,7 +175,9 @@ export class WhatIfDrawer extends BaseComponent {
                         </div>
 
                         <!-- Secondary Spouse (if active) -->
-                        ${hasS2 ? `
+                        ${
+                            hasS2
+                                ? `
                         <div class="what-if-control-group" style="margin-top: 0.75rem;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                                 <label style="font-size: 0.82rem; font-weight: 600; color: var(--text-color);">
@@ -182,7 +196,9 @@ export class WhatIfDrawer extends BaseComponent {
                                 <span>Later (72)</span>
                             </div>
                         </div>
-                        ` : ''}
+                        `
+                                : ''
+                        }
                     </div>
 
                     <!-- LEVER 2: CHANGE EXPENSES -->
@@ -211,10 +227,10 @@ export class WhatIfDrawer extends BaseComponent {
                                 <span style="font-weight: 600;">$${baselineMonthly.toLocaleString()}/mo</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                                <span style="font-size: 0.8rem; font-weight: 600; color: ${this.expenseAdjustmentPercent < 0 ? '#34d399' : (this.expenseAdjustmentPercent > 0 ? '#f87171' : 'var(--text-color)')};">
+                                <span style="font-size: 0.8rem; font-weight: 600; color: ${this.expenseAdjustmentPercent < 0 ? '#34d399' : this.expenseAdjustmentPercent > 0 ? '#f87171' : 'var(--text-color)'};">
                                     New Projected Budget:
                                 </span>
-                                <span style="font-size: 1rem; font-weight: 700; color: ${this.expenseAdjustmentPercent < 0 ? '#34d399' : (this.expenseAdjustmentPercent > 0 ? '#f87171' : 'var(--text-color)')};">
+                                <span style="font-size: 1rem; font-weight: 700; color: ${this.expenseAdjustmentPercent < 0 ? '#34d399' : this.expenseAdjustmentPercent > 0 ? '#f87171' : 'var(--text-color)'};">
                                     $${adjustedMonthly.toLocaleString()}/mo
                                 </span>
                             </div>
@@ -223,11 +239,15 @@ export class WhatIfDrawer extends BaseComponent {
                             </div>
                         </div>
 
-                        ${this.expenseAdjustmentPercent !== 0 ? `
+                        ${
+                            this.expenseAdjustmentPercent !== 0
+                                ? `
                         <button type="button" id="btn-apply-expense-change" class="btn btn-primary" style="width: 100%; margin-top: 0.6rem; font-size: 0.8rem; padding: 0.45rem;">
                             Apply ${this.expenseAdjustmentPercent > 0 ? '+' : ''}${this.expenseAdjustmentPercent}% to Profile
                         </button>
-                        ` : ''}
+                        `
+                                : ''
+                        }
                     </div>
 
                     <!-- LEVER 3: FUND KIDS' COLLEGE -->
@@ -238,30 +258,40 @@ export class WhatIfDrawer extends BaseComponent {
                         </div>
                         <p class="what-if-section-desc">Target a dedicated education fund by high school graduation (Age 18) for each child.</p>
 
-                        ${(state.dependents || []).length === 0 ? `
+                        ${
+                            (state.dependents || []).length === 0
+                                ? `
                             <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.5rem 0;">No children currently configured in this profile.</p>
-                        ` : (state.dependents || []).map((child, idx) => {
-                            const birthYear = child.yearOfBirth || (currentYear - 10);
-                            const hsGradYear = birthYear + 18;
-                            const yearsLeft = Math.max(0, hsGradYear - currentYear);
-                            const current529 = Number(child.currentCollegeSavingsBalance || 0);
-                            const annualTuition = Number(child.annualCollegeCost || 15000);
-                            const targetFund = annualTuition * 4; // 4-year degree target
-                            const returnRate = (child.expectedReturn !== undefined ? Number(child.expectedReturn) : 6) / 100;
-                            
-                            // Future value of existing 529 at graduation
-                            const projectedExisting = Math.round(current529 * Math.pow(1 + returnRate, yearsLeft));
-                            const gap = Math.max(0, targetFund - projectedExisting);
-                            
-                            // PMT calculation for monthly contribution needed to bridge gap
-                            const monthlyRate = returnRate / 12;
-                            const totalMonths = yearsLeft * 12;
-                            let requiredMonthly = 0;
-                            if (gap > 0 && totalMonths > 0) {
-                                requiredMonthly = Math.round(gap * monthlyRate / (Math.pow(1 + monthlyRate, totalMonths) - 1));
-                            }
+                        `
+                                : (state.dependents || [])
+                                      .map((child, idx) => {
+                                          const birthYear = child.yearOfBirth || currentYear - 10;
+                                          const hsGradYear = birthYear + 18;
+                                          const yearsLeft = Math.max(0, hsGradYear - currentYear);
+                                          const current529 = Number(child.currentCollegeSavingsBalance || 0);
+                                          const annualTuition = Number(child.annualCollegeCost || 15000);
+                                          const targetFund = annualTuition * 4; // 4-year degree target
+                                          const returnRate =
+                                              (child.expectedReturn !== undefined ? Number(child.expectedReturn) : 6) /
+                                              100;
 
-                            return `
+                                          // Future value of existing 529 at graduation
+                                          const projectedExisting = Math.round(
+                                              current529 * Math.pow(1 + returnRate, yearsLeft)
+                                          );
+                                          const gap = Math.max(0, targetFund - projectedExisting);
+
+                                          // PMT calculation for monthly contribution needed to bridge gap
+                                          const monthlyRate = returnRate / 12;
+                                          const totalMonths = yearsLeft * 12;
+                                          let requiredMonthly = 0;
+                                          if (gap > 0 && totalMonths > 0) {
+                                              requiredMonthly = Math.round(
+                                                  (gap * monthlyRate) / (Math.pow(1 + monthlyRate, totalMonths) - 1)
+                                              );
+                                          }
+
+                                          return `
                             <div class="what-if-child-card" data-child-idx="${idx}">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                                     <strong style="font-size: 0.85rem; color: #fff;">${escapeHtml(child.name || `Child ${idx + 1}`)}</strong>
@@ -281,11 +311,15 @@ export class WhatIfDrawer extends BaseComponent {
                                 </div>
                                 
                                 <div class="what-if-college-status ${gap === 0 ? 'funded' : 'gap'}">
-                                    ${gap === 0 ? `
+                                    ${
+                                        gap === 0
+                                            ? `
                                         <span>🟢 Fully Funded by HS Graduation</span>
-                                    ` : `
+                                    `
+                                            : `
                                         <span>⚠️ Gap: $${gap.toLocaleString()} ➔ Save <strong>$${requiredMonthly.toLocaleString()}/mo</strong></span>
-                                    `}
+                                    `
+                                    }
                                 </div>
 
                                 <div style="display: flex; gap: 0.4rem; margin-top: 0.5rem;">
@@ -294,7 +328,9 @@ export class WhatIfDrawer extends BaseComponent {
                                 </div>
                             </div>
                             `;
-                        }).join('')}
+                                      })
+                                      .join('')
+                        }
                     </div>
 
                     <!-- LEVER 4: ACCESS EQUITY -->
@@ -313,9 +349,11 @@ export class WhatIfDrawer extends BaseComponent {
                                     ${simulationSummary.hasShortfalls ? 'Caution: Deficit Years Detected' : 'Healthy Longevity: Slated for Excess Wealth'}
                                 </strong>
                                 <p style="margin: 0; font-size: 0.76rem; line-height: 1.35;">
-                                    ${simulationSummary.hasShortfalls ? 
-                                        `Your plan experiences ${simulationSummary.shortfallYearsCount} shortfall year(s). Unlocking home equity can bridge this gap.` : 
-                                        `Your plan successfully funds retirement through age ${simulationSummary.maxAge} with ~$${Math.round(simulationSummary.endingWealth).toLocaleString()} remaining.`}
+                                    ${
+                                        simulationSummary.hasShortfalls
+                                            ? `Your plan experiences ${simulationSummary.shortfallYearsCount} shortfall year(s). Unlocking home equity can bridge this gap.`
+                                            : `Your plan successfully funds retirement through age ${simulationSummary.maxAge} with ~$${Math.round(simulationSummary.endingWealth).toLocaleString()} remaining.`
+                                    }
                                 </p>
                             </div>
                         </div>
@@ -329,7 +367,9 @@ export class WhatIfDrawer extends BaseComponent {
                                 </div>
                                 <input type="checkbox" id="chk-reverse-mortgage" ${state.primaryResidenceEquity?.reverseMortgageEnabled ? 'checked' : ''} style="cursor: pointer; transform: scale(1.15);">
                             </div>
-                            ${state.primaryResidenceEquity?.reverseMortgageEnabled ? `
+                            ${
+                                state.primaryResidenceEquity?.reverseMortgageEnabled
+                                    ? `
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; font-size: 0.78rem;">
                                 <label style="color: var(--text-muted);">Claiming Start Age:</label>
                                 <select id="sel-reverse-mortgage-age" style="padding: 0.2rem 0.4rem; font-size: 0.78rem; background: var(--bg-dark); color: #fff; border: 1px solid var(--border); border-radius: 4px;">
@@ -339,7 +379,9 @@ export class WhatIfDrawer extends BaseComponent {
                                     <option value="70" ${state.primaryResidenceEquity?.reverseMortgageStartAge === 70 ? 'selected' : ''}>Age 70</option>
                                 </select>
                             </div>
-                            ` : ''}
+                            `
+                                    : ''
+                            }
                         </div>
                     </div>
 
@@ -352,7 +394,9 @@ export class WhatIfDrawer extends BaseComponent {
                         <p class="what-if-section-desc">Boost payroll 401(k) deferrals or add systematic monthly brokerage contributions.</p>
 
                         <!-- Primary Spouse 401(k) Deferral -->
-                        ${(s1.jobs || []).length > 0 ? `
+                        ${
+                            (s1.jobs || []).length > 0
+                                ? `
                         <div class="what-if-control-group">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                                 <label style="font-size: 0.82rem; font-weight: 600; color: var(--text-color);">
@@ -363,7 +407,9 @@ export class WhatIfDrawer extends BaseComponent {
                             <input type="range" class="what-if-slider" id="slider-s1-contrib-pct" 
                                 min="0" max="25" value="${s1.jobs[0].employeeContributionPercent || 10}" step="1">
                         </div>
-                        ` : ''}
+                        `
+                                : ''
+                        }
 
                         <!-- Monthly Brokerage Savings Booster -->
                         <div class="what-if-control-group" style="margin-top: 0.75rem;">
@@ -425,7 +471,7 @@ export class WhatIfDrawer extends BaseComponent {
         }
 
         // LEVER 2: Change Expenses chips
-        this.querySelectorAll('.what-if-chips-row .what-if-chip').forEach(btn => {
+        this.querySelectorAll('.what-if-chips-row .what-if-chip').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const pct = Number(btn.getAttribute('data-expense'));
                 this.expenseAdjustmentPercent = pct;
@@ -443,7 +489,7 @@ export class WhatIfDrawer extends BaseComponent {
         }
 
         // LEVER 3: 529 Boosters
-        this.querySelectorAll('.btn-boost-529').forEach(btn => {
+        this.querySelectorAll('.btn-boost-529').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const idx = Number(btn.getAttribute('data-child-idx'));
                 const amt = Number(btn.getAttribute('data-amount'));
@@ -492,7 +538,7 @@ export class WhatIfDrawer extends BaseComponent {
         }
 
         // Savings Boosters
-        this.querySelectorAll('.btn-boost-savings').forEach(btn => {
+        this.querySelectorAll('.btn-boost-savings').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const boost = Number(btn.getAttribute('data-boost'));
                 this._boostBrokerageSavings(boost);
@@ -544,9 +590,11 @@ export class WhatIfDrawer extends BaseComponent {
     _boostBrokerageSavings(monthlyAmount) {
         const state = getState();
         // Boost existing brokerage starting balance or primary account
-        const brokerage = state.primarySpouse?.accounts?.find(a => a.type === 'taxableBrokerage') || state.primarySpouse?.accounts?.[0];
+        const brokerage =
+            state.primarySpouse?.accounts?.find((a) => a.type === 'taxableBrokerage') ||
+            state.primarySpouse?.accounts?.[0];
         if (brokerage) {
-            brokerage.balance = Math.round(brokerage.balance + (monthlyAmount * 12));
+            brokerage.balance = Math.round(brokerage.balance + monthlyAmount * 12);
             updateState(state);
             if (typeof document !== 'undefined') {
                 document.dispatchEvent(new CustomEvent('state-updated'));

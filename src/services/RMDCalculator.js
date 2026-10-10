@@ -2,7 +2,7 @@ import { getRmdPercentage } from './tax.js';
 
 /**
  * RMDCalculator.js
- * 
+ *
  * Domain logic for calculating IRS Mandatory Drawdowns, including Required Minimum Distributions (RMDs)
  * and Rule 72(t) Substantially Equal Periodic Payments (SEPP).
  */
@@ -18,7 +18,7 @@ export class RMDCalculator {
 
     static getRmdStartAge(spouse) {
         const birthYear = spouse?.birthYear || spouse?.yearOfBirth;
-        return (birthYear && birthYear >= 1960) ? 75 : 73;
+        return birthYear && birthYear >= 1960 ? 75 : 73;
     }
 
     calculateRmd(year) {
@@ -32,15 +32,17 @@ export class RMDCalculator {
 
         const age1 = s1 ? s1.getAge(year) : 0;
         const birthYear1 = s1?.birthYear || s1?.yearOfBirth;
-        const p1Rmd = (s1 && age1 >= RMDCalculator.getRmdStartAge(s1))
-            ? s1.getTotalPreTaxBalance() * getRmdPercentage(age1, birthYear1)
-            : 0;
+        const p1Rmd =
+            s1 && age1 >= RMDCalculator.getRmdStartAge(s1)
+                ? s1.getTotalPreTaxBalance() * getRmdPercentage(age1, birthYear1)
+                : 0;
 
         const age2 = this.s2 ? this.s2.getAge(year) : 0;
         const birthYear2 = this.s2?.birthYear || this.s2?.yearOfBirth;
-        const p2Rmd = (this.s2 && age2 >= RMDCalculator.getRmdStartAge(this.s2))
-            ? this.s2.getTotalPreTaxBalance() * getRmdPercentage(age2, birthYear2)
-            : 0;
+        const p2Rmd =
+            this.s2 && age2 >= RMDCalculator.getRmdStartAge(this.s2)
+                ? this.s2.getTotalPreTaxBalance() * getRmdPercentage(age2, birthYear2)
+                : 0;
 
         return {
             totalRmd: mandatoryDraws,
@@ -52,7 +54,7 @@ export class RMDCalculator {
 
     /**
      * Calculates mandatory drawdowns for a given year.
-     * 
+     *
      * @param {Object} params
      * @param {number} params.year - Current simulation year.
      * @param {number} params.currentYear - The base start year of the simulation.
@@ -66,7 +68,7 @@ export class RMDCalculator {
     static calculate({ year, s1, s2, snapshot }) {
         let mandatoryDraws = 0;
 
-        [s1, s2].filter(Boolean).forEach(spouse => {
+        [s1, s2].filter(Boolean).forEach((spouse) => {
             const age = typeof spouse.getAge === 'function' ? spouse.getAge(year) : 0;
             const totalPreTax = typeof spouse.getTotalPreTaxBalance === 'function' ? spouse.getTotalPreTaxBalance() : 0;
 
@@ -77,14 +79,16 @@ export class RMDCalculator {
                 const rmdPct = getRmdPercentage(age, birthYear);
                 const rmdAmount = totalPreTax * rmdPct;
                 let drawn = 0;
-                spouse.accounts.filter(a => ['trad403b', 'traditional401k', 'standardIra'].includes(a.type)).forEach(acc => {
-                    if (drawn < rmdAmount && acc.balance > 0) {
-                        const need = rmdAmount - drawn;
-                        const d = acc.withdraw(need, age, true, snapshot.events, `${spouse.name} RMD`);
-                        drawn += d;
-                        snapshot.recordDrawdown(spouse.key, acc.type, d);
-                    }
-                });
+                spouse.accounts
+                    .filter((a) => ['trad403b', 'traditional401k', 'standardIra'].includes(a.type))
+                    .forEach((acc) => {
+                        if (drawn < rmdAmount && acc.balance > 0) {
+                            const need = rmdAmount - drawn;
+                            const d = acc.withdraw(need, age, true, snapshot.events, `${spouse.name} RMD`);
+                            drawn += d;
+                            snapshot.recordDrawdown(spouse.key, acc.type, d);
+                        }
+                    });
                 mandatoryDraws += drawn;
                 if (snapshot.income && snapshot.income[spouse.key]) {
                     snapshot.income[spouse.key].rmd = (snapshot.income[spouse.key].rmd || 0) + drawn;
@@ -98,5 +102,4 @@ export class RMDCalculator {
 
         return mandatoryDraws;
     }
-
 }

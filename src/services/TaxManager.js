@@ -5,20 +5,33 @@ import { calculateSorrRate } from './PortfolioManager.js';
  * Handles tax computations, tax payments from surplus/cushion/portfolio, and surplus reinvestment
  */
 export class TaxManager {
-    static calculate({ year, currentYear, firstActiveMonth = 1, taxableIncome, stateTaxRate, taxTables, snapshot, cashCushion, withdrawPortfoliosFn, filingStatus = 'mfj', ltcgGains = 0, getTaxableIncomeFn }) {
+    static calculate({
+        year,
+        currentYear,
+        firstActiveMonth = 1,
+        taxableIncome,
+        stateTaxRate,
+        taxTables,
+        snapshot,
+        cashCushion,
+        withdrawPortfoliosFn,
+        filingStatus = 'mfj',
+        ltcgGains = 0,
+        getTaxableIncomeFn
+    }) {
         if (taxableIncome <= 0 && ltcgGains <= 0) {
             snapshot.taxes = 0;
-            snapshot.taxDetails = { 
-                federalTax: 0, 
+            snapshot.taxDetails = {
+                federalTax: 0,
                 fedTax: 0,
-                stateTax: 0, 
-                totalTax: 0, 
-                effectiveRate: 0, 
-                topBracketRate: 0, 
+                stateTax: 0,
+                totalTax: 0,
+                effectiveRate: 0,
+                topBracketRate: 0,
                 topBracket: 0,
-                remainingRoomInBracket: 0, 
+                remainingRoomInBracket: 0,
                 bracketRoom: 0,
-                w2Tax: 0, 
+                w2Tax: 0,
                 nonW2Tax: 0,
                 capitalGainsTax: 0,
                 ltcgTax: 0,
@@ -36,17 +49,24 @@ export class TaxManager {
         const yearsFromStart = year - currentYear;
         const currentTaxYearData = taxTables[yearsFromStart] || taxTables[taxTables.length - 1];
         const activeMonths = year === currentYear ? Math.max(1, 12 - firstActiveMonth + 1) : 12;
-        const annualization = activeMonths < 12 ? (12 / activeMonths) : 1;
-        const prorata = activeMonths < 12 ? (activeMonths / 12) : 1;
+        const annualization = activeMonths < 12 ? 12 / activeMonths : 1;
+        const prorata = activeMonths < 12 ? activeMonths / 12 : 1;
 
         // 1. Calculate Baseline W2 Tax
-        const w2Taxable = (snapshot.income?.s1?.w2TaxableGross !== undefined && snapshot.income?.s2?.w2TaxableGross !== undefined)
-            ? (snapshot.income.s1.w2TaxableGross + snapshot.income.s2.w2TaxableGross)
-            : (snapshot.income.s1.w2Net + snapshot.income.s2.w2Net);
+        const w2Taxable =
+            snapshot.income?.s1?.w2TaxableGross !== undefined && snapshot.income?.s2?.w2TaxableGross !== undefined
+                ? snapshot.income.s1.w2TaxableGross + snapshot.income.s2.w2TaxableGross
+                : snapshot.income.s1.w2Net + snapshot.income.s2.w2Net;
         const w2TaxResults = calculateTax(w2Taxable * annualization, stateTaxRate, currentTaxYearData, filingStatus, 0);
 
         // 2. Calculate Total Tax (Ordinary + Capital Gains + NIIT)
-        const taxResults = calculateTax(taxableIncome * annualization, stateTaxRate, currentTaxYearData, filingStatus, ltcgGains * annualization);
+        const taxResults = calculateTax(
+            taxableIncome * annualization,
+            stateTaxRate,
+            currentTaxYearData,
+            filingStatus,
+            ltcgGains * annualization
+        );
         const calculatedTax = taxResults.totalTax * prorata;
         const w2Tax = w2TaxResults.totalTax * prorata;
         const nonW2Tax = Math.max(0, calculatedTax - w2Tax);
@@ -103,17 +123,23 @@ export class TaxManager {
             const maxPasses = 3;
             while (remainingTax > 0 && pass < maxPasses) {
                 pass++;
-                const prevTaxable = (typeof getTaxableIncomeFn === 'function') ? getTaxableIncomeFn() : taxableIncome;
+                const prevTaxable = typeof getTaxableIncomeFn === 'function' ? getTaxableIncomeFn() : taxableIncome;
                 const unfunded = withdrawPortfoliosFn(remainingTax);
                 if (unfunded > 0) {
                     snapshot.unfundedShortfall = (snapshot.unfundedShortfall || 0) + unfunded;
                     remainingTax = 0;
                     break;
                 }
-                const newTaxable = (typeof getTaxableIncomeFn === 'function') ? getTaxableIncomeFn() : prevTaxable;
+                const newTaxable = typeof getTaxableIncomeFn === 'function' ? getTaxableIncomeFn() : prevTaxable;
                 const addedTaxable = Math.max(0, newTaxable - prevTaxable);
                 if (addedTaxable > 0) {
-                    const updatedResults = calculateTax(newTaxable * annualization, stateTaxRate, currentTaxYearData, filingStatus, ltcgGains * annualization);
+                    const updatedResults = calculateTax(
+                        newTaxable * annualization,
+                        stateTaxRate,
+                        currentTaxYearData,
+                        filingStatus,
+                        ltcgGains * annualization
+                    );
                     const updatedTotalTax = updatedResults.totalTax * prorata;
                     const extraTax = Math.max(0, updatedTotalTax - snapshot.taxes);
                     if (extraTax > 1) {
@@ -139,7 +165,7 @@ export class TaxManager {
         if (surplus <= 0) return;
 
         const allAccounts = [...(s1.accounts || []), ...(s2.accounts || [])];
-        const sweepAccount = allAccounts.find(a => a.isSweepAccount === true && a.enabled !== false);
+        const sweepAccount = allAccounts.find((a) => a.isSweepAccount === true && a.enabled !== false);
         const { isSorrActive, sorrRate } = calculateSorrRate({ year, s1, assumptions, sorrOverride });
 
         const getRate = (acc) => {
@@ -149,7 +175,14 @@ export class TaxManager {
             if (acc.expectedReturn !== undefined && acc.expectedReturn !== null) {
                 return Number(acc.expectedReturn) / 100;
             }
-            return (Number(assumptions?.generalReturnRate ?? assumptions?.portfolioReturnRate ?? strategies?.generalReturnRate ?? 7)) / 100;
+            return (
+                Number(
+                    assumptions?.generalReturnRate ??
+                        assumptions?.portfolioReturnRate ??
+                        strategies?.generalReturnRate ??
+                        7
+                ) / 100
+            );
         };
 
         // 1. If user designated a Sweep Account, sweep 100% of household surplus cash directly into it
@@ -181,14 +214,14 @@ export class TaxManager {
     }
 
     static hasEnabledBrokerage(s1, s2) {
-        const b1 = (s1.accounts || []).find(a => a.type === 'taxableBrokerage' && a.enabled !== false);
-        const b2 = (s2.accounts || []).find(a => a.type === 'taxableBrokerage' && a.enabled !== false);
+        const b1 = (s1.accounts || []).find((a) => a.type === 'taxableBrokerage' && a.enabled !== false);
+        const b2 = (s2.accounts || []).find((a) => a.type === 'taxableBrokerage' && a.enabled !== false);
         return !!(b1 || b2);
     }
 
     static sweepToBrokerageFallback(s1, s2, surplus, snapshot, getRate = () => 0.07) {
-        const b1 = (s1.accounts || []).find(a => a.type === 'taxableBrokerage' && a.enabled !== false);
-        const b2 = (s2.accounts || []).find(a => a.type === 'taxableBrokerage' && a.enabled !== false);
+        const b1 = (s1.accounts || []).find((a) => a.type === 'taxableBrokerage' && a.enabled !== false);
+        const b2 = (s2.accounts || []).find((a) => a.type === 'taxableBrokerage' && a.enabled !== false);
 
         if (b1 && b2) {
             const each = surplus / 2;

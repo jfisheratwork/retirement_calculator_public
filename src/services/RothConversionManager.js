@@ -28,21 +28,21 @@ export class RothConversionManager {
             }
         } else {
             const targetBracketVal = Number(advRoth.targetBracket) / 100;
-            const b = currentTaxYearData.brackets.find(br => Math.abs(br.rate - targetBracketVal) < 0.01);
+            const b = currentTaxYearData.brackets.find((br) => Math.abs(br.rate - targetBracketVal) < 0.01);
             targetAgi = b ? b.upTo : Infinity;
         }
         if (targetAgi === Infinity) targetAgi = 999999999;
 
         const marginVal = advRoth.safetyMargin !== undefined ? Number(advRoth.safetyMargin) : 10000;
         const safetyMargin = marginVal * inflationMultiplier;
-        let room = Math.max(0, (targetAgi - currentAgi) - safetyMargin);
+        let room = Math.max(0, targetAgi - currentAgi - safetyMargin);
         const minConversion = (Number(advRoth.minConversion) || 0) * inflationMultiplier;
         if (room < minConversion) room = minConversion;
 
         const maxBracketStr = advRoth.maxBracket || '24';
         const maxBracketVal = Number(maxBracketStr) / 100;
         let maxAgi = 999999999;
-        const maxB = currentTaxYearData.brackets.find(br => Math.abs(br.rate - maxBracketVal) < 0.01);
+        const maxB = currentTaxYearData.brackets.find((br) => Math.abs(br.rate - maxBracketVal) < 0.01);
         if (maxB) maxAgi = maxB.upTo;
 
         let maxAllowed = Math.max(0, maxAgi - currentAgi);
@@ -60,11 +60,11 @@ export class RothConversionManager {
             }
             if (nextIrmaaCliff !== Infinity) {
                 // Convert the IRMAA MAGI room to AGI equivalent so we can compare it
-                // Since MAGI = AGI + Standard Deduction (in our model), 
+                // Since MAGI = AGI + Standard Deduction (in our model),
                 // the max AGI before hitting IRMAA is (IRMAA Cliff - Standard Deduction)
                 const irmaaMaxAgi = Math.max(0, nextIrmaaCliff - currentTaxYearData.standardDeduction);
                 const irmaaAllowed = Math.max(0, irmaaMaxAgi - currentAgi);
-                
+
                 // Cap the maxAllowed by the IRMAA limit, minus a small $1 safety buffer just to be sure
                 maxAllowed = Math.min(maxAllowed, Math.max(0, irmaaAllowed - 1));
             }
@@ -84,7 +84,7 @@ export class RothConversionManager {
         const preTaxTypes = ['standardIra', 'traditional401k', 'trad403b'];
         for (const type of preTaxTypes) {
             if (remaining <= 0) break;
-            const matchingAccounts = (spouse.accounts || []).filter(a => a.type === type);
+            const matchingAccounts = (spouse.accounts || []).filter((a) => a.type === type);
             for (const acc of matchingAccounts) {
                 if (remaining <= 0) break;
                 if (acc && acc.balance > 0) {
@@ -100,7 +100,8 @@ export class RothConversionManager {
         }
 
         if (totalConverted > 0) {
-            snapshot.income[spouse.key].rothConversion = (snapshot.income[spouse.key].rothConversion || 0) + totalConverted;
+            snapshot.income[spouse.key].rothConversion =
+                (snapshot.income[spouse.key].rothConversion || 0) + totalConverted;
         }
         return totalConverted;
     }
@@ -119,7 +120,7 @@ export class RothConversionManager {
         if (year < advStartYear || year >= advStartYear + advDuration) return 0;
 
         const yearsFromStart = year - currentYear;
-        const inflationMultiplier = Math.pow(1 + (Number(assumptions.inflationRate || 0) / 100), yearsFromStart);
+        const inflationMultiplier = Math.pow(1 + Number(assumptions.inflationRate || 0) / 100, yearsFromStart);
         const currentTaxYearData = taxTables[yearsFromStart] || taxTables[taxTables.length - 1];
 
         const room = this.calculateBracketRoom({ taxableIncome, currentTaxYearData, advRoth, inflationMultiplier });
@@ -130,7 +131,7 @@ export class RothConversionManager {
         let targetSecond = room / 2;
 
         const pulledFirst = this.convertPreTax(first, targetFirst, year, snapshot);
-        targetSecond += (targetFirst - pulledFirst); // Spillover shortfall
+        targetSecond += targetFirst - pulledFirst; // Spillover shortfall
         const pulledSecond = this.convertPreTax(second, targetSecond, year, snapshot);
 
         return pulledFirst + pulledSecond;
@@ -145,10 +146,13 @@ export class RothConversionManager {
         const currentYear = year - yearsFromStart;
         if (!conv.isActiveInYear(year, currentYear)) return 0;
 
-        const sourceAcc = spouse.getAccount?.(conv.sourceAccount)
-            || (spouse.accounts || []).find(a => a.id === conv.sourceAccount || a.name === conv.sourceAccount || a.type === conv.sourceAccount)
-            || (spouse.accounts || []).find(a => a.type === 'standardIra')
-            || spouse.accounts.standardIra;
+        const sourceAcc =
+            spouse.getAccount?.(conv.sourceAccount) ||
+            (spouse.accounts || []).find(
+                (a) => a.id === conv.sourceAccount || a.name === conv.sourceAccount || a.type === conv.sourceAccount
+            ) ||
+            (spouse.accounts || []).find((a) => a.type === 'standardIra') ||
+            spouse.accounts.standardIra;
         if (!sourceAcc || sourceAcc.balance <= 0) return 0;
 
         const inflatedAmount = Number(conv.amountPerYear) * inflationMultiplier;
@@ -165,4 +169,3 @@ export class RothConversionManager {
         return 0;
     }
 }
-

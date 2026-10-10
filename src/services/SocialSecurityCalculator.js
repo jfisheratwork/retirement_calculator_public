@@ -1,13 +1,13 @@
 /**
  * SocialSecurityCalculator.js
- * 
+ *
  * Domain logic for calculating Social Security benefits, including actuarial
  * multipliers, spousal survivor benefits, and inflation scaling.
  */
 export class SocialSecurityCalculator {
     /**
      * Calculates and assigns Social Security benefits to the given snapshot for a specific year.
-     * 
+     *
      * @param {Object} params
      * @param {number} params.year - Current simulation year.
      * @param {Person} params.s1 - Primary spouse.
@@ -17,7 +17,16 @@ export class SocialSecurityCalculator {
      * @param {number} params.partialYearMultiplier - Multiplier for partial years.
      * @returns {number} Total taxable Social Security benefit for the year (85% of total).
      */
-    static calculate({ year, s1, s2, snapshot, inflationMultiplier = 1, partialYearMultiplier = 1, otherTaxableIncome = null, filingStatus = 'mfj' }) {
+    static calculate({
+        year,
+        s1,
+        s2,
+        snapshot,
+        inflationMultiplier = 1,
+        partialYearMultiplier = 1,
+        otherTaxableIncome = null,
+        filingStatus = 'mfj'
+    }) {
         const s1Multiplier = s1.getSocialSecurityMultiplier(s1.socialSecurityStartAge);
         const s2Multiplier = s2.getSocialSecurityMultiplier(s2.socialSecurityStartAge);
 
@@ -34,8 +43,12 @@ export class SocialSecurityCalculator {
 
         const s1FirstYear = s1.getAge(year) === s1.socialSecurityStartAge;
         const s2FirstYear = s2.getAge(year) === s2.socialSecurityStartAge;
-        const s1YearFraction = s1FirstYear ? Math.max(0, (12 - (Number(s1.socialSecurityStartMonth) || 1) + 1) / 12) : 1;
-        const s2YearFraction = s2FirstYear ? Math.max(0, (12 - (Number(s2.socialSecurityStartMonth) || 1) + 1) / 12) : 1;
+        const s1YearFraction = s1FirstYear
+            ? Math.max(0, (12 - (Number(s1.socialSecurityStartMonth) || 1) + 1) / 12)
+            : 1;
+        const s2YearFraction = s2FirstYear
+            ? Math.max(0, (12 - (Number(s2.socialSecurityStartMonth) || 1) + 1) / 12)
+            : 1;
 
         if (s1Alive && s2Alive) {
             // Both spouses alive: each receives their own benefit upon reaching claiming age
@@ -87,8 +100,8 @@ export class SocialSecurityCalculator {
      */
     static calculateTaxableSsn({ otherTaxableIncome, totalSsn, filingStatus = 'mfj' }) {
         if (totalSsn <= 0) return 0;
-        const provisionalIncome = Math.max(0, otherTaxableIncome) + (0.5 * totalSsn);
-        
+        const provisionalIncome = Math.max(0, otherTaxableIncome) + 0.5 * totalSsn;
+
         const isSingle = filingStatus === 'single';
         const baseThreshold = isSingle ? 25000 : 32000;
         const topThreshold = isSingle ? 34000 : 44000;
@@ -99,10 +112,10 @@ export class SocialSecurityCalculator {
         }
 
         if (provisionalIncome <= topThreshold) {
-            return Math.min(0.50 * totalSsn, 0.50 * (provisionalIncome - baseThreshold));
+            return Math.min(0.5 * totalSsn, 0.5 * (provisionalIncome - baseThreshold));
         }
 
-        const tier1 = Math.min(tier1Cap, 0.50 * totalSsn);
+        const tier1 = Math.min(tier1Cap, 0.5 * totalSsn);
         const tier2 = 0.85 * (provisionalIncome - topThreshold);
         return Math.min(0.85 * totalSsn, tier1 + tier2);
     }

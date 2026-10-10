@@ -1915,23 +1915,119 @@ body.what-if-open #stress-test-alerts {
 }
 
 .fire-status-badge {
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 0.15rem 0.45rem;
-    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 .fire-status-badge.achieved {
-    background: rgba(16, 185, 129, 0.2);
+    background: rgba(16, 185, 129, 0.15);
     color: #34d399;
     border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.fire-status-badge.on-track {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.fire-status-badge.unreached {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
 .fire-status-badge.pending {
     background: rgba(148, 163, 184, 0.15);
     color: #94a3b8;
     border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+/* FIRE Math Explainer Card */
+.fire-math-explainer {
+    margin-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 0.5rem;
+    font-size: 0.76rem;
+}
+
+.fire-math-explainer summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #38bdf8;
+    user-select: none;
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: color 0.15s ease;
+}
+
+.fire-math-explainer summary::-webkit-details-marker {
+    display: none;
+}
+
+.fire-math-explainer summary:hover {
+    color: #7dd3fc;
+    text-decoration: underline;
+}
+
+.fire-math-explainer-content {
+    margin-top: 0.45rem;
+    padding: 0.55rem 0.65rem;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: #cbd5e1;
+    line-height: 1.45;
+}
+
+.fire-math-explainer-title {
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 0.15rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.fire-math-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.fire-math-list li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+}
+
+.fire-math-bullet {
+    color: var(--text-muted);
+}
+
+.fire-math-callout {
+    margin-top: 0.35rem;
+    padding: 0.4rem 0.5rem;
+    background: rgba(56, 189, 248, 0.08);
+    border-left: 3px solid #38bdf8;
+    border-radius: 4px;
+    font-size: 0.73rem;
+    color: #e2e8f0;
 }
 
 .fire-card-main-val {

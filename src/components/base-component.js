@@ -7,25 +7,40 @@ export { escapeHtml };
 /**
  * Base Web Component class to provide a foundation for Angular-like components.
  * This class handles standard lifecycle hooks and provides a render method.
- * 
- * // ANGULAR MIGRATION: 
+ *
+ * // ANGULAR MIGRATION:
  * // - This entire class will be replaced by Angular's `@Component` decorator.
  * // - `connectedCallback` maps to `ngOnInit`.
  * // - `disconnectedCallback` maps to `ngOnDestroy`.
  * // - The `render` method's string concatenation will be replaced by external `.html` templates.
  */
-const BaseElement = typeof HTMLElement !== 'undefined' ? HTMLElement : class {
-    constructor() {}
-    getAttribute() { return null; }
-    setAttribute() {}
-    hasAttribute() { return false; }
-    closest() { return null; }
-    querySelector() { return null; }
-    querySelectorAll() { return []; }
-    addEventListener() {}
-    removeEventListener() {}
-    dispatchEvent() { return true; }
-};
+const BaseElement =
+    typeof HTMLElement !== 'undefined'
+        ? HTMLElement
+        : class {
+              constructor() {}
+              getAttribute() {
+                  return null;
+              }
+              setAttribute() {}
+              hasAttribute() {
+                  return false;
+              }
+              closest() {
+                  return null;
+              }
+              querySelector() {
+                  return null;
+              }
+              querySelectorAll() {
+                  return [];
+              }
+              addEventListener() {}
+              removeEventListener() {}
+              dispatchEvent() {
+                  return true;
+              }
+          };
 
 export class BaseComponent extends BaseElement {
     constructor() {
@@ -35,7 +50,9 @@ export class BaseComponent extends BaseElement {
     }
 
     getEffectiveState() {
-        const inputPanel = this.closest('financial-input-panel') || (typeof document !== 'undefined' ? document.querySelector('financial-input-panel') : null);
+        const inputPanel =
+            this.closest('financial-input-panel') ||
+            (typeof document !== 'undefined' ? document.querySelector('financial-input-panel') : null);
         if (inputPanel && typeof inputPanel.getWorkingState === 'function') {
             return inputPanel.getWorkingState();
         }
@@ -60,8 +77,10 @@ export class BaseComponent extends BaseElement {
 
     _clearSubscriptions() {
         if (this.subscriptions && this.subscriptions.length > 0) {
-            this.subscriptions.forEach(unsub => {
-                try { unsub(); } catch {}
+            this.subscriptions.forEach((unsub) => {
+                try {
+                    unsub();
+                } catch {}
             });
             this.subscriptions = [];
         }
@@ -80,10 +99,12 @@ export class BaseComponent extends BaseElement {
     onDestroy() {}
 
     _bindDatePickers() {
-        this.querySelectorAll('input[type="date"]').forEach(input => {
+        this.querySelectorAll('input[type="date"]').forEach((input) => {
             input.addEventListener('click', () => {
                 if (typeof input.showPicker === 'function') {
-                    try { input.showPicker(); } catch {}
+                    try {
+                        input.showPicker();
+                    } catch {}
                 }
             });
             input.addEventListener('change', (e) => {
@@ -103,7 +124,7 @@ export class BaseComponent extends BaseElement {
     }
 
     _bindMonthYearControls() {
-        this.querySelectorAll('.month-year-group').forEach(group => {
+        this.querySelectorAll('.month-year-group').forEach((group) => {
             const monthSelect = group.querySelector('.month-part');
             const yearInput = group.querySelector('.year-part');
             const hiddenInput = group.querySelector('input[type="hidden"]');
@@ -137,7 +158,7 @@ export class BaseComponent extends BaseElement {
     }
 
     _bindValidation() {
-        this.querySelectorAll('input[type="number"]').forEach(input => {
+        this.querySelectorAll('input[type="number"]').forEach((input) => {
             input.addEventListener('blur', () => {
                 if (input.value === '') return;
                 const val = parseFloat(input.value);
@@ -209,9 +230,9 @@ export class BaseComponent extends BaseElement {
      */
     addEvent(selector, event, handler) {
         const elements = this.querySelectorAll(selector);
-        elements.forEach(el => el.addEventListener(event, handler));
+        elements.forEach((el) => el.addEventListener(event, handler));
         this.subscribe(() => {
-            elements.forEach(el => el.removeEventListener(event, handler));
+            elements.forEach((el) => el.removeEventListener(event, handler));
         });
     }
 
@@ -235,7 +256,7 @@ export class BaseComponent extends BaseElement {
 
     _renderDateInput(inputId, aiTarget, labelRowHtml, path, val) {
         const normalized = normalizeDateStr(val);
-        const dateVal = normalized.length === 7 ? `${normalized}-01` : (normalized || '2026-01-01');
+        const dateVal = normalized.length === 7 ? `${normalized}-01` : normalized || '2026-01-01';
         const parts = parseDateParts(dateVal);
         const curMonth = String(parts.month).padStart(2, '0');
         const curYear = parts.year || 2026;
@@ -243,12 +264,22 @@ export class BaseComponent extends BaseElement {
         const maxYear = 2085;
 
         const months = [
-            { v: '01', l: 'Jan' }, { v: '02', l: 'Feb' }, { v: '03', l: 'Mar' },
-            { v: '04', l: 'Apr' }, { v: '05', l: 'May' }, { v: '06', l: 'Jun' },
-            { v: '07', l: 'Jul' }, { v: '08', l: 'Aug' }, { v: '09', l: 'Sep' },
-            { v: '10', l: 'Oct' }, { v: '11', l: 'Nov' }, { v: '12', l: 'Dec' }
+            { v: '01', l: 'Jan' },
+            { v: '02', l: 'Feb' },
+            { v: '03', l: 'Mar' },
+            { v: '04', l: 'Apr' },
+            { v: '05', l: 'May' },
+            { v: '06', l: 'Jun' },
+            { v: '07', l: 'Jul' },
+            { v: '08', l: 'Aug' },
+            { v: '09', l: 'Sep' },
+            { v: '10', l: 'Oct' },
+            { v: '11', l: 'Nov' },
+            { v: '12', l: 'Dec' }
         ];
-        const monthOptions = months.map(m => `<option value="${m.v}" ${curMonth === m.v ? 'selected' : ''}>${m.l}</option>`).join('');
+        const monthOptions = months
+            .map((m) => `<option value="${m.v}" ${curMonth === m.v ? 'selected' : ''}>${m.l}</option>`)
+            .join('');
 
         return `
             <div class="form-group">
@@ -273,30 +304,71 @@ export class BaseComponent extends BaseElement {
 
     _isCurrencyField(cleanLabel) {
         const keywords = ['($)', 'cost', 'balance', 'salary', 'lti', 'amount', 'cushion', 'price', 'expense'];
-        return keywords.some(k => cleanLabel.includes(k)) || (cleanLabel.includes('bonus') && !cleanLabel.includes('bonus years'));
+        return (
+            keywords.some((k) => cleanLabel.includes(k)) ||
+            (cleanLabel.includes('bonus') && !cleanLabel.includes('bonus years'))
+        );
     }
 
     _inferYearConfig(cleanLabel, path) {
         if (cleanLabel.includes('birth year')) {
             const isDep = path.includes('dependents');
-            return { prefix: '', suffix: '', sizingClass: 'input-year', minAttr: isDep ? 'min="1995"' : 'min="1950"', maxAttr: isDep ? 'max="2035"' : 'max="2006"', stepAttr: 'step="1"' };
+            return {
+                prefix: '',
+                suffix: '',
+                sizingClass: 'input-year',
+                minAttr: isDep ? 'min="1995"' : 'min="1950"',
+                maxAttr: isDep ? 'max="2035"' : 'max="2006"',
+                stepAttr: 'step="1"'
+            };
         }
-        if (cleanLabel.includes('start year') || cleanLabel.includes('stop year') || cleanLabel.includes('graph years') || cleanLabel.includes('bonus years')) {
-            return { prefix: '', suffix: '', sizingClass: 'input-year', minAttr: 'min="2020"', maxAttr: 'max="2085"', stepAttr: 'step="1"' };
+        if (
+            cleanLabel.includes('start year') ||
+            cleanLabel.includes('stop year') ||
+            cleanLabel.includes('graph years') ||
+            cleanLabel.includes('bonus years')
+        ) {
+            return {
+                prefix: '',
+                suffix: '',
+                sizingClass: 'input-year',
+                minAttr: 'min="2020"',
+                maxAttr: 'max="2085"',
+                stepAttr: 'step="1"'
+            };
         }
         return null;
     }
 
     _inferRateConfig(cleanLabel) {
-        if (cleanLabel.includes('(%)') || cleanLabel.includes('rate') || cleanLabel.includes('percent') || cleanLabel.includes('return')) {
-            return { prefix: '', suffix: '%', sizingClass: 'input-rate', minAttr: 'min="0"', maxAttr: 'max="100"', stepAttr: 'step="0.1"' };
+        if (
+            cleanLabel.includes('(%)') ||
+            cleanLabel.includes('rate') ||
+            cleanLabel.includes('percent') ||
+            cleanLabel.includes('return')
+        ) {
+            return {
+                prefix: '',
+                suffix: '%',
+                sizingClass: 'input-rate',
+                minAttr: 'min="0"',
+                maxAttr: 'max="100"',
+                stepAttr: 'step="0.1"'
+            };
         }
         return null;
     }
 
     _inferNumberFieldConfig(cleanLabel, path) {
         if (path.startsWith('phaseBasedExpensesPerMonth.')) {
-            return { prefix: '$', suffix: '', sizingClass: 'input-currency-sm', minAttr: 'min="0"', maxAttr: 'max="50000000"', stepAttr: 'step="1"' };
+            return {
+                prefix: '$',
+                suffix: '',
+                sizingClass: 'input-currency-sm',
+                minAttr: 'min="0"',
+                maxAttr: 'max="50000000"',
+                stepAttr: 'step="1"'
+            };
         }
         const rate = this._inferRateConfig(cleanLabel);
         if (rate) return rate;
@@ -304,14 +376,40 @@ export class BaseComponent extends BaseElement {
         if (yr) return yr;
         if (cleanLabel.includes('age') || cleanLabel.includes('expectancy') || cleanLabel.includes('term (years)')) {
             const { min, max } = this._inferAgeConfig(cleanLabel);
-            return { prefix: '', suffix: '', sizingClass: 'input-age', minAttr: `min="${min}"`, maxAttr: `max="${max}"`, stepAttr: 'step="1"' };
+            return {
+                prefix: '',
+                suffix: '',
+                sizingClass: 'input-age',
+                minAttr: `min="${min}"`,
+                maxAttr: `max="${max}"`,
+                stepAttr: 'step="1"'
+            };
         }
         if (cleanLabel.includes('multiplier') || cleanLabel.includes('ratio')) {
-            return { prefix: '', suffix: 'x', sizingClass: 'input-rate', minAttr: 'min="0.1"', maxAttr: 'max="5.0"', stepAttr: 'step="0.05"' };
+            return {
+                prefix: '',
+                suffix: 'x',
+                sizingClass: 'input-rate',
+                minAttr: 'min="0.1"',
+                maxAttr: 'max="5.0"',
+                stepAttr: 'step="0.05"'
+            };
         }
         if (this._isCurrencyField(cleanLabel)) {
-            const isLarge = cleanLabel.includes('annual') || cleanLabel.includes('salary') || cleanLabel.includes('balance') || cleanLabel.includes('value') || cleanLabel.includes('target cap');
-            return { prefix: '$', suffix: '', sizingClass: isLarge ? 'input-currency-md' : 'input-currency-sm', minAttr: 'min="0"', maxAttr: 'max="50000000"', stepAttr: 'step="1"' };
+            const isLarge =
+                cleanLabel.includes('annual') ||
+                cleanLabel.includes('salary') ||
+                cleanLabel.includes('balance') ||
+                cleanLabel.includes('value') ||
+                cleanLabel.includes('target cap');
+            return {
+                prefix: '$',
+                suffix: '',
+                sizingClass: isLarge ? 'input-currency-md' : 'input-currency-sm',
+                minAttr: 'min="0"',
+                maxAttr: 'max="50000000"',
+                stepAttr: 'step="1"'
+            };
         }
         return { prefix: '', suffix: '', sizingClass: '', minAttr: '', maxAttr: '', stepAttr: '' };
     }
@@ -360,7 +458,7 @@ export class BaseComponent extends BaseElement {
 
     _input(label, path, type = 'number', value = '', options = {}) {
         const val = value !== undefined && value !== null ? value : '';
-        const opts = typeof options === 'string' ? { tooltip: options } : (options || {});
+        const opts = typeof options === 'string' ? { tooltip: options } : options || {};
         const aiTarget = path.replace(/\./g, '-');
         const inputId = `field-${aiTarget}`;
         const tooltipBtn = this._renderTooltipButton(opts.tooltip || '', label);
@@ -378,7 +476,17 @@ export class BaseComponent extends BaseElement {
         const sizingClass = opts.sizingClass || numConfig.sizingClass;
         const safeVal = escapeHtml(val);
         const attrs = [minAttr, maxAttr, stepAttr].filter(Boolean).join(' ');
-        const inputHtml = this._renderInputTag({ inputId, type, path, safeVal, attrs, sizingClass, prefix, suffix, aiTarget });
+        const inputHtml = this._renderInputTag({
+            inputId,
+            type,
+            path,
+            safeVal,
+            attrs,
+            sizingClass,
+            prefix,
+            suffix,
+            aiTarget
+        });
 
         return `
             <div class="form-group">
@@ -388,7 +496,7 @@ export class BaseComponent extends BaseElement {
         `;
     }
 
-    _checkbox(label, path, checked, tooltip='') {
+    _checkbox(label, path, checked, tooltip = '') {
         const aiTarget = path.replace(/\./g, '-');
         const inputId = `chk-${aiTarget}`;
         const tooltipBtn = this._renderTooltipButton(tooltip, label);
@@ -400,9 +508,9 @@ export class BaseComponent extends BaseElement {
             </div>
         `;
     }
-    
+
     _select(label, path, options, selectedValue, extraOpts = {}) {
-        const opts = typeof extraOpts === 'string' ? { tooltip: extraOpts } : (extraOpts || {});
+        const opts = typeof extraOpts === 'string' ? { tooltip: extraOpts } : extraOpts || {};
         const tooltip = opts.tooltip || '';
         const sizingClass = opts.sizingClass || 'input-select-compact';
         const badge = opts.badge || '';
@@ -420,7 +528,7 @@ export class BaseComponent extends BaseElement {
                     ${badgeHtml}
                 </div>
                 <select id="${selectId}" data-path="${path}" class="${sizingClass}" data-ai-target="${aiTarget}-select">
-                    ${options.map(opt => `<option value="${opt.value}" ${selectedValue == opt.value ? 'selected' : ''} ${opt.disabled ? 'disabled' : ''}>${opt.label}</option>`).join('')}
+                    ${options.map((opt) => `<option value="${opt.value}" ${selectedValue == opt.value ? 'selected' : ''} ${opt.disabled ? 'disabled' : ''}>${opt.label}</option>`).join('')}
                 </select>
             </div>
         `;

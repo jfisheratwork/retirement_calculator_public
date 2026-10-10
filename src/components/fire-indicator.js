@@ -1,9 +1,9 @@
 /**
  * FIRE Indicator Component
- * 
+ *
  * Renders the top-level summary pill displaying milestone crossover years:
  * "🔥 FIRE Milestones: Coast 'XX • Barista 'XX • Lean 'XX • Full 'XX [Explore ➔]"
- * 
+ *
  * Written with the assistance of Google Gemini
  */
 
@@ -14,7 +14,7 @@ export const ACHIEVED_LABEL = 'Now';
 
 /**
  * Formats a milestone into full year and age text (e.g. "2035 (Age 55)" or "2035 (Age 55/56)" or "N/A").
- * @param {Object} milestone 
+ * @param {Object} milestone
  * @returns {string}
  */
 export function formatMilestoneLabel(milestone) {
@@ -28,7 +28,7 @@ export function formatMilestoneLabel(milestone) {
 
 /**
  * Backward compatibility alias for formatMilestoneLabel.
- * @param {Object} milestone 
+ * @param {Object} milestone
  * @returns {string}
  */
 export function formatMilestoneShort(milestone) {
@@ -37,9 +37,9 @@ export function formatMilestoneShort(milestone) {
 
 /**
  * Helper to render an individual milestone tag badge.
- * @param {string} label 
- * @param {string} cssClass 
- * @param {Object} milestone 
+ * @param {string} label
+ * @param {string} cssClass
+ * @param {Object} milestone
  * @returns {string}
  */
 function renderTag(label, cssClass, milestone) {
@@ -57,7 +57,7 @@ function renderTag(label, cssClass, milestone) {
 
 /**
  * Builds the inner HTML string for the milestone summary pill.
- * @param {Object} milestones 
+ * @param {Object} milestones
  * @returns {string}
  */
 function buildIndicatorHtml(milestones) {
@@ -88,7 +88,7 @@ function buildIndicatorHtml(milestones) {
 
 /**
  * Attaches interactive click & keyboard event listeners to the pill.
- * @param {HTMLElement} element 
+ * @param {HTMLElement} element
  */
 function attachTriggerEvents(element) {
     const trigger = element.querySelector('#btn-fire-drawer-trigger');

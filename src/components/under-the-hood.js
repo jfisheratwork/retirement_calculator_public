@@ -23,15 +23,17 @@ class UnderTheHood extends BaseComponent {
 
     getTemplate() {
         if (!this.state) return '';
-        
+
         const state = this.state;
         const s1Name = state.primarySpouse?.name || 'Spouse 1';
         const s2Name = state.secondarySpouse?.name || 'Spouse 2';
         const s1RetAge = state.primarySpouse?.targetRetirementAge || 60;
         const s2RetAge = state.secondarySpouse?.targetRetirementAge || 60;
         const currentYear = state.currentYear || new Date().getFullYear();
-        const s1Age = currentYear - (state.primarySpouse?.birthYear || state.primarySpouse?.yearOfBirth || (currentYear - 48));
-        const s2Age = currentYear - (state.secondarySpouse?.birthYear || state.secondarySpouse?.yearOfBirth || (currentYear - 48));
+        const s1Age =
+            currentYear - (state.primarySpouse?.birthYear || state.primarySpouse?.yearOfBirth || currentYear - 48);
+        const s2Age =
+            currentYear - (state.secondarySpouse?.birthYear || state.secondarySpouse?.yearOfBirth || currentYear - 48);
         const stateTax = state.assumptions?.stateTaxRate ?? 0;
         const inflation = state.assumptions?.inflationRate ?? 3;
         const w2Raise = state.assumptions?.w2RaiseRate ?? 2;
@@ -40,12 +42,13 @@ class UnderTheHood extends BaseComponent {
         const revMortAge = state.primaryResidenceEquity?.reverseMortgageStartAge || 68;
 
         const escapeHtml = (unsafe) => {
-            return (unsafe || '').toString()
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
+            return (unsafe || '')
+                .toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         };
 
         return `
@@ -277,24 +280,28 @@ class UnderTheHood extends BaseComponent {
 
         if (expandAllBtn) {
             expandAllBtn.addEventListener('click', () => {
-                topics.forEach(t => { t.open = true; });
+                topics.forEach((t) => {
+                    t.open = true;
+                });
             });
         }
 
         if (collapseAllBtn) {
             collapseAllBtn.addEventListener('click', () => {
-                topics.forEach(t => { t.open = false; });
+                topics.forEach((t) => {
+                    t.open = false;
+                });
             });
         }
 
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase().trim();
-                topics.forEach(topic => {
+                topics.forEach((topic) => {
                     const text = topic.textContent.toLowerCase();
                     if (!query || text.includes(query)) {
                         topic.style.display = 'block';
-                        if (query) topic.open = true; 
+                        if (query) topic.open = true;
                     } else {
                         topic.style.display = 'none';
                     }
@@ -312,7 +319,7 @@ if (typeof customElements !== 'undefined' && !customElements.get('under-the-hood
 export function renderUnderTheHood(containerId, state) {
     const container = document.getElementById(containerId);
     if (!container) return;
-    
+
     let component = container.querySelector('under-the-hood');
     if (!component) {
         component = document.createElement('under-the-hood');

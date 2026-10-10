@@ -122,11 +122,13 @@ export class SetupPickerModal extends BaseComponent {
      * @param {string} modeIdentifier - Chosen mode name.
      */
     _dispatchModeSelection(modeIdentifier) {
-        this.dispatchEvent(new CustomEvent('select-mode', {
-            detail: { mode: modeIdentifier },
-            bubbles: true,
-            composed: true
-        }));
+        this.dispatchEvent(
+            new CustomEvent('select-mode', {
+                detail: { mode: modeIdentifier },
+                bubbles: true,
+                composed: true
+            })
+        );
         this.close();
     }
 
@@ -134,10 +136,12 @@ export class SetupPickerModal extends BaseComponent {
      * Dispatches custom event requesting demo sample profile load.
      */
     _dispatchSampleLoad() {
-        this.dispatchEvent(new CustomEvent('load-sample', {
-            bubbles: true,
-            composed: true
-        }));
+        this.dispatchEvent(
+            new CustomEvent('load-sample', {
+                bubbles: true,
+                composed: true
+            })
+        );
         this.close();
     }
 

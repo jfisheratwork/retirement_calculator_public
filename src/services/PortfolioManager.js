@@ -2,7 +2,7 @@ import { SORR_SCENARIOS } from './SimulationEngine.js';
 
 /**
  * PortfolioManager.js
- * 
+ *
  * Domain logic for handling investment growth, Sequence of Returns Risk (SORR),
  * conservative shifts, and Certificate of Deposit (CD) maturities.
  */
@@ -14,10 +14,12 @@ export function calculateSorrRate({ year, s1, assumptions, sorrOverride }) {
     let overrideConfig = sorrOverride;
 
     if (sorrOverride) {
-        arr = sorrOverride.returnsArray || (
-            sorrOverride.scenarioKey ? SORR_SCENARIOS[sorrOverride.scenarioKey] : null
-        );
-    } else if (assumptions?.sorrScenario && assumptions.sorrScenario !== 'average' && assumptions.sorrScenario !== 'none') {
+        arr = sorrOverride.returnsArray || (sorrOverride.scenarioKey ? SORR_SCENARIOS[sorrOverride.scenarioKey] : null);
+    } else if (
+        assumptions?.sorrScenario &&
+        assumptions.sorrScenario !== 'average' &&
+        assumptions.sorrScenario !== 'none'
+    ) {
         arr = SORR_SCENARIOS[assumptions.sorrScenario];
         overrideConfig = assumptions;
     }
@@ -28,11 +30,14 @@ export function calculateSorrRate({ year, s1, assumptions, sorrOverride }) {
 
     const currentYear = new Date().getFullYear();
     const s1BirthYear = Number(s1?.birthYear || s1?.yearOfBirth) || 1980;
-    const startYearForSorr = overrideConfig?.startYear !== undefined 
-        ? (overrideConfig.startYear > 1000 ? overrideConfig.startYear : currentYear + overrideConfig.startYear) 
-        : (overrideConfig?.startAge !== undefined 
-            ? (s1BirthYear + overrideConfig.startAge) 
-            : (s1BirthYear + (s1?.targetRetirementAge || 65)));
+    const startYearForSorr =
+        overrideConfig?.startYear !== undefined
+            ? overrideConfig.startYear > 1000
+                ? overrideConfig.startYear
+                : currentYear + overrideConfig.startYear
+            : overrideConfig?.startAge !== undefined
+              ? s1BirthYear + overrideConfig.startAge
+              : s1BirthYear + (s1?.targetRetirementAge || 65);
 
     if (year >= startYearForSorr) {
         const idx = year - startYearForSorr;
@@ -47,11 +52,11 @@ export function calculateSorrRate({ year, s1, assumptions, sorrOverride }) {
 export function getAccountGrowthRate(account, year, assumptions, isSorrActive, sorrRate, isConservativeShift) {
     // 1. FDIC-insured cash equivalents (CDs and HYSAs) earn fixed yields and never experience equity market crashes
     if (account.type === 'cd') {
-        return (account.rate !== undefined ? Number(account.rate) : (account.expectedReturn || 5)) / 100;
+        return (account.rate !== undefined ? Number(account.rate) : account.expectedReturn || 5) / 100;
     }
     if (account.type === 'hysa') {
-        return (account.expectedReturn !== undefined && account.expectedReturn !== null)
-            ? (Number(account.expectedReturn) / 100)
+        return account.expectedReturn !== undefined && account.expectedReturn !== null
+            ? Number(account.expectedReturn) / 100
             : 0.04;
     }
 
@@ -75,8 +80,8 @@ export function getAccountGrowthRate(account, year, assumptions, isSorrActive, s
         }
         return PortfolioManager.getMarketReturnRate(year, assumptions);
     }
-    return (account.expectedReturn !== undefined && account.expectedReturn !== null)
-        ? (Number(account.expectedReturn) / 100)
+    return account.expectedReturn !== undefined && account.expectedReturn !== null
+        ? Number(account.expectedReturn) / 100
         : PortfolioManager.getMarketReturnRate(year, assumptions);
 }
 
@@ -95,7 +100,7 @@ export class PortfolioManager {
                     activeTier = tier;
                 }
             }
-            return (Number(activeTier.rate !== undefined ? activeTier.rate : 7.0)) / 100;
+            return Number(activeTier.rate !== undefined ? activeTier.rate : 7.0) / 100;
         }
         if (assumptions.generalReturnRate !== undefined) {
             return Number(assumptions.generalReturnRate) / 100;
@@ -104,22 +109,40 @@ export class PortfolioManager {
     }
 
     static hasMarketReturnSchedule(assumptions) {
-        return Boolean(assumptions.marketReturnRates && Array.isArray(assumptions.marketReturnRates) && assumptions.marketReturnRates.length > 0);
+        return Boolean(
+            assumptions.marketReturnRates &&
+                Array.isArray(assumptions.marketReturnRates) &&
+                assumptions.marketReturnRates.length > 0
+        );
     }
 
     static applyGrowthAndInflation(params) {
         return PortfolioManager.growAccounts(params);
     }
 
-    static growAccounts({ year, s1, s2, assumptions, strategies, sorrOverride, events, cashCushion, primaryResidenceEquity, isSorrActive: directIsSorrActive, sorrRate: directSorrRate }) {
-        const { isSorrActive, sorrRate } = (directIsSorrActive !== undefined && directSorrRate !== undefined)
-            ? { isSorrActive: directIsSorrActive, sorrRate: directSorrRate }
-            : calculateSorrRate({ year, s1, assumptions, strategies, sorrOverride });
+    static growAccounts({
+        year,
+        s1,
+        s2,
+        assumptions,
+        strategies,
+        sorrOverride,
+        events,
+        cashCushion,
+        primaryResidenceEquity,
+        isSorrActive: directIsSorrActive,
+        sorrRate: directSorrRate
+    }) {
+        const { isSorrActive, sorrRate } =
+            directIsSorrActive !== undefined && directSorrRate !== undefined
+                ? { isSorrActive: directIsSorrActive, sorrRate: directSorrRate }
+                : calculateSorrRate({ year, s1, assumptions, strategies, sorrOverride });
 
-        const isConservativeShift = Boolean(assumptions.conservativeShift?.enabled)
-            && s1.getAge(year) >= Number(assumptions.conservativeShift.startAge || 60);
+        const isConservativeShift =
+            Boolean(assumptions.conservativeShift?.enabled) &&
+            s1.getAge(year) >= Number(assumptions.conservativeShift.startAge || 60);
 
-        if (isConservativeShift && !events.find(e => e.type === 'conservative_shift')) {
+        if (isConservativeShift && !events.find((e) => e.type === 'conservative_shift')) {
             const shiftRate = Number(assumptions.conservativeShift.returnRate || 5.5);
             events.push({
                 year,
@@ -130,9 +153,16 @@ export class PortfolioManager {
         }
 
         const applyGrowth = (spouse) => {
-            Object.values(spouse.accounts).forEach(account => {
+            Object.values(spouse.accounts).forEach((account) => {
                 if (account.enabled !== false) {
-                    const rate = getAccountGrowthRate(account, year, assumptions, isSorrActive, sorrRate, isConservativeShift);
+                    const rate = getAccountGrowthRate(
+                        account,
+                        year,
+                        assumptions,
+                        isSorrActive,
+                        sorrRate,
+                        isConservativeShift
+                    );
                     account.grow(rate);
                 }
             });
@@ -142,20 +172,34 @@ export class PortfolioManager {
         applyGrowth(s2);
 
         if (primaryResidenceEquity.currentValue > 0) {
-            const reGrowth = (primaryResidenceEquity.annualGrowthRate !== undefined ? primaryResidenceEquity.annualGrowthRate : 3) / 100;
-            primaryResidenceEquity.currentValue *= (1 + reGrowth);
+            const reGrowth =
+                (primaryResidenceEquity.annualGrowthRate !== undefined ? primaryResidenceEquity.annualGrowthRate : 3) /
+                100;
+            primaryResidenceEquity.currentValue *= 1 + reGrowth;
         }
 
         return cashCushion * 1.01;
     }
 
-    static growAccountsMonthly({ year, month, s1, s2, assumptions, strategies, sorrOverride, events, cashCushion, primaryResidenceEquity }) {
+    static growAccountsMonthly({
+        year,
+        month,
+        s1,
+        s2,
+        assumptions,
+        strategies,
+        sorrOverride,
+        events,
+        cashCushion,
+        primaryResidenceEquity
+    }) {
         const { isSorrActive, sorrRate } = calculateSorrRate({ year, s1, assumptions, strategies, sorrOverride });
 
-        const isConservativeShift = Boolean(assumptions.conservativeShift?.enabled)
-            && s1.getAge(year) >= Number(assumptions.conservativeShift.startAge || 60);
+        const isConservativeShift =
+            Boolean(assumptions.conservativeShift?.enabled) &&
+            s1.getAge(year) >= Number(assumptions.conservativeShift.startAge || 60);
 
-        if (month === 1 && isConservativeShift && !events.find(e => e.type === 'conservative_shift')) {
+        if (month === 1 && isConservativeShift && !events.find((e) => e.type === 'conservative_shift')) {
             const shiftRate = Number(assumptions.conservativeShift.returnRate || 5.5);
             events.push({
                 year,
@@ -166,10 +210,17 @@ export class PortfolioManager {
         }
 
         const applyMonthlyGrowth = (spouse) => {
-            Object.values(spouse.accounts).forEach(account => {
+            Object.values(spouse.accounts).forEach((account) => {
                 if (account.enabled !== false) {
-                    const annualRate = getAccountGrowthRate(account, year, assumptions, isSorrActive, sorrRate, isConservativeShift);
-                    const monthlyRate = annualRate >= 0 ? (Math.pow(1 + annualRate, 1 / 12) - 1) : (annualRate / 12);
+                    const annualRate = getAccountGrowthRate(
+                        account,
+                        year,
+                        assumptions,
+                        isSorrActive,
+                        sorrRate,
+                        isConservativeShift
+                    );
+                    const monthlyRate = annualRate >= 0 ? Math.pow(1 + annualRate, 1 / 12) - 1 : annualRate / 12;
                     account.grow(monthlyRate);
                 }
             });
@@ -179,9 +230,11 @@ export class PortfolioManager {
         applyMonthlyGrowth(s2);
 
         if (primaryResidenceEquity.currentValue > 0) {
-            const reAnnualRate = (primaryResidenceEquity.annualGrowthRate !== undefined ? primaryResidenceEquity.annualGrowthRate : 3) / 100;
+            const reAnnualRate =
+                (primaryResidenceEquity.annualGrowthRate !== undefined ? primaryResidenceEquity.annualGrowthRate : 3) /
+                100;
             const reMonthlyRate = Math.pow(1 + reAnnualRate, 1 / 12) - 1;
-            primaryResidenceEquity.currentValue *= (1 + reMonthlyRate);
+            primaryResidenceEquity.currentValue *= 1 + reMonthlyRate;
             primaryResidenceEquity.currentValue = Math.round(primaryResidenceEquity.currentValue * 1e4) / 1e4;
         }
 
@@ -190,18 +243,22 @@ export class PortfolioManager {
     }
 
     static processCdMaturities({ year, currentYear, s1, s2, events }) {
-        [s1, s2].forEach(spouse => {
-            (spouse.accounts || []).filter(a => a.type === 'cd' && !a.isMatured && a.balance > 0).forEach(cd => {
-                PortfolioManager.processSingleCd({ cd, year, currentYear, spouse, s1, s2, events });
-            });
+        [s1, s2].forEach((spouse) => {
+            (spouse.accounts || [])
+                .filter((a) => a.type === 'cd' && !a.isMatured && a.balance > 0)
+                .forEach((cd) => {
+                    PortfolioManager.processSingleCd({ cd, year, currentYear, spouse, s1, s2, events });
+                });
         });
     }
 
     static processCdMaturitiesMonthly({ year, month, currentYear, s1, s2, events }) {
-        [s1, s2].forEach(spouse => {
-            (spouse.accounts || []).filter(a => a.type === 'cd' && !a.isMatured && a.balance > 0).forEach(cd => {
-                PortfolioManager.processSingleCdMonthly({ cd, year, month, currentYear, spouse, s1, s2, events });
-            });
+        [s1, s2].forEach((spouse) => {
+            (spouse.accounts || [])
+                .filter((a) => a.type === 'cd' && !a.isMatured && a.balance > 0)
+                .forEach((cd) => {
+                    PortfolioManager.processSingleCdMonthly({ cd, year, month, currentYear, spouse, s1, s2, events });
+                });
         });
     }
 
@@ -213,7 +270,7 @@ export class PortfolioManager {
             maturityMonth = cd.currentMaturityMonth;
         } else if (cd.maturityDate) {
             const parts = String(cd.maturityDate).split('-');
-            maturityYear = parseInt(parts[0], 10) || (currentYear + 1);
+            maturityYear = parseInt(parts[0], 10) || currentYear + 1;
             maturityMonth = parseInt(parts[1], 10) || 1;
             cd.currentMaturityYear = maturityYear;
             cd.currentMaturityMonth = maturityMonth;
@@ -229,7 +286,7 @@ export class PortfolioManager {
         if (maturityYear > 0 && (year > maturityYear || (year === maturityYear && month >= maturityMonth))) {
             const action = cd.maturityAction || 'sweep';
             const maxRollovers = Number(cd.rolloverCount) || 1;
-            
+
             if (action === 'rollover' && (cd.rolloversCompleted || 0) < maxRollovers) {
                 cd.rolloversCompleted = (cd.rolloversCompleted || 0) + 1;
                 const currentTotalMonths = year * 12 + (month - 1);
@@ -259,7 +316,7 @@ export class PortfolioManager {
         cd.yearRolloverOut = (cd.yearRolloverOut || 0) + maturedBalance;
         cd.yearWithdrawals = (cd.yearWithdrawals || 0) + maturedBalance;
         cd.isMatured = true;
-        
+
         targetAcc.balance += maturedBalance;
         targetAcc.yearRolloverIn = (targetAcc.yearRolloverIn || 0) + maturedBalance;
         if (events) {
@@ -280,7 +337,7 @@ export class PortfolioManager {
             maturityMonth = cd.currentMaturityMonth || 1;
         } else if (cd.maturityDate) {
             const parts = String(cd.maturityDate).split('-');
-            maturityYear = parseInt(parts[0], 10) || (currentYear + 1);
+            maturityYear = parseInt(parts[0], 10) || currentYear + 1;
             maturityMonth = parseInt(parts[1], 10) || 1;
             cd.currentMaturityYear = maturityYear;
             cd.currentMaturityMonth = maturityMonth;
@@ -291,7 +348,7 @@ export class PortfolioManager {
         if (maturityYear > 0 && year >= maturityYear) {
             const action = cd.maturityAction || 'sweep';
             const maxRollovers = Number(cd.rolloverCount) || 1;
-            
+
             if (action === 'rollover' && (cd.rolloversCompleted || 0) < maxRollovers) {
                 cd.rolloversCompleted = (cd.rolloversCompleted || 0) + 1;
                 const currentTotalMonths = year * 12 + (maturityMonth - 1);
@@ -306,7 +363,7 @@ export class PortfolioManager {
                     cd.yearRolloverOut = (cd.yearRolloverOut || 0) + maturedBalance;
                     cd.yearWithdrawals = (cd.yearWithdrawals || 0) + maturedBalance;
                     cd.isMatured = true;
-                    
+
                     targetAcc.balance += maturedBalance;
                     targetAcc.yearRolloverIn = (targetAcc.yearRolloverIn || 0) + maturedBalance;
                     if (events && Array.isArray(events)) {
@@ -324,23 +381,27 @@ export class PortfolioManager {
 
     static findTargetSavingsAccount(spouse, cd, s1, s2) {
         if (cd.sweepTargetAccountId) {
-            const foundSame = (spouse.accounts || []).find(a => a.id === cd.sweepTargetAccountId || a.name === cd.sweepTargetAccountId);
+            const foundSame = (spouse.accounts || []).find(
+                (a) => a.id === cd.sweepTargetAccountId || a.name === cd.sweepTargetAccountId
+            );
             if (foundSame) return foundSame;
             const otherSpouse = spouse === s1 ? s2 : s1;
-            const foundOther = (otherSpouse.accounts || []).find(a => a.id === cd.sweepTargetAccountId || a.name === cd.sweepTargetAccountId);
+            const foundOther = (otherSpouse.accounts || []).find(
+                (a) => a.id === cd.sweepTargetAccountId || a.name === cd.sweepTargetAccountId
+            );
             if (foundOther) return foundOther;
         }
 
-        const sameHysa = (spouse.accounts || []).find(a => a.type === 'hysa');
+        const sameHysa = (spouse.accounts || []).find((a) => a.type === 'hysa');
         if (sameHysa) return sameHysa;
-        
+
         const otherSpouse = spouse === s1 ? s2 : s1;
-        const otherHysa = (otherSpouse.accounts || []).find(a => a.type === 'hysa');
+        const otherHysa = (otherSpouse.accounts || []).find((a) => a.type === 'hysa');
         if (otherHysa) return otherHysa;
 
-        const sameBrokerage = (spouse.accounts || []).find(a => a.type === 'taxableBrokerage');
+        const sameBrokerage = (spouse.accounts || []).find((a) => a.type === 'taxableBrokerage');
         if (sameBrokerage) return sameBrokerage;
 
-        return (otherSpouse.accounts || []).find(a => a.type === 'taxableBrokerage') || null;
+        return (otherSpouse.accounts || []).find((a) => a.type === 'taxableBrokerage') || null;
     }
 }

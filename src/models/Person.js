@@ -63,47 +63,101 @@ function calculateMonthPay(job, month, events = null, spouseName = '', w2Multipl
 
 function createAccountInstance(accState) {
     let acc = null;
-    const accId = accState.id || accState.name || ('acc-' + Math.random().toString(36).substr(2, 9));
+    const accId = accState.id || accState.name || 'acc-' + Math.random().toString(36).substr(2, 9);
     if (accState.type === 'traditional401k') {
-        acc = new Trad401k(accId, accState.name, accState.balance, accState.expectedReturn, accState.contributionPercentage, {
-            employer100PercentMatchOnTheFirstXPercent: accState.employer100PercentMatchOnTheFirstXPercent,
-            employer50PercentMatchOnTheNextXPercent: accState.employer50PercentMatchOnTheNextXPercent,
-            employerMatchBonusPercentage: accState.employerMatchBonusPercentage
-        });
+        acc = new Trad401k(
+            accId,
+            accState.name,
+            accState.balance,
+            accState.expectedReturn,
+            accState.contributionPercentage,
+            {
+                employer100PercentMatchOnTheFirstXPercent: accState.employer100PercentMatchOnTheFirstXPercent,
+                employer50PercentMatchOnTheNextXPercent: accState.employer50PercentMatchOnTheNextXPercent,
+                employerMatchBonusPercentage: accState.employerMatchBonusPercentage
+            }
+        );
     } else if (accState.type === 'trad403b') {
-        acc = new Trad403b(accId, accState.name, accState.balance, accState.expectedReturn, accState.contributionPercentage, {
-            employer100PercentMatchOnTheFirstXPercent: accState.employer100PercentMatchOnTheFirstXPercent,
-            employer50PercentMatchOnTheNextXPercent: accState.employer50PercentMatchOnTheNextXPercent,
-            employerMatchBonusPercentage: accState.employerMatchBonusPercentage
-        });
+        acc = new Trad403b(
+            accId,
+            accState.name,
+            accState.balance,
+            accState.expectedReturn,
+            accState.contributionPercentage,
+            {
+                employer100PercentMatchOnTheFirstXPercent: accState.employer100PercentMatchOnTheFirstXPercent,
+                employer50PercentMatchOnTheNextXPercent: accState.employer50PercentMatchOnTheNextXPercent,
+                employerMatchBonusPercentage: accState.employerMatchBonusPercentage
+            }
+        );
     } else if (accState.type === 'standardIra') {
-        acc = new StandardIra(accId, accState.name, accState.balance, accState.expectedReturn, accState.contributionPercentage);
+        acc = new StandardIra(
+            accId,
+            accState.name,
+            accState.balance,
+            accState.expectedReturn,
+            accState.contributionPercentage
+        );
     } else if (accState.type === 'taxableBrokerage') {
-        acc = new TaxableBrokerage(accId, accState.name, accState.balance, accState.expectedReturn, accState.contributionPercentage, accState.costBasis);
+        acc = new TaxableBrokerage(
+            accId,
+            accState.name,
+            accState.balance,
+            accState.expectedReturn,
+            accState.contributionPercentage,
+            accState.costBasis
+        );
     } else if (accState.type === 'hysa') {
-        acc = new Hysa(accId, accState.name, accState.balance, accState.expectedReturn, accState.contributionPercentage);
+        acc = new Hysa(
+            accId,
+            accState.name,
+            accState.balance,
+            accState.expectedReturn,
+            accState.contributionPercentage
+        );
     } else if (accState.type === 'cd') {
-        acc = new CdAccount(accId, accState.name, accState.balance, accState.rate !== undefined ? accState.rate : accState.expectedReturn, accState.contributionPercentage, {
-            rate: accState.rate !== undefined ? accState.rate : accState.expectedReturn,
-            maturityDate: accState.maturityDate,
-            maturityAction: accState.maturityAction,
-            sweepTargetAccountId: accState.sweepTargetAccountId,
-            rolloverCount: accState.rolloverCount
-        });
+        acc = new CdAccount(
+            accId,
+            accState.name,
+            accState.balance,
+            accState.rate !== undefined ? accState.rate : accState.expectedReturn,
+            accState.contributionPercentage,
+            {
+                rate: accState.rate !== undefined ? accState.rate : accState.expectedReturn,
+                maturityDate: accState.maturityDate,
+                maturityAction: accState.maturityAction,
+                sweepTargetAccountId: accState.sweepTargetAccountId,
+                rolloverCount: accState.rolloverCount
+            }
+        );
     } else if (accState.type === 'hsa') {
-        acc = new Hsa(accId, accState.name, accState.balance, accState.expectedReturn, accState.contributionPercentage, {
-            coverageTier: accState.coverageTier,
-            annualContribution: accState.annualContribution,
-            employerContribution: accState.employerContribution
-        });
+        acc = new Hsa(
+            accId,
+            accState.name,
+            accState.balance,
+            accState.expectedReturn,
+            accState.contributionPercentage,
+            {
+                coverageTier: accState.coverageTier,
+                annualContribution: accState.annualContribution,
+                employerContribution: accState.employerContribution
+            }
+        );
     } else if (accState.type === 'rothIra') {
-        acc = new RothIra(accId, accState.name, accState.balance, accState.expectedReturn, accState.contributionPercentage, {
-            annualContribution: accState.annualContribution,
-            autoContribute: accState.autoContribute,
-            startYear: accState.startYear,
-            stopYear: accState.stopYear,
-            principle: accState.principle
-        });
+        acc = new RothIra(
+            accId,
+            accState.name,
+            accState.balance,
+            accState.expectedReturn,
+            accState.contributionPercentage,
+            {
+                annualContribution: accState.annualContribution,
+                autoContribute: accState.autoContribute,
+                startYear: accState.startYear,
+                stopYear: accState.stopYear,
+                principle: accState.principle
+            }
+        );
         acc.principle = accState.principle || 0;
     }
     if (acc) {
@@ -140,7 +194,12 @@ export class Person {
     _initDemographics(state) {
         this.name = state.name;
         this.birthYear = Number(state.yearOfBirth || state.birthYear) || 1980;
-        this.lifeExpectancy = state.estimatedLifeExpectancy !== undefined ? Number(state.estimatedLifeExpectancy) : (state.lifeExpectancy !== undefined ? Number(state.lifeExpectancy) : 95);
+        this.lifeExpectancy =
+            state.estimatedLifeExpectancy !== undefined
+                ? Number(state.estimatedLifeExpectancy)
+                : state.lifeExpectancy !== undefined
+                  ? Number(state.lifeExpectancy)
+                  : 95;
         this.rothConversion = new RothConversionSchedule(state.rothConversion);
         this.rolloverEvent = new RolloverEvent(state.rolloverEvent);
     }
@@ -148,7 +207,11 @@ export class Person {
     _initRetirementMilestones(state) {
         const configuredRetAge = state.targetRetirementAge ?? state.retirementAge;
         if (state.targetRetirementDate) {
-            const { year: rYear, month: rMonth } = parseDateParts(state.targetRetirementDate, this.birthYear + (Number(configuredRetAge) || 65), 1);
+            const { year: rYear, month: rMonth } = parseDateParts(
+                state.targetRetirementDate,
+                this.birthYear + (Number(configuredRetAge) || 65),
+                1
+            );
             this.targetRetirementYear = rYear;
             this.targetRetirementMonth = rMonth;
             this.targetRetirementDate = `${rYear}-${String(rMonth).padStart(2, '0')}`;
@@ -168,19 +231,29 @@ export class Person {
 
     _initSocialSecurity(state) {
         if (state.socialSecurityStartDate && typeof state.socialSecurityStartDate === 'string') {
-            const { year: ssnYear, month: ssnMonth } = parseDateParts(state.socialSecurityStartDate, this.birthYear + 67, 1);
+            const { year: ssnYear, month: ssnMonth } = parseDateParts(
+                state.socialSecurityStartDate,
+                this.birthYear + 67,
+                1
+            );
             this.socialSecurityStartMonth = ssnMonth;
             this.socialSecurityStartAge = ssnYear - this.birthYear;
             this.socialSecurityStartDate = `${ssnYear}-${String(ssnMonth).padStart(2, '0')}`;
         } else {
-            this.socialSecurityStartAge = state.socialSecurityStartAge !== undefined && state.socialSecurityStartAge !== null ? Number(state.socialSecurityStartAge) : 67;
+            this.socialSecurityStartAge =
+                state.socialSecurityStartAge !== undefined && state.socialSecurityStartAge !== null
+                    ? Number(state.socialSecurityStartAge)
+                    : 67;
             this.socialSecurityStartMonth = Number(state.socialSecurityStartMonth) || 1;
             const ssnYear = this.birthYear + this.socialSecurityStartAge;
             this.socialSecurityStartDate = `${ssnYear}-${String(this.socialSecurityStartMonth).padStart(2, '0')}`;
         }
-        this.socialSecurityMonthlyBenefit = state.socialSecurityMonthlyBenefit !== undefined && state.socialSecurityMonthlyBenefit !== null
-            ? Number(state.socialSecurityMonthlyBenefit)
-            : (state.socialSecurityAnnualBenefit !== undefined ? (Number(state.socialSecurityAnnualBenefit) / 12) : 0);
+        this.socialSecurityMonthlyBenefit =
+            state.socialSecurityMonthlyBenefit !== undefined && state.socialSecurityMonthlyBenefit !== null
+                ? Number(state.socialSecurityMonthlyBenefit)
+                : state.socialSecurityAnnualBenefit !== undefined
+                  ? Number(state.socialSecurityAnnualBenefit) / 12
+                  : 0;
         this.socialSecurityAnnualBenefit = this.socialSecurityMonthlyBenefit * 12;
     }
 
@@ -191,7 +264,11 @@ export class Person {
         let r72tDate = `${this.birthYear + r72tAge}-${String(r72tMonth).padStart(2, '0')}`;
 
         if (rule72tState.startDate && typeof rule72tState.startDate === 'string') {
-            const { year: rYear, month: rMonth } = parseDateParts(rule72tState.startDate, this.birthYear + r72tAge, r72tMonth);
+            const { year: rYear, month: rMonth } = parseDateParts(
+                rule72tState.startDate,
+                this.birthYear + r72tAge,
+                r72tMonth
+            );
             r72tMonth = rMonth;
             r72tAge = rYear - this.birthYear;
             r72tDate = `${rYear}-${String(r72tMonth).padStart(2, '0')}`;
@@ -204,15 +281,26 @@ export class Person {
             startDate: r72tDate,
             sourceAccount: rule72tState.sourceAccount || 'standardIra',
             targetIraMode: rule72tState.targetIraMode || 'existing',
-            newIraName: rule72tState.newIraName || rule72tState.targetAccountName || `${this.name || 'Spouse'} 72(t) IRA`,
-            splitAmount: (rule72tState.splitAmount !== undefined && rule72tState.splitAmount !== null && rule72tState.splitAmount !== '') ? Number(rule72tState.splitAmount) : null,
-            targetAccount: rule72tState.targetAccount || rule72tState.targetAccountId || rule72tState.targetIraId || rule72tState.sourceAccount || 'standardIra'
+            newIraName:
+                rule72tState.newIraName || rule72tState.targetAccountName || `${this.name || 'Spouse'} 72(t) IRA`,
+            splitAmount:
+                rule72tState.splitAmount !== undefined &&
+                rule72tState.splitAmount !== null &&
+                rule72tState.splitAmount !== ''
+                    ? Number(rule72tState.splitAmount)
+                    : null,
+            targetAccount:
+                rule72tState.targetAccount ||
+                rule72tState.targetAccountId ||
+                rule72tState.targetIraId ||
+                rule72tState.sourceAccount ||
+                'standardIra'
         };
         this.rule72tMethod = state.rule72tMethod || 'amortization';
     }
 
     _initJobs(state) {
-        this.jobs = (state.jobs || []).map(j => ({ ...j }));
+        this.jobs = (state.jobs || []).map((j) => ({ ...j }));
         this.jobs.sort((a, b) => {
             if (!a.startDate) return -1;
             if (!b.startDate) return 1;
@@ -223,7 +311,7 @@ export class Person {
     _initAccounts(state) {
         this.accounts = [];
         this._bindAccountGetters();
-        for (const accState of (state.accounts || [])) {
+        for (const accState of state.accounts || []) {
             const accInst = createAccountInstance(accState);
             if (accInst) {
                 this.accounts.push(accInst);
@@ -235,8 +323,8 @@ export class Person {
         const personRef = this;
         const defineGetter = (propKey, type) => {
             Object.defineProperty(this.accounts, propKey, {
-                get: function() {
-                    const found = this.find(a => a.type === type);
+                get: function () {
+                    const found = this.find((a) => a.type === type);
                     if (found) return found;
                     return {
                         type: type,
@@ -281,7 +369,7 @@ export class Person {
 
     getAccount(identifier) {
         if (!identifier) return null;
-        return this.accounts.find(a => a.id === identifier || a.name === identifier || a.type === identifier) || null;
+        return this.accounts.find((a) => a.id === identifier || a.name === identifier || a.type === identifier) || null;
     }
 
     getAge(currentYear) {
@@ -290,7 +378,10 @@ export class Person {
 
     isRetired(currentYear, currentMonth = 1) {
         if (this.targetRetirementYear !== undefined) {
-            return currentYear > this.targetRetirementYear || (currentYear === this.targetRetirementYear && currentMonth >= this.targetRetirementMonth);
+            return (
+                currentYear > this.targetRetirementYear ||
+                (currentYear === this.targetRetirementYear && currentMonth >= this.targetRetirementMonth)
+            );
         }
         return this.getAge(currentYear) >= this.targetRetirementAge;
     }
@@ -304,9 +395,10 @@ export class Person {
         const endFractionalYear = startYear + (startMonth - 1) / 12 + durationYears;
 
         const currentFractionalYear = currentYear + ((currentMonth !== null ? currentMonth : 1) - 1) / 12;
-        const started = currentMonth !== null
-            ? (currentYear > startYear || (currentYear === startYear && currentMonth >= startMonth))
-            : (currentYear >= startYear);
+        const started =
+            currentMonth !== null
+                ? currentYear > startYear || (currentYear === startYear && currentMonth >= startMonth)
+                : currentYear >= startYear;
         return started && currentFractionalYear < endFractionalYear;
     }
 
@@ -327,7 +419,7 @@ export class Person {
     }
 
     getJobBreakdown(currentYear, w2Multiplier = 1, startMonth = 1) {
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const jobMap = new Map();
 
         for (let month = startMonth; month <= 12; month++) {
@@ -381,10 +473,10 @@ export class Person {
             }
         }
 
-        return Array.from(jobMap.values()).map(r => {
+        return Array.from(jobMap.values()).map((r) => {
             const firstM = monthNames[r.months[0] - 1];
             const lastM = monthNames[r.months[r.months.length - 1] - 1];
-            const rangeLabel = (r.months.length === 12) ? 'Full Year' : (firstM === lastM ? firstM : `${firstM}–${lastM}`);
+            const rangeLabel = r.months.length === 12 ? 'Full Year' : firstM === lastM ? firstM : `${firstM}–${lastM}`;
             return {
                 id: r.id,
                 linked401kAccountId: r.linked401kAccountId,
@@ -438,7 +530,7 @@ export class Person {
             const monthsEarly = Math.min(60, -monthsDiff);
             if (monthsEarly <= 36) {
                 // First 36 months: 5/9 of 1% per month (up to 20%)
-                return 1.0 - (monthsEarly * (5 / 900));
+                return 1.0 - monthsEarly * (5 / 900);
             } else {
                 // Next 24 months (months 37-60): 5/12 of 1% per month (up to additional 10%)
                 const first36 = 36 * (5 / 900); // 0.20
@@ -448,8 +540,7 @@ export class Person {
         } else {
             // Delayed retirement credits (Ages 67 to 70, up to 36 months, 8% per year)
             const monthsDelayed = Math.min(36, monthsDiff);
-            return 1.0 + (monthsDelayed * (8 / 1200));
+            return 1.0 + monthsDelayed * (8 / 1200);
         }
     }
 }
-

@@ -15,9 +15,10 @@ export class ChildrenPanel extends BaseComponent {
         const curBal = Number(child.currentCollegeSavingsBalance) || 0;
         const target = Number(child.targetCollegeSavingsBalance) || 0;
         const defaultReturn = 7;
-        const returnRateNum = child.expectedReturn !== undefined && child.expectedReturn !== null
-            ? Number(child.expectedReturn)
-            : defaultReturn;
+        const returnRateNum =
+            child.expectedReturn !== undefined && child.expectedReturn !== null
+                ? Number(child.expectedReturn)
+                : defaultReturn;
         const r = returnRateNum / 100;
 
         if (childAge >= collegeAge) {
@@ -34,7 +35,7 @@ export class ChildrenPanel extends BaseComponent {
         }
 
         const gap = target - projectedExisting;
-        const pmt = r > 0 ? (gap * r) / (Math.pow(1 + r, yearsRemaining) - 1) : (gap / yearsRemaining);
+        const pmt = r > 0 ? (gap * r) / (Math.pow(1 + r, yearsRemaining) - 1) : gap / yearsRemaining;
         const annualRequired = Math.round(pmt);
         const monthlyRequired = Math.round(pmt / 12);
 
@@ -65,14 +66,16 @@ export class ChildrenPanel extends BaseComponent {
     getTemplate() {
         this.state = this.getEffectiveState();
         let html = '';
-        
+
         // Dependents
         html += this._startSection('Children & 529s');
         (this.state.dependents || []).forEach((child, index) => {
             const childName = child.name || `Child ${index + 1}`;
             const birthYear = child.yearOfBirth || 'N/A';
             const collegeBal = Number(child.currentCollegeSavingsBalance || 0);
-            const isOpenByDefault = child.isOpen !== false && (child.isOpen || index === 0 || childName.startsWith('New') || childName.startsWith('Child'));
+            const isOpenByDefault =
+                child.isOpen !== false &&
+                (child.isOpen || index === 0 || childName.startsWith('New') || childName.startsWith('Child'));
 
             const mode = child.contributionMode || 'fixed';
             const modeOptions = [
@@ -114,7 +117,7 @@ export class ChildrenPanel extends BaseComponent {
     }
 
     _bindCardLiveUpdates() {
-        this.querySelectorAll('.child-card').forEach(card => {
+        this.querySelectorAll('.child-card').forEach((card) => {
             const index = parseInt(card.getAttribute('data-index'), 10);
             const targetSummaryEl = card.querySelector('.target-529-summary');
             if (!targetSummaryEl) return;
@@ -123,18 +126,24 @@ export class ChildrenPanel extends BaseComponent {
                 const birthYearEl = card.querySelector(`input[data-path="dependents.${index}.yearOfBirth"]`);
                 const balEl = card.querySelector(`input[data-path="dependents.${index}.currentCollegeSavingsBalance"]`);
                 const returnEl = card.querySelector(`input[data-path="dependents.${index}.expectedReturn"]`);
-                const targetEl = card.querySelector(`input[data-path="dependents.${index}.targetCollegeSavingsBalance"]`);
+                const targetEl = card.querySelector(
+                    `input[data-path="dependents.${index}.targetCollegeSavingsBalance"]`
+                );
 
                 const tempChild = {
                     yearOfBirth: birthYearEl ? Number(birthYearEl.value) : this.state.dependents[index]?.yearOfBirth,
-                    currentCollegeSavingsBalance: balEl ? Number(balEl.value) : this.state.dependents[index]?.currentCollegeSavingsBalance,
+                    currentCollegeSavingsBalance: balEl
+                        ? Number(balEl.value)
+                        : this.state.dependents[index]?.currentCollegeSavingsBalance,
                     expectedReturn: returnEl ? Number(returnEl.value) : this.state.dependents[index]?.expectedReturn,
-                    targetCollegeSavingsBalance: targetEl ? Number(targetEl.value) : this.state.dependents[index]?.targetCollegeSavingsBalance
+                    targetCollegeSavingsBalance: targetEl
+                        ? Number(targetEl.value)
+                        : this.state.dependents[index]?.targetCollegeSavingsBalance
                 };
                 targetSummaryEl.innerHTML = this._calculateTargetFundingSummary(tempChild);
             };
 
-            card.querySelectorAll('input').forEach(input => {
+            card.querySelectorAll('input').forEach((input) => {
                 input.addEventListener('input', updateSummary);
             });
         });
@@ -142,13 +151,15 @@ export class ChildrenPanel extends BaseComponent {
 
     afterRender() {
         this.addEvent('input, select', 'change', (e) => {
-            this.dispatchEvent(new CustomEvent('stateChange', {
-                detail: { element: e.target },
-                bubbles: true
-            }));
+            this.dispatchEvent(
+                new CustomEvent('stateChange', {
+                    detail: { element: e.target },
+                    bubbles: true
+                })
+            );
         });
 
-        this.querySelectorAll('details.child-card').forEach(details => {
+        this.querySelectorAll('details.child-card').forEach((details) => {
             details.addEventListener('toggle', () => {
                 const idx = parseInt(details.getAttribute('data-index'), 10);
                 if (this.state.dependents && this.state.dependents[idx]) {
@@ -164,14 +175,16 @@ export class ChildrenPanel extends BaseComponent {
             this.dispatchEvent(new CustomEvent('addChild', { bubbles: true }));
         });
 
-        this.querySelectorAll('.remove-child-btn').forEach(btn => {
+        this.querySelectorAll('.remove-child-btn').forEach((btn) => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const index = parseInt(e.currentTarget.getAttribute('data-index'), 10);
-                this.dispatchEvent(new CustomEvent('removeChild', {
-                    detail: { index },
-                    bubbles: true
-                }));
+                this.dispatchEvent(
+                    new CustomEvent('removeChild', {
+                        detail: { index },
+                        bubbles: true
+                    })
+                );
             });
         });
     }

@@ -5,10 +5,10 @@
 
 /**
  * Parses a date string formatted as YYYY, YYYY-MM, or YYYY-MM-DD into numeric components.
- * 
- * @param {string|number} dateStr 
- * @param {number} defaultYear 
- * @param {number} defaultMonth 
+ *
+ * @param {string|number} dateStr
+ * @param {number} defaultYear
+ * @param {number} defaultMonth
  * @returns {{ year: number, month: number, day: number, formattedMonth: string }}
  */
 export function parseDateParts(dateStr, defaultYear = 2026, defaultMonth = 1) {
@@ -58,10 +58,10 @@ export function parseDateParts(dateStr, defaultYear = 2026, defaultMonth = 1) {
 /**
  * Normalizes a date string to ensure a 4-digit year (YYYY, YYYY-MM, or YYYY-MM-DD).
  * Converts 2-digit years (e.g. "0027" or "27") to 21st-century years (e.g. "2027").
- * 
- * @param {string|number} dateStr 
- * @param {number} defaultYear 
- * @param {number} defaultMonth 
+ *
+ * @param {string|number} dateStr
+ * @param {number} defaultYear
+ * @param {number} defaultMonth
  * @returns {string}
  */
 export function normalizeDateStr(dateStr, defaultYear = 2026, defaultMonth = 1) {

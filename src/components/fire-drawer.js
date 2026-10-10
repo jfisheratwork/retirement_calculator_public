@@ -1,10 +1,10 @@
 /**
  * FIRE Drawer Web Component
- * 
+ *
  * Interactive slide-out drawer providing in-depth inspection, parameter tuning,
  * and trajectory crossover visualization for Coast FIRE, Barista FIRE,
  * Lean FIRE, and Full FIRE milestones.
- * 
+ *
  * Written with the assistance of Google Gemini
  */
 
@@ -93,15 +93,11 @@ export class FireDrawer extends BaseComponent {
         if (!this.simulationData || this.simulationData.length === 0 || !this.appState) {
             return;
         }
-        this.milestones = FireMilestoneCalculator.computeMilestones(
-            this.simulationData,
-            this.appState,
-            {
-                coastTargetAge: this.coastTargetAge,
-                baristaIncome: this.baristaIncome,
-                leanRatio: this.leanRatio
-            }
-        );
+        this.milestones = FireMilestoneCalculator.computeMilestones(this.simulationData, this.appState, {
+            coastTargetAge: this.coastTargetAge,
+            baristaIncome: this.baristaIncome,
+            leanRatio: this.leanRatio
+        });
         renderFireIndicator('fire-indicator-container', this.milestones);
     }
 
@@ -148,13 +144,117 @@ export class FireDrawer extends BaseComponent {
         return `${milestone.year}${ageFormatted}`;
     }
 
+    _renderStatusBadge(milestone) {
+        if (!milestone || milestone.status === 'UNREACHED' || milestone.year === null) {
+            return '<span class="fire-status-badge unreached">✕ Unreached</span>';
+        }
+        if (milestone.status === 'ACHIEVED_TODAY') {
+            return '<span class="fire-status-badge achieved">✓ Achieved Today</span>';
+        }
+        const yrs = milestone.yearsUntil;
+        const yrsLabel = yrs === 1 ? 'In 1 Yr' : `In ${yrs} Yrs`;
+        return `<span class="fire-status-badge on-track">🎯 On Track • ${yrsLabel}</span>`;
+    }
+
+    _renderCoastMathExplainer(math, milestone) {
+        if (!math || !milestone) return '';
+        const fmt = (v) => FinancialPresentationService.formatCurrency(v);
+        const yr = milestone.year ?? 'Retirement';
+        return `
+            <details class="fire-math-explainer">
+                <summary>[ 🔍 How This Math Works ]</summary>
+                <div class="fire-math-explainer-content">
+                    <div class="fire-math-explainer-title">🏖️ How Coast FIRE Works</div>
+                    <ul class="fire-math-list">
+                        <li><span class="fire-math-bullet">•</span> Current Portfolio in ${yr}: ${fmt(math.currentPortfolio)}</li>
+                        <li><span class="fire-math-bullet">•</span> Required Full Retirement Nest Egg at Age ${math.targetRetirementAge}: ${fmt(math.requiredRetirementNestEgg)}</li>
+                        <li><span class="fire-math-bullet">•</span> Compounding Horizon: ${math.yearsOfCompounding} Years (to Age ${math.targetRetirementAge})</li>
+                        <li><span class="fire-math-bullet">•</span> Real Investment Growth: ${math.realReturnRatePct}% per year</li>
+                    </ul>
+                    <div class="fire-math-callout">
+                        💡 <strong>Why this works:</strong> With $0 in new contributions, existing investments compounding at ${math.realReturnRatePct}% real growth reach ${fmt(math.requiredRetirementNestEgg)} by Age ${math.targetRetirementAge}. You only need to earn enough from work to cover annual living bills.
+                    </div>
+                </div>
+            </details>
+        `;
+    }
+
+    _renderBaristaMathExplainer(math) {
+        if (!math) return '';
+        const fmt = (v) => FinancialPresentationService.formatCurrency(v);
+        const spouseLine =
+            math.isDualEarner && math.continuingSpouseName
+                ? `<li><span class="fire-math-bullet">•</span> ${math.continuingSpouseName}'s Career Salary: +${fmt(math.continuingSpouseIncome)}/yr (continues working)</li>`
+                : '';
+        const downshiftLine = `<li><span class="fire-math-bullet">•</span> ${math.downshiftingSpouseName}'s Barista Income: +${fmt(math.baristaIncome)}/yr</li>`;
+
+        return `
+            <details class="fire-math-explainer">
+                <summary>[ 🔍 How This Math Works ]</summary>
+                <div class="fire-math-explainer-content">
+                    <div class="fire-math-explainer-title">☕ How Barista FIRE Works in Your Household</div>
+                    <ul class="fire-math-list">
+                        <li><span class="fire-math-bullet">•</span> Household Baseline Budget: ${fmt(math.annualLivingSpend)}/yr</li>
+                        ${downshiftLine}
+                        ${spouseLine}
+                        <li><span class="fire-math-bullet">•</span> Total Earned Income: ${fmt(math.totalHouseholdIncome)}/yr (Covers ${math.incomeReplacementPct}% of living budget!)</li>
+                        <li><span class="fire-math-bullet">•</span> Net Annual Gap to Bridge: ${fmt(math.netAnnualGap)}/yr</li>
+                        <li><span class="fire-math-bullet">•</span> Required Portfolio: ${fmt(this.milestones?.baristaFire?.target)}</li>
+                        <li><span class="fire-math-bullet">•</span> Portfolio Drawdown Rate: ${math.portfolioWithdrawalRate}%</li>
+                    </ul>
+                    <div class="fire-math-callout">
+                        💡 <strong>Why this is safe:</strong> Drawing just ${math.portfolioWithdrawalRate}%/yr leaves ${Math.round((100 - math.portfolioWithdrawalRate) * 100) / 100}% of your portfolio untouched, allowing it to compound at real return into full retirement.
+                    </div>
+                </div>
+            </details>
+        `;
+    }
+
+    _renderLeanMathExplainer(math, milestone) {
+        if (!math || !milestone) return '';
+        const fmt = (v) => FinancialPresentationService.formatCurrency(v);
+        const yr = milestone.year ?? 'Target';
+        const savedText = math.yearsSaved > 0 ? ` — ${math.yearsSaved} Years Earlier than Full FIRE!` : '';
+
+        return `
+            <details class="fire-math-explainer">
+                <summary>[ 🔍 How This Math Works ]</summary>
+                <div class="fire-math-explainer-content">
+                    <div class="fire-math-explainer-title">🌱 How Lean FIRE Works</div>
+                    <ul class="fire-math-list">
+                        <li><span class="fire-math-bullet">•</span> Essential Baseline Budget (${math.leanRatioPct}%): ${fmt(math.leanBudget)}/yr</li>
+                        <li><span class="fire-math-bullet">•</span> Target Nest Egg: Drops from ${fmt(math.fullTarget)} to ${fmt(math.leanTarget)} (-${fmt(Math.max(0, math.fullTarget - math.leanTarget))})</li>
+                        <li><span class="fire-math-bullet">•</span> Years Saved: Reached in ${yr}${savedText}</li>
+                    </ul>
+                </div>
+            </details>
+        `;
+    }
+
+    _renderFullMathExplainer(math) {
+        if (!math) return '';
+        const fmt = (v) => FinancialPresentationService.formatCurrency(v);
+        return `
+            <details class="fire-math-explainer">
+                <summary>[ 🔍 How This Math Works ]</summary>
+                <div class="fire-math-explainer-content">
+                    <div class="fire-math-explainer-title">🎯 How Full FIRE Works</div>
+                    <ul class="fire-math-list">
+                        <li><span class="fire-math-bullet">•</span> 100% Lifestyle Budget: ${fmt(math.annualRetirementExpenses)}/yr</li>
+                        <li><span class="fire-math-bullet">•</span> Guaranteed Inflows: ${fmt(math.guaranteedInflows)}/yr</li>
+                        <li><span class="fire-math-bullet">•</span> Target Nest Egg: ${fmt(this.milestones?.fullFire?.target)}</li>
+                        <li><span class="fire-math-bullet">•</span> Initial Safe Spending Rate: ~${math.initialSafeWithdrawalRatePct}%</li>
+                        <li><span class="fire-math-bullet">•</span> Longevity Horizon: Fully funded through Age ${math.lifeExpectancyAge} via Actuarial Reserve</li>
+                    </ul>
+                </div>
+            </details>
+        `;
+    }
+
     _renderCard(cardConfig) {
-        const { title, icon, colorClass, milestone, desc, metricLabel, metricVal } = cardConfig;
+        const { title, icon, colorClass, milestone, desc, metricLabel, metricVal, explainerHtml } = cardConfig;
         const yearText = this._formatCardYear(milestone);
-        const isAchieved = milestone && (milestone.year !== null);
-        const statusBadge = isAchieved
-            ? `<span class="fire-status-badge achieved">Achieved</span>`
-            : `<span class="fire-status-badge pending">In Progress</span>`;
+        const statusBadge = this._renderStatusBadge(milestone);
 
         return `
             <div class="fire-card ${colorClass}">
@@ -169,6 +269,7 @@ export class FireDrawer extends BaseComponent {
                     <span class="metric-num">${metricVal}</span>
                 </div>
                 <div class="fire-card-desc">${desc}</div>
+                ${explainerHtml || ''}
             </div>
         `;
     }
@@ -191,7 +292,8 @@ export class FireDrawer extends BaseComponent {
                     milestone: m.coastFire,
                     desc: `Stop saving into 401(k)/IRAs; portfolio compounds to fund full retirement at Age ${this.coastTargetAge}.`,
                     metricLabel: 'Required at Target Age',
-                    metricVal: coastTargetVal
+                    metricVal: coastTargetVal,
+                    explainerHtml: this._renderCoastMathExplainer(m.coastFire?.mathBreakdown, m.coastFire)
                 })}
                 ${this._renderCard({
                     title: 'Barista FIRE',
@@ -200,7 +302,8 @@ export class FireDrawer extends BaseComponent {
                     milestone: m.baristaFire,
                     desc: `Downshift to lower-stress work earning ${fmt(this.baristaIncome)}/yr; portfolio bridges the gap to retirement.`,
                     metricLabel: 'Required Portfolio',
-                    metricVal: baristaTargetVal
+                    metricVal: baristaTargetVal,
+                    explainerHtml: this._renderBaristaMathExplainer(m.baristaFire?.mathBreakdown)
                 })}
                 ${this._renderCard({
                     title: 'Lean FIRE',
@@ -209,7 +312,8 @@ export class FireDrawer extends BaseComponent {
                     milestone: m.leanFire,
                     desc: `Retire early on baseline essential living expenses (${Math.round(this.leanRatio * PERCENT_FACTOR)}% of budget).`,
                     metricLabel: 'Required Portfolio',
-                    metricVal: leanTargetVal
+                    metricVal: leanTargetVal,
+                    explainerHtml: this._renderLeanMathExplainer(m.leanFire?.mathBreakdown, m.leanFire)
                 })}
                 ${this._renderCard({
                     title: 'Full FIRE',
@@ -218,7 +322,8 @@ export class FireDrawer extends BaseComponent {
                     milestone: m.fullFire,
                     desc: '100% financial independence funding all desired retirement lifestyle expenses without active work.',
                     metricLabel: 'Required Portfolio',
-                    metricVal: fullTargetVal
+                    metricVal: fullTargetVal,
+                    explainerHtml: this._renderFullMathExplainer(m.fullFire?.mathBreakdown)
                 })}
             </div>
         `;
@@ -338,7 +443,7 @@ export class FireDrawer extends BaseComponent {
         return [
             {
                 label: 'Projected Portfolio',
-                data: trajectory.map(t => t.actualPortfolio),
+                data: trajectory.map((t) => t.actualPortfolio),
                 borderColor: '#10b981',
                 backgroundColor: 'rgba(16, 185, 129, 0.12)',
                 fill: true,
@@ -348,7 +453,7 @@ export class FireDrawer extends BaseComponent {
             },
             {
                 label: 'Coast FIRE Target',
-                data: trajectory.map(t => t.coastTarget),
+                data: trajectory.map((t) => t.coastTarget),
                 borderColor: '#3b82f6',
                 borderDash: [6, 4],
                 fill: false,
@@ -358,7 +463,7 @@ export class FireDrawer extends BaseComponent {
             },
             {
                 label: 'Barista FIRE Target',
-                data: trajectory.map(t => t.baristaTarget),
+                data: trajectory.map((t) => t.baristaTarget),
                 borderColor: '#f59e0b',
                 borderDash: [5, 5],
                 fill: false,
@@ -368,7 +473,7 @@ export class FireDrawer extends BaseComponent {
             },
             {
                 label: 'Lean FIRE Target',
-                data: trajectory.map(t => t.leanTarget),
+                data: trajectory.map((t) => t.leanTarget),
                 borderColor: '#a855f7',
                 borderDash: [3, 3],
                 fill: false,
@@ -378,7 +483,7 @@ export class FireDrawer extends BaseComponent {
             },
             {
                 label: 'Full FIRE Target',
-                data: trajectory.map(t => t.fullTarget),
+                data: trajectory.map((t) => t.fullTarget),
                 borderColor: '#ef4444',
                 borderDash: [8, 4],
                 fill: false,
@@ -399,7 +504,7 @@ export class FireDrawer extends BaseComponent {
         const trajectory = this.milestones?.trajectory || [];
         if (trajectory.length === 0) return;
 
-        const labels = trajectory.map(t => {
+        const labels = trajectory.map((t) => {
             const ageStr = formatAgeString(t.age1 ?? t.age, t.age2);
             return ageStr ? `${t.year} (${ageStr})` : `${t.year}`;
         });

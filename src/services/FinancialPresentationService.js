@@ -1,6 +1,6 @@
 /**
  * Financial Presentation Service
- * 
+ *
  * Provides unified, single-source-of-truth calculations and view models
  * for chart inspectors, tooltips, and financial details drawers.
  * Eliminates duplicate calculations and enforces a hard nesting limit of <= 2.
@@ -11,7 +11,7 @@ import { escapeHtml } from '../utils/sanitize.js';
 export class FinancialPresentationService {
     /**
      * Formats a numeric value as standard USD currency without cents.
-     * @param {number|string} val 
+     * @param {number|string} val
      * @returns {string}
      */
     static formatCurrency(val) {
@@ -34,14 +34,16 @@ export class FinancialPresentationService {
         const s2Name = escapeHtml(state?.secondarySpouse?.name || 'Spouse 2');
 
         const totalW2Net = (snap.income?.s1?.w2Net || 0) + (snap.income?.s2?.w2Net || 0);
-        const s1Share = totalW2Net > 0 ? (snap.income.s1.w2Net / totalW2Net) : 0;
-        const s2Share = totalW2Net > 0 ? (snap.income.s2.w2Net / totalW2Net) : 0;
-        const s1TakeHome = snap.income?.s1?.takeHome !== undefined
-            ? snap.income.s1.takeHome
-            : Math.max(0, (snap.income?.s1?.w2Net || 0) - ((snap.taxDetails?.w2Tax || 0) * s1Share));
-        const s2TakeHome = snap.income?.s2?.takeHome !== undefined
-            ? snap.income.s2.takeHome
-            : Math.max(0, (snap.income?.s2?.w2Net || 0) - ((snap.taxDetails?.w2Tax || 0) * s2Share));
+        const s1Share = totalW2Net > 0 ? snap.income.s1.w2Net / totalW2Net : 0;
+        const s2Share = totalW2Net > 0 ? snap.income.s2.w2Net / totalW2Net : 0;
+        const s1TakeHome =
+            snap.income?.s1?.takeHome !== undefined
+                ? snap.income.s1.takeHome
+                : Math.max(0, (snap.income?.s1?.w2Net || 0) - (snap.taxDetails?.w2Tax || 0) * s1Share);
+        const s2TakeHome =
+            snap.income?.s2?.takeHome !== undefined
+                ? snap.income.s2.takeHome
+                : Math.max(0, (snap.income?.s2?.w2Net || 0) - (snap.taxDetails?.w2Tax || 0) * s2Share);
 
         const totalSsn = (snap.income?.s1?.ssn || 0) + (snap.income?.s2?.ssn || 0);
         const s1Rule72t = snap.income?.s1?.rule72t || 0;
@@ -99,7 +101,7 @@ export class FinancialPresentationService {
         const housing = snap.expenseBreakdown?.housing || 0;
         const childcare = snap.expenseBreakdown?.childcare || 0;
         const irmaa = snap.expenseBreakdown?.irmaa || 0;
-        const totalExpenses = snap.expenses || (base + mortgage + housing + childcare + irmaa);
+        const totalExpenses = snap.expenses || base + mortgage + housing + childcare + irmaa;
 
         return {
             base,
@@ -126,11 +128,9 @@ export class FinancialPresentationService {
         const deficitAmount = Math.max(0, -netFlow);
 
         let sweepAccountName = 'Taxable Brokerage';
-        const allAccounts = [
-            ...(state?.primarySpouse?.accounts || []),
-            ...(state?.secondarySpouse?.accounts || [])
-        ];
-        const designated = allAccounts.find(a => a.isSweepAccount) || allAccounts.find(a => a.type === 'taxableBrokerage');
+        const allAccounts = [...(state?.primarySpouse?.accounts || []), ...(state?.secondarySpouse?.accounts || [])];
+        const designated =
+            allAccounts.find((a) => a.isSweepAccount) || allAccounts.find((a) => a.type === 'taxableBrokerage');
         if (designated?.name) {
             sweepAccountName = escapeHtml(designated.name);
         }
@@ -160,11 +160,12 @@ export class FinancialPresentationService {
 
         let s1Match = 0;
         let s2Match = 0;
-        const checkMatch = (accList) => (accList || []).reduce((sum, a) => {
-            const m = a.employerMatchConfig;
-            if (!m) return sum;
-            return sum + (Number(m.employer100PercentMatchOnTheFirstXPercent || 0) > 0 ? 1 : 0);
-        }, 0);
+        const checkMatch = (accList) =>
+            (accList || []).reduce((sum, a) => {
+                const m = a.employerMatchConfig;
+                if (!m) return sum;
+                return sum + (Number(m.employer100PercentMatchOnTheFirstXPercent || 0) > 0 ? 1 : 0);
+            }, 0);
 
         if (checkMatch(state?.primarySpouse?.accounts) > 0 && s1Gross > 0) {
             s1Match = s1Gross * 0.03;
@@ -175,7 +176,8 @@ export class FinancialPresentationService {
 
         const s1RothConv = snap.rothConverted?.s1 || 0;
         const s2RothConv = snap.rothConverted?.s2 || 0;
-        const totalPortfolioAdditions = s1Payroll401k + s2Payroll401k + s1Match + s2Match + surplusAmount + s1RothConv + s2RothConv;
+        const totalPortfolioAdditions =
+            s1Payroll401k + s2Payroll401k + s1Match + s2Match + surplusAmount + s1RothConv + s2RothConv;
 
         return {
             s1Payroll401k,
@@ -243,7 +245,8 @@ export class FinancialPresentationService {
         const rolloverOut = snap.yearRolloverOut || 0;
         const netWithdrawals = snap.yearWithdrawals || 0;
 
-        const netActivity = interest + contributions + conversionsIn + rolloverIn - conversionsOut - rolloverOut - netWithdrawals;
+        const netActivity =
+            interest + contributions + conversionsIn + rolloverIn - conversionsOut - rolloverOut - netWithdrawals;
 
         const growthRows = [];
         const accounts = snap.accounts || {};
