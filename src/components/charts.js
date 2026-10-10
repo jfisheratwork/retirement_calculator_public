@@ -377,7 +377,19 @@ const externalTooltipHandler = (context) => {
     const inspector = document.getElementById('chart-inspector');
     if (!inspector) return;
 
-    if (window.pinnedYearIndex !== null) {
+    const isInspectorActive =
+        (typeof document !== 'undefined' && document.body?.classList.contains('show-inspector')) ||
+        (typeof document !== 'undefined' &&
+            document.querySelector('.dashboard-layout')?.classList.contains('show-inspector'));
+
+    if (!isInspectorActive) {
+        inspector.classList.add('hidden');
+        return;
+    }
+
+    const isPinned = typeof window !== 'undefined' && window.pinnedYearIndex !== null;
+    if (isPinned) {
+        inspector.classList.add('pinned');
         if (
             !tooltip.dataPoints ||
             tooltip.dataPoints.length === 0 ||
@@ -385,11 +397,30 @@ const externalTooltipHandler = (context) => {
         ) {
             return;
         }
+    } else {
+        inspector.classList.remove('pinned');
     }
 
-    if (tooltip.opacity === 0 && window.pinnedYearIndex === null) {
+    if (tooltip.opacity === 0 && !isPinned) {
         inspector.classList.add('hidden');
         return;
+    }
+
+    // Dynamic anti-collision docking:
+    // If hovering on left half of chart/screen -> dock right
+    // If hovering on right half of chart/screen -> dock left
+    if (typeof window !== 'undefined' && chart.canvas) {
+        const canvasRect = chart.canvas.getBoundingClientRect();
+        const caretScreenX = canvasRect.left + (tooltip.caretX || 0);
+        const isLeftSide = caretScreenX < window.innerWidth / 2;
+
+        if (isLeftSide) {
+            inspector.classList.remove('dock-left');
+            inspector.classList.add('dock-right');
+        } else {
+            inspector.classList.remove('dock-right');
+            inspector.classList.add('dock-left');
+        }
     }
 
     inspector.classList.remove('hidden');

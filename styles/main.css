@@ -880,17 +880,44 @@ main {
 }
 
 #chart-inspector {
-    width: 100%;
-    background: rgba(20, 25, 35, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
-    padding: 1rem;
+    display: none;
+    position: fixed;
+    top: 5.5rem;
+    width: 21rem;
+    max-height: calc(100vh - 7rem);
+    overflow-y: auto;
+    z-index: 1000;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
     color: white;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(8px);
-    transition: opacity 0.2s;
+    box-shadow:
+        0 16px 36px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    pointer-events: none;
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+}
+body.show-inspector #chart-inspector:not(.hidden),
+.dashboard-layout.show-inspector #chart-inspector:not(.hidden) {
+    display: block;
+}
+#chart-inspector.pinned {
+    pointer-events: auto;
+}
+#chart-inspector.dock-right {
+    right: 1.5rem;
+    left: auto;
+}
+#chart-inspector.dock-left {
+    left: 1.5rem;
+    right: auto;
 }
 #chart-inspector.hidden {
+    display: none !important;
     opacity: 0;
 }
 #chart-inspector h3 {
@@ -952,31 +979,10 @@ main {
 }
 .dashboard-sidebar {
     display: none;
-    position: sticky;
-    top: 2rem;
-    width: 100%;
 }
-
-.dashboard-layout.show-inspector,
-body.show-inspector .dashboard-layout {
-    grid-template-columns: 1fr 21.25rem;
-}
-
 .dashboard-layout.show-inspector .dashboard-sidebar,
 body.show-inspector .dashboard-sidebar {
     display: block;
-}
-
-@media (max-width: 75rem) {
-    .dashboard-layout.show-inspector,
-    body.show-inspector .dashboard-layout {
-        grid-template-columns: 1fr;
-    }
-    .dashboard-layout.show-inspector .dashboard-sidebar,
-    body.show-inspector .dashboard-sidebar {
-        position: static;
-        margin-top: 2rem;
-    }
 }
 
 /* Financial Details Inspector Timeline specific CSS */
