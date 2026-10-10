@@ -326,14 +326,14 @@ export class StrategyEventsPanel extends BaseComponent {
         const projectedMonthlyPayout = Math.round(projectedAnnualPayout / 12);
 
         out += `
-            <div class="sepp-payout-preview-box" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 0.75rem; margin-top: 0.75rem; margin-bottom: 0.5rem;">
+            <div id="${prefix}-sepp-payout-preview-box" class="sepp-payout-preview-box" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 0.75rem; margin-top: 0.75rem; margin-bottom: 0.5rem;">
                 <div style="font-weight: 600; font-size: 0.85rem; color: #10b981; display: flex; align-items: center; justify-content: space-between;">
                     <span>📊 Estimated 72(t) SEPP Payout at Conversion</span>
-                    <span style="font-size: 0.75rem; color: var(--text-muted);">${r72tDate} (Age ${calculatedR72tAge})</span>
+                    <span id="${prefix}-72t-preview-header-meta" style="font-size: 0.75rem; color: var(--text-muted);">${r72tDate} (Age ${calculatedR72tAge})</span>
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; line-height: 1.5;">
-                    <div>Estimated IRA Balance at Conversion: <strong style="color: var(--text-primary);">$${Math.round(effective72tBal).toLocaleString()}</strong></div>
-                    <div>Statutory Annual Distribution: <strong style="color: #10b981;">$${projectedAnnualPayout.toLocaleString()}/yr</strong> (~$${projectedMonthlyPayout.toLocaleString()}/mo)</div>
+                    <div>Estimated IRA Balance at Conversion: <strong id="${prefix}-72t-preview-balance" style="color: var(--text-primary);">$${Math.round(effective72tBal).toLocaleString()}</strong></div>
+                    <div>Statutory Annual Distribution: <strong id="${prefix}-72t-preview-annual" style="color: #10b981;">$${projectedAnnualPayout.toLocaleString()}/yr</strong> (<span id="${prefix}-72t-preview-monthly">~$${projectedMonthlyPayout.toLocaleString()}/mo</span>)</div>
                 </div>
             </div>
         `;
@@ -411,14 +411,83 @@ export class StrategyEventsPanel extends BaseComponent {
             spouseObj.rothConversion?.amountPerYear || 0,
             'Annual dollar amount converted to Roth IRA.'
         );
+        const durationYears = Number(spouseObj.rothConversion?.durationYears) || 5;
+        const convEndYear = targetYear + durationYears;
         out += this._input(
             'Duration (Years)',
             `${prefix}.rothConversion.durationYears`,
             'number',
-            spouseObj.rothConversion?.durationYears || 5,
+            durationYears,
             'Number of consecutive annual conversion cohorts.'
         );
+        out += `
+            <div id="${prefix}-roth-duration-badge" style="margin-top: -0.25rem; margin-bottom: 0.75rem; font-size: 0.78rem; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 4px; padding: 0.35rem 0.65rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <span>🗓️</span> <span>Active Window: <strong>${targetYear} – ${convEndYear}</strong> (${durationYears} ${durationYears === 1 ? 'year' : 'years'})</span>
+            </div>
+        `;
         return out;
+    }
+
+    _updateRothDurationBadge(prefix) {
+        const dateInput = this.querySelector(`input[data-path="${prefix}.rothConversion.startDate"]`);
+        const durationInput = this.querySelector(`input[data-path="${prefix}.rothConversion.durationYears"]`);
+        const badge = this.querySelector(`#${prefix}-roth-duration-badge`);
+        if (!badge) return;
+
+        const dateVal = dateInput?.value || `${new Date().getFullYear()}-01-01`;
+        const startYear = parseInt(String(dateVal).split('-')[0], 10) || new Date().getFullYear();
+        const duration = Math.max(1, parseInt(durationInput?.value, 10) || 5);
+        const endYear = startYear + duration;
+
+        badge.innerHTML = `<span>🗓️</span> <span>Active Window: <strong>${startYear} – ${endYear}</strong> (${duration} ${duration === 1 ? 'year' : 'years'})</span>`;
+    }
+
+    _update72tLivePreview(prefix) {
+        const spouseObj = this.state[prefix] || {};
+        const birthYear = Number(spouseObj.yearOfBirth) || 1980;
+        const dateInput = this.querySelector(`input[data-path="${prefix}.rule72t.startDate"]`);
+        const splitInput = this.querySelector(`input[data-path="${prefix}.rule72t.splitAmount"]`);
+        const methodSelect = this.querySelector(`select[data-path="${prefix}.rule72tMethod"]`);
+
+        const dateVal = dateInput?.value || `${birthYear + 55}-01-01`;
+        const rYear = parseInt(String(dateVal).split('-')[0], 10) || birthYear + 55;
+        const rMonth = parseInt(String(dateVal).split('-')[1], 10) || 1;
+        const calcAge = Math.max(18, rYear - birthYear);
+
+        const method = methodSelect?.value || spouseObj.rule72tMethod || 'amortization';
+        const r72t = spouseObj.rule72t || {};
+        const targetAcc =
+            (spouseObj.accounts || []).find(
+                (a) => a.id === r72t.targetAccount || a.name === r72t.targetAccount || a.type === r72t.targetAccount
+            ) || (spouseObj.accounts || []).find((a) => a.type === 'standardIra');
+        const sourceAcc =
+            (spouseObj.accounts || []).find(
+                (a) => a.id === r72t.sourceAccount || a.name === r72t.sourceAccount || a.type === r72t.sourceAccount
+            ) || targetAcc;
+        const activeAcc = targetAcc || sourceAcc;
+        const projectedBal = this._getProjectedAccountBalance(prefix, activeAcc, rYear, rMonth);
+
+        const splitVal = splitInput?.value !== undefined && splitInput?.value !== '' ? Number(splitInput.value) : null;
+        const effectiveBal =
+            splitVal !== null && !isNaN(splitVal) && splitVal > 0 ? Math.min(projectedBal, splitVal) : projectedBal;
+
+        const DEFAULT_72T_RATE = 0.05;
+        const rate72t = this.state.strategies?.rule72tInterestRate
+            ? Number(this.state.strategies.rule72tInterestRate) / 100
+            : DEFAULT_72T_RATE;
+
+        const projectedAnnual = Math.round(calculate72tPayment(effectiveBal, rate72t, calcAge, method));
+        const projectedMonthly = Math.round(projectedAnnual / 12);
+
+        const headerMetaEl = this.querySelector(`#${prefix}-72t-preview-header-meta`);
+        const balEl = this.querySelector(`#${prefix}-72t-preview-balance`);
+        const annualEl = this.querySelector(`#${prefix}-72t-preview-annual`);
+        const monthlyEl = this.querySelector(`#${prefix}-72t-preview-monthly`);
+
+        if (headerMetaEl) headerMetaEl.textContent = `${dateVal} (Age ${calcAge})`;
+        if (balEl) balEl.textContent = `$${Math.round(effectiveBal).toLocaleString()}`;
+        if (annualEl) annualEl.textContent = `$${projectedAnnual.toLocaleString()}/yr`;
+        if (monthlyEl) monthlyEl.textContent = `~$${projectedMonthly.toLocaleString()}/mo`;
     }
 
     _renderRothSection(prefix, spouseObj) {
@@ -447,18 +516,23 @@ export class StrategyEventsPanel extends BaseComponent {
             const prefix = path.startsWith('secondarySpouse') ? 'secondarySpouse' : 'primarySpouse';
             const birthYear = Number(this.state[prefix]?.yearOfBirth) || 1980;
 
-            if (path.endsWith('.rule72t.startDate')) {
+            if (path.includes('.rule72t.') || path.includes('rule72tMethod')) {
                 const rYear = parseInt(String(e.target.value).split('-')[0], 10) || birthYear + 55;
                 const calcAge = rYear - birthYear;
                 const badge = this.querySelector(`#${prefix}-72t-age-badge`);
-                if (badge) badge.innerText = `(Start Age: ${calcAge})`;
+                if (badge && path.endsWith('.rule72t.startDate')) badge.innerText = `(Start Age: ${calcAge})`;
 
                 const warnBox = this.querySelector(`#${prefix}-72t-age-warning`);
-                if (warnBox) {
+                if (warnBox && path.endsWith('.rule72t.startDate')) {
                     const res = HeuristicValidator.validate72tAge(calcAge);
                     warnBox.innerHTML = res ? res.message : '';
                     warnBox.style.display = res ? 'block' : 'none';
                 }
+                this._update72tLivePreview(prefix);
+            }
+
+            if (path.includes('.rothConversion.')) {
+                this._updateRothDurationBadge(prefix);
             }
         });
 
@@ -466,6 +540,12 @@ export class StrategyEventsPanel extends BaseComponent {
             const path = e.target.getAttribute('data-path');
             if (path) {
                 const prefix = path.startsWith('secondarySpouse') ? 'secondarySpouse' : 'primarySpouse';
+                if (path.includes('.rule72t.') || path.includes('rule72tMethod')) {
+                    this._update72tLivePreview(prefix);
+                }
+                if (path.includes('.rothConversion.')) {
+                    this._updateRothDurationBadge(prefix);
+                }
                 if (path.endsWith('.rule72t.enabled')) {
                     const c = this.querySelector(`#${prefix}-72t-container`);
                     if (c) c.style.display = e.target.checked ? 'block' : 'none';

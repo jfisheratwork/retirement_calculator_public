@@ -186,6 +186,11 @@ header p {
     outline: none;
 }
 
+.scenario-pill-group select option {
+    background: #0f172a;
+    color: #f8fafc;
+}
+
 .scenario-pill-group select:focus {
     background: rgba(255, 255, 255, 0.08);
 }

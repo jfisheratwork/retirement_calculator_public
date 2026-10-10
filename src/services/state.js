@@ -362,7 +362,11 @@ export function safeGetStorage(key) {
     return memoryStorageFallback[key] || null;
 }
 
-export function safeSetStorage(key, value) {
+export function safeSetStorage(key, value, allowPinOverwrite = false) {
+    if (!allowPinOverwrite && key === LOCAL_STORAGE_KEY && isStoragePinLocked()) {
+        console.warn('Blocked attempt to overwrite PIN-locked storage without active session key.');
+        return;
+    }
     memoryStorageFallback[key] = value;
     try {
         if (typeof localStorage !== 'undefined') {
@@ -377,6 +381,10 @@ export function safeSetStorage(key, value) {
  * Saves the entire store (profiles + active ID + global settings) to LocalStorage.
  */
 function saveStore() {
+    if (isStoragePinLocked()) {
+        console.warn('Storage is locked with PIN; skipping unauthenticated saveStore.');
+        return;
+    }
     if (profiles[currentProfileId] && currentState) {
         profiles[currentProfileId].data = currentState;
     }
@@ -420,6 +428,9 @@ function _migrateSpouseSsn(spouse) {
  * @returns {{ locked: boolean }|void}
  */
 export function initState(unlockedJsonStr = null) {
+    if (!unlockedJsonStr && currentState && currentProfileId && StorageShield.hasActiveSessionKey()) {
+        return;
+    }
     let saved = unlockedJsonStr;
     let shouldMigrateToShield = false;
     if (!saved) {
@@ -690,7 +701,7 @@ export async function setStoragePin(pin) {
         globalSettings
     });
     const encryptedEnvelope = await StorageShield.encryptWithPin(rawJson, pin);
-    safeSetStorage(LOCAL_STORAGE_KEY, encryptedEnvelope);
+    safeSetStorage(LOCAL_STORAGE_KEY, encryptedEnvelope, true);
     return true;
 }
 
@@ -704,10 +715,18 @@ export async function removeStoragePin(currentPin) {
     if (!raw) return true;
     if (!StorageShield.hasActiveSessionKey()) {
         const envelope = JSON.parse(raw);
-        await StorageShield.decryptWithPin(envelope, currentPin);
+        const decryptedJson = await StorageShield.decryptWithPin(envelope, currentPin);
+        initState(decryptedJson);
     }
+    const rawJson = JSON.stringify({
+        dataVersion: MODEL_VERSION,
+        activeProfileId: currentProfileId,
+        profiles,
+        globalSettings
+    });
+    const optionAEnvelope = StorageShield.encodeOptionA(rawJson);
+    safeSetStorage(LOCAL_STORAGE_KEY, optionAEnvelope, true);
     StorageShield.clearSessionKey();
-    saveStore();
     return true;
 }
 
@@ -742,10 +761,13 @@ export function isStoragePinConfigured() {
 }
 
 /**
- * Immediately purges the active session CryptoKey from memory.
+ * Immediately purges the active session CryptoKey and in-memory plan data from memory.
  */
 export function lockStorageSessionNow() {
     StorageShield.clearSessionKey();
+    currentState = null;
+    profiles = {};
+    currentProfileId = 'default';
 }
 
 /**
@@ -756,6 +778,7 @@ export function resetStorageToDefault() {
     if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(LOCAL_STORAGE_KEY);
     }
+    delete memoryStorageFallback[LOCAL_STORAGE_KEY];
     currentProfileId = 'default';
     profiles = {};
     currentState = null;

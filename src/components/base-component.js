@@ -325,7 +325,6 @@ export class BaseComponent extends BaseElement {
         if (
             cleanLabel.includes('start year') ||
             cleanLabel.includes('stop year') ||
-            cleanLabel.includes('graph years') ||
             cleanLabel.includes('bonus years')
         ) {
             return {
@@ -367,6 +366,16 @@ export class BaseComponent extends BaseElement {
                 sizingClass: 'input-currency-sm',
                 minAttr: 'min="0"',
                 maxAttr: 'max="50000000"',
+                stepAttr: 'step="1"'
+            };
+        }
+        if (cleanLabel.includes('graph years') || cleanLabel.includes('duration (years)')) {
+            return {
+                prefix: '',
+                suffix: ' yrs',
+                sizingClass: 'input-age',
+                minAttr: 'min="1"',
+                maxAttr: 'max="80"',
                 stepAttr: 'step="1"'
             };
         }

@@ -122,11 +122,24 @@ export class ProfileManagerModal extends BaseComponent {
         super();
         this.mode = 'add'; // 'add', 'rename', 'delete', 'import'
         this.importData = null;
+        this._onKeyDown = (e) => {
+            if (e.key === 'Escape') this.closeAll();
+        };
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        window.addEventListener('keydown', this._onKeyDown);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        window.removeEventListener('keydown', this._onKeyDown);
     }
 
     getTemplate() {
         return `
-            <div id="add-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999;">
+            <div id="add-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999; display: none;">
                 <div class="glass-panel" style="padding: 2rem; border-radius: 1rem; width: 400px; max-width: 90vw;">
                     <h2 style="margin-top: 0;">Add New Profile</h2>
                     <div class="input-group">
@@ -160,7 +173,7 @@ export class ProfileManagerModal extends BaseComponent {
                 </div>
             </div>
 
-            <div id="rename-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999;">
+            <div id="rename-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999; display: none;">
                 <div class="glass-panel" style="padding: 2rem; border-radius: 1rem; width: 400px; max-width: 90vw;">
                     <h2 style="margin-top: 0;">Rename Profile</h2>
                     <div class="input-group">
@@ -174,7 +187,7 @@ export class ProfileManagerModal extends BaseComponent {
                 </div>
             </div>
 
-            <div id="delete-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999;">
+            <div id="delete-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999; display: none;">
                 <div class="glass-panel" style="padding: 2rem; border-radius: 1rem; width: 400px; max-width: 90vw; border: 1px solid var(--error);">
                     <h2 style="margin-top: 0; color: var(--error);">Delete Profile</h2>
                     <p>Are you sure you want to delete <strong id="delete-profile-target-name"></strong>? This cannot be undone.</p>
@@ -185,7 +198,7 @@ export class ProfileManagerModal extends BaseComponent {
                 </div>
             </div>
 
-            <div id="import-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999;">
+            <div id="import-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999; display: none;">
                 <div class="glass-panel" style="padding: 2rem; border-radius: 1rem; width: 400px; max-width: 90vw;">
                     <h2 style="margin-top: 0;">Import Profile</h2>
                     <p style="color: var(--text-muted); font-size: 0.9rem;">How would you like to import this JSON data?</p>
@@ -320,22 +333,30 @@ export class ProfileManagerModal extends BaseComponent {
     }
 
     closeAll() {
-        this.querySelectorAll('.drawer-overlay').forEach((el) => el.classList.add('hidden'));
+        this.querySelectorAll('.drawer-overlay').forEach((el) => {
+            el.classList.add('hidden');
+            el.style.display = 'none';
+        });
     }
 
     openAdd() {
         this.closeAll();
         this.querySelector('#add-profile-name').value = '';
         this.querySelector('#add-profile-clone').checked = true;
-        this.querySelector('#add-profile-modal').classList.remove('hidden');
+        const modal = this.querySelector('#add-profile-modal');
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
     }
 
     openRename() {
         this.closeAll();
         const activeId = getActiveProfileId();
-        const activeName = getProfiles().find((p) => p.id === activeId).name;
+        const activeProfile = getProfiles().find((p) => p.id === activeId);
+        const activeName = activeProfile ? activeProfile.name : 'Current Profile';
         this.querySelector('#rename-profile-name').value = activeName;
-        this.querySelector('#rename-profile-modal').classList.remove('hidden');
+        const modal = this.querySelector('#rename-profile-modal');
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
     }
 
     openDelete() {
@@ -348,7 +369,9 @@ export class ProfileManagerModal extends BaseComponent {
         const activeProfile = getProfiles().find((p) => p.id === activeId);
         const activeName = activeProfile ? activeProfile.name : 'Current Profile';
         this.querySelector('#delete-profile-target-name').textContent = escapeHtml(activeName);
-        this.querySelector('#delete-profile-modal').classList.remove('hidden');
+        const modal = this.querySelector('#delete-profile-modal');
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
     }
 
     openImport(data, defaultName) {
@@ -365,8 +388,12 @@ export class ProfileManagerModal extends BaseComponent {
             select.appendChild(option);
         });
 
-        this.querySelector('#import-new-name').value = defaultName.replace('.json', '');
-        this.querySelector('#import-profile-modal').classList.remove('hidden');
+        this.querySelector('#import-new-name').value = defaultName
+            ? defaultName.replace('.json', '')
+            : 'Imported Profile';
+        const modal = this.querySelector('#import-profile-modal');
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
     }
 }
 

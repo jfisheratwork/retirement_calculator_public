@@ -183,7 +183,8 @@ export class ExpressOnboardingModal extends BaseComponent {
      * @returns {boolean} True if dismiss trigger.
      */
     _isCloseOrBackdropTrigger(clickedTarget) {
-        if (clickedTarget.id === 'express-onboarding-modal') return true;
+        if (clickedTarget.id === 'express-modal-overlay' || clickedTarget.id === 'express-onboarding-modal')
+            return true;
         if (clickedTarget.closest('.btn-close-express')) return true;
         if (clickedTarget.closest('.btn-skip-express')) return true;
         return false;
@@ -482,7 +483,7 @@ export class ExpressOnboardingModal extends BaseComponent {
         const visibilityClass = this._isOpen ? '' : 'hidden';
 
         return `
-            <div id="express-onboarding-modal" class="drawer-overlay ${visibilityClass}"
+            <div id="express-modal-overlay" class="drawer-overlay ${visibilityClass}"
                 style="align-items: center; justify-content: center; z-index: 10000; padding: 1.5rem; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(8px);">
                 <div class="express-modal-card"
                     style="width: 860px; max-width: 95vw; max-height: 94vh; overflow-y: auto; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 1.25rem; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85); padding: 2rem;">

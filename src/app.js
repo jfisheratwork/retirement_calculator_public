@@ -360,11 +360,19 @@ function bindDrawerEvents() {
     }
 }
 
+function _closeAllOnboardingModals() {
+    if (expressModalInstance) expressModalInstance.close();
+    if (guidedModalInstance) guidedModalInstance.close();
+    if (setupPickerModalInstance) setupPickerModalInstance.close();
+    if (paramsModal) paramsModal.classList.add('hidden');
+}
+
 function _bindModeButtons(updateActiveModePill) {
     const modeButtons = document.querySelectorAll('.mode-pill-btn');
     modeButtons.forEach((btn) => {
         btn.addEventListener('click', () => {
             const mode = btn.dataset.mode;
+            _closeAllOnboardingModals();
             updateActiveModePill(mode);
             if (mode === 'express') {
                 if (expressModalInstance) {
@@ -384,6 +392,7 @@ function _bindModeButtons(updateActiveModePill) {
 
     if (btnOpenSetup) {
         btnOpenSetup.addEventListener('click', () => {
+            _closeAllOnboardingModals();
             if (setupPickerModalInstance) setupPickerModalInstance.open();
         });
     }
@@ -394,6 +403,7 @@ function _bindSetupPickerEvents(updateActiveModePill) {
 
     setupPickerModalInstance.addEventListener('select-mode', (e) => {
         const mode = e.detail?.mode || 'express';
+        _closeAllOnboardingModals();
         updateActiveModePill(mode);
         if (mode === 'express') {
             if (expressModalInstance) {
@@ -444,6 +454,10 @@ function _bindExpressModalEvents(updateActiveModePill) {
 
 function _bindGuidedModalEvents(updateActiveModePill) {
     if (!guidedModalInstance) return;
+
+    guidedModalInstance.addEventListener('guided-cancel', () => {
+        guidedModalInstance.close();
+    });
 
     guidedModalInstance.addEventListener('guided-complete', (e) => {
         const guidedData = e.detail;

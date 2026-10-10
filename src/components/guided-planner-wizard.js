@@ -178,6 +178,23 @@ export class GuidedPlannerWizard extends BaseComponent {
             socialSecurityClaimAge: SS_CLAIM_AGE_FULL,
             endOfLifeGoal: GOAL_DIE_WITH_ZERO
         };
+
+        this._onKeyDown = (e) => {
+            if (e.key === 'Escape' && this.style.display !== 'none') {
+                this.dispatchEvent(new CustomEvent('guided-cancel', { bubbles: true, composed: true }));
+                this.close();
+            }
+        };
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        window.addEventListener('keydown', this._onKeyDown);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        window.removeEventListener('keydown', this._onKeyDown);
     }
 
     getData() {
@@ -897,6 +914,17 @@ export class GuidedPlannerWizard extends BaseComponent {
         if (btnClose) {
             btnClose.addEventListener('click', () => {
                 this.dispatchEvent(new CustomEvent('guided-cancel', { bubbles: true, composed: true }));
+                this.close();
+            });
+        }
+
+        const overlay = this.querySelector('.guided-wizard-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    this.dispatchEvent(new CustomEvent('guided-cancel', { bubbles: true, composed: true }));
+                    this.close();
+                }
             });
         }
 
