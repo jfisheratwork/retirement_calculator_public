@@ -16,6 +16,10 @@ export class FinancialDetailsInspector extends BaseComponent {
         this.appState = appState;
         this.yearIndex = yearIndex;
         this.allSimData = allSimData;
+        if (typeof document !== 'undefined') {
+            const inspector = document.getElementById('chart-inspector');
+            if (inspector) inspector.classList.add('hidden');
+        }
         this.render();
         this.afterRender();
     }

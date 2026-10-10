@@ -387,26 +387,24 @@ const externalTooltipHandler = (context) => {
         return;
     }
 
-    const isPinned = typeof window !== 'undefined' && window.pinnedYearIndex !== null;
-    if (isPinned) {
-        inspector.classList.add('pinned');
-        if (
-            !tooltip.dataPoints ||
-            tooltip.dataPoints.length === 0 ||
-            tooltip.dataPoints[0].dataIndex !== window.pinnedYearIndex
-        ) {
-            return;
-        }
-    } else {
-        inspector.classList.remove('pinned');
-    }
-
-    if (tooltip.opacity === 0 && !isPinned) {
+    // Suppress chart inspector tooltip when the detailed financial snapshot / focus-year drawer is open
+    const finDetailsDrawer = typeof document !== 'undefined' && document.getElementById('financial-details-drawer');
+    const isFinDetailsOpen = Boolean(
+        (finDetailsDrawer && !finDetailsDrawer.classList.contains('hidden')) ||
+            (typeof window !== 'undefined' && window.pinnedYearIndex !== null) ||
+            pinnedYearIndex !== null
+    );
+    if (isFinDetailsOpen) {
         inspector.classList.add('hidden');
         return;
     }
 
-    // Dynamic anti-collision docking:
+    if (tooltip.opacity === 0) {
+        inspector.classList.add('hidden');
+        return;
+    }
+
+    // Dynamic anti-collision docking and vertical chart alignment:
     // If hovering on left half of chart/screen -> dock right
     // If hovering on right half of chart/screen -> dock left
     if (typeof window !== 'undefined' && chart.canvas) {
@@ -421,6 +419,13 @@ const externalTooltipHandler = (context) => {
             inspector.classList.remove('dock-right');
             inspector.classList.add('dock-left');
         }
+
+        // Dynamically align inspector top with hovered chart canvas
+        const minTop = 16;
+        const maxTop = Math.max(minTop, window.innerHeight - 150);
+        const targetTop = Math.max(minTop, Math.min(maxTop, canvasRect.top));
+        inspector.style.top = `${targetTop}px`;
+        inspector.style.maxHeight = `calc(100vh - ${targetTop + 16}px)`;
     }
 
     inspector.classList.remove('hidden');
@@ -499,6 +504,8 @@ function generateAnnotationsConfig(events) {
 
 function handleChartClick(event, activeElements) {
     if (activeElements && activeElements.length > 0) {
+        const inspector = document.getElementById('chart-inspector');
+        if (inspector) inspector.classList.add('hidden');
         const index = activeElements[0].index;
         const focusYearSelect = document.getElementById('focus-year-select');
         if (focusYearSelect) {
@@ -562,7 +569,8 @@ export function buildPortfolioConfig(yearlyData, state, labels, annotations, s1N
             borderColor: '#00b894',
             backgroundColor: '#00b894',
             fill: false,
-            tension: 0.4
+            tension: 0.4,
+            hidden: true
         },
         {
             label: 'High-Yield Savings (HYSA)',
@@ -570,7 +578,8 @@ export function buildPortfolioConfig(yearlyData, state, labels, annotations, s1N
             borderColor: '#10ac84',
             backgroundColor: '#10ac84',
             fill: false,
-            tension: 0.4
+            tension: 0.4,
+            hidden: true
         },
         {
             label: 'Certificates of Deposit (CD)',
@@ -579,7 +588,7 @@ export function buildPortfolioConfig(yearlyData, state, labels, annotations, s1N
             backgroundColor: '#1dd1a1',
             fill: false,
             tension: 0.4,
-            hidden: !yearlyData.some((d) => (d.balances.s1Cd || 0) > 0 || (d.balances.s2Cd || 0) > 0)
+            hidden: true
         },
         {
             label: 'Health Savings Account (HSA)',
@@ -588,7 +597,7 @@ export function buildPortfolioConfig(yearlyData, state, labels, annotations, s1N
             backgroundColor: '#2bcbba',
             fill: false,
             tension: 0.4,
-            hidden: !yearlyData.some((d) => (d.balances.s1Hsa || 0) > 0 || (d.balances.s2Hsa || 0) > 0)
+            hidden: true
         },
         {
             label: 'Joint Brokerage',
@@ -596,7 +605,8 @@ export function buildPortfolioConfig(yearlyData, state, labels, annotations, s1N
             borderColor: '#0984e3',
             backgroundColor: '#0984e3',
             fill: false,
-            tension: 0.4
+            tension: 0.4,
+            hidden: true
         },
         {
             label: `${s1Name} Roth IRA`,
@@ -669,10 +679,7 @@ export function buildPortfolioConfig(yearlyData, state, labels, annotations, s1N
             backgroundColor: '#fdcb6e',
             fill: false,
             tension: 0.4,
-            hidden: !(
-                state.primaryResidenceEquity &&
-                (state.primaryResidenceEquity.currentValue > 0 || state.primaryResidenceEquity.currentHomeValue > 0)
-            )
+            hidden: true
         },
         {
             label: '529 College Savings',
