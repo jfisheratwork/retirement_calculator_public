@@ -1,7 +1,217 @@
+const DEFAULT_STANDARD_DEDUCTION = 29200;
+const DEFAULT_BRACKET_12_CEILING = 94300;
+const DEFAULT_TIER_AGE = 60;
+const STATUTORY_PENALTY_FREE_AGE = 59.5;
+const DEFAULT_RM_START_AGE = 65;
+const DEFAULT_HOME_GROWTH_RATE = 3;
+
+function isReverseMortgageActiveConfig(primaryResidenceEquity) {
+    return Boolean(
+        primaryResidenceEquity?.reverseMortgageEnabled ??
+            primaryResidenceEquity?.reverseMortgage?.enabled ??
+            primaryResidenceEquity?.enabled
+    );
+}
+
 /**
  * Manages portfolio withdrawals, reverse mortgage draws, cash cushion buffers, and shortfall fulfillment.
  */
 export class CashFlowManager {
+    static _createWithdrawalContext({ amountNeeded, year, stateRate, snapshot, onPreTaxTaxable, onLtcgRealized }) {
+        const ctx = {
+            amountLeft: amountNeeded,
+            year,
+            stateRate,
+            snapshot,
+            onPreTaxTaxable,
+            onLtcgRealized
+        };
+
+        ctx.tryPullPreTax = (spouse, type, maxDraw = Infinity, allowEarlyPenalty = false) =>
+            CashFlowManager._tryPullPreTax(ctx, spouse, type, maxDraw, allowEarlyPenalty);
+        ctx.tryPullLiquid = (spouse, type) => CashFlowManager._tryPullLiquid(ctx, spouse, type);
+        ctx.pullRothPrincipal = (spouse) => CashFlowManager._pullRothPrincipal(ctx, spouse);
+        ctx.pullRothEarnings = (spouse) => CashFlowManager._pullRothEarnings(ctx, spouse);
+
+        return ctx;
+    }
+
+    static _isPenaltyExemptPreTax(age, type, isRuleOf55Eligible) {
+        if (age >= STATUTORY_PENALTY_FREE_AGE) return true;
+        const isWorkplacePlan = type === 'traditional401k' || type === 'trad403b';
+        return Boolean(isRuleOf55Eligible && isWorkplacePlan);
+    }
+
+    static _recordPenalizedDrawdown(snapshot, spouseKey, amount, isPenaltyExempt, allowEarlyPenalty) {
+        if (!allowEarlyPenalty || isPenaltyExempt) return;
+        snapshot.income.drawdowns.penalizedPreTax = (snapshot.income.drawdowns.penalizedPreTax || 0) + amount;
+        const spousePenaltyKey = `${spouseKey}PenalizedPreTax`;
+        if (snapshot.income.drawdowns[spousePenaltyKey] !== undefined) {
+            snapshot.income.drawdowns[spousePenaltyKey] += amount;
+        }
+    }
+
+    static _tryPullPreTax(ctx, spouse, type, maxDraw = Infinity, allowEarlyPenalty = false) {
+        const account = spouse?.accounts?.[type];
+        if (ctx.amountLeft <= 0 || maxDraw <= 0 || !account || account.enabled === false) return 0;
+
+        const age = spouse.getAge(ctx.year);
+        const isRuleOf55Eligible =
+            typeof spouse.isRuleOf55Eligible === 'function' ? spouse.isRuleOf55Eligible(ctx.year) : false;
+        const isPenaltyExempt = CashFlowManager._isPenaltyExemptPreTax(age, type, isRuleOf55Eligible);
+        const grossNeeded = Math.min(ctx.amountLeft, maxDraw) / (1 - ctx.stateRate);
+
+        const d = account.withdraw(
+            grossNeeded,
+            age,
+            { is72tActive: false, isRuleOf55Eligible, allowEarlyPenalty },
+            ctx.snapshot.events,
+            `${spouse.name} ${type}`
+        );
+        if (d <= 0) return 0;
+
+        ctx.snapshot.recordDrawdown(spouse.key, type, d);
+        CashFlowManager._recordPenalizedDrawdown(ctx.snapshot, spouse.key, d, isPenaltyExempt, allowEarlyPenalty);
+
+        const netProvided = d * (1 - ctx.stateRate);
+        ctx.amountLeft -= netProvided;
+        if (ctx.onPreTaxTaxable) {
+            ctx.onPreTaxTaxable(d);
+        }
+        return netProvided;
+    }
+
+    static _tryPullLiquid(ctx, spouse, type) {
+        if (ctx.amountLeft <= 0 || !spouse?.accounts) return;
+        const account = spouse.accounts[type];
+        if (!account || account.enabled === false) return;
+
+        if (type === 'taxableBrokerage' && typeof account.withdrawWithGains === 'function') {
+            const res = account.withdrawWithGains(
+                ctx.amountLeft,
+                ctx.snapshot.events,
+                `${spouse.name} taxableBrokerage`
+            );
+            if (res.drawn > 0) {
+                ctx.snapshot.recordDrawdown(spouse.key, type, res.drawn);
+                ctx.amountLeft -= res.drawn;
+                if (res.realizedGain > 0 && ctx.onLtcgRealized) {
+                    ctx.onLtcgRealized(res.realizedGain);
+                }
+            }
+            return;
+        }
+
+        const d = account.withdraw(ctx.amountLeft, 0, false, ctx.snapshot.events, `${spouse.name} ${type}`);
+        if (d > 0) {
+            ctx.snapshot.recordDrawdown(spouse.key, type, d);
+            ctx.amountLeft -= d;
+        }
+    }
+
+    static _pullRothPrincipal(ctx, spouse) {
+        if (ctx.amountLeft <= 0 || !spouse?.accounts?.rothIra || spouse.accounts.rothIra.enabled === false) return;
+        const d = spouse.accounts.rothIra.withdraw(
+            ctx.amountLeft,
+            0,
+            ctx.year,
+            ctx.snapshot.events,
+            `${spouse.name} Roth IRA`
+        );
+        if (d > 0) {
+            ctx.amountLeft -= d;
+            ctx.snapshot.recordDrawdown(spouse.key, 'rothIra', d);
+        }
+    }
+
+    static _pullRothEarnings(ctx, spouse) {
+        if (ctx.amountLeft <= 0 || !spouse?.accounts?.rothIra || spouse.accounts.rothIra.enabled === false) return;
+        const age = spouse.getAge(ctx.year);
+        if (age < STATUTORY_PENALTY_FREE_AGE) return;
+
+        const d = spouse.accounts.rothIra.withdraw(
+            ctx.amountLeft,
+            age,
+            ctx.year,
+            ctx.snapshot.events,
+            `${spouse.name} Roth IRA Earnings`
+        );
+        if (d > 0) {
+            ctx.amountLeft -= d;
+            ctx.snapshot.recordDrawdown(spouse.key, 'rothIra', d);
+        }
+    }
+
+    static _executeStandardWaterfall(ctx, s1, s2) {
+        ctx.pullRothPrincipal(s1);
+        ctx.pullRothPrincipal(s2);
+
+        ctx.tryPullLiquid(s1, 'hysa');
+        ctx.tryPullLiquid(s2, 'hysa');
+        ctx.tryPullLiquid(s1, 'taxableBrokerage');
+        ctx.tryPullLiquid(s2, 'taxableBrokerage');
+
+        ctx.tryPullPreTax(s1, 'trad403b');
+        ctx.tryPullPreTax(s2, 'trad403b');
+        ctx.tryPullPreTax(s1, 'traditional401k');
+        ctx.tryPullPreTax(s2, 'traditional401k');
+        ctx.tryPullPreTax(s1, 'standardIra');
+        ctx.tryPullPreTax(s2, 'standardIra');
+
+        ctx.pullRothEarnings(s1);
+        ctx.pullRothEarnings(s2);
+    }
+
+    static _executePenalizedPreTaxFallback(ctx, s1, s2) {
+        if ((ctx.snapshot?.expenses || 0) <= 0) return;
+        const preTaxTypes = ['trad403b', 'traditional401k', 'standardIra'];
+        for (const type of preTaxTypes) {
+            if (ctx.amountLeft <= 0) break;
+            ctx.tryPullPreTax(s1, type, Infinity, true);
+            if (ctx.amountLeft > 0) {
+                ctx.tryPullPreTax(s2, type, Infinity, true);
+            }
+        }
+    }
+
+    static _applyLowBracketOptimization(ctx, { s1, s2, taxYearData, filingStatus, currentTaxableIncome }) {
+        const statusData = taxYearData[filingStatus] || taxYearData.mfj || taxYearData;
+        const standardDeduction = statusData.standardDeduction || DEFAULT_STANDARD_DEDUCTION;
+        const bracket12Ceiling = statusData.brackets?.[1]?.upTo || DEFAULT_BRACKET_12_CEILING;
+        const maxLowTaxable = standardDeduction + bracket12Ceiling;
+        const roomInLowBracket = Math.max(0, maxLowTaxable - currentTaxableIncome);
+
+        if (roomInLowBracket > 0) {
+            CashFlowManager._executeTaxOptimizedPreTaxDraws(
+                s1,
+                s2,
+                roomInLowBracket,
+                ctx.amountLeft,
+                ctx.tryPullPreTax
+            );
+        }
+    }
+
+    static _pullCushionAndReverseMortgage(ctx, cashCushion, primaryResidenceEquity, snapshot) {
+        if (ctx.amountLeft > 0 && cashCushion?.value > 0) {
+            const d = Math.min(cashCushion.value, ctx.amountLeft);
+            cashCushion.value -= d;
+            ctx.amountLeft -= d;
+            snapshot.income.drawdowns.cashCushion += d;
+        }
+
+        if (
+            ctx.amountLeft > 0 &&
+            isReverseMortgageActiveConfig(primaryResidenceEquity) &&
+            primaryResidenceEquity.active
+        ) {
+            const d = Math.min(primaryResidenceEquity.currentValue, ctx.amountLeft);
+            primaryResidenceEquity.currentValue -= d;
+            ctx.amountLeft -= d;
+            snapshot.income.reverseMortgage += d;
+        }
+    }
+
     static withdrawFromPortfolios({
         amountNeeded,
         year,
@@ -14,199 +224,93 @@ export class CashFlowManager {
         onPreTaxTaxable,
         onLtcgRealized,
         drawdownStrategy = 'standard',
-        drawdownTierAge = 60,
+        drawdownTierAge = DEFAULT_TIER_AGE,
         taxYearData = null,
         currentTaxableIncome = 0,
         filingStatus = 'mfj'
     }) {
-        let amountLeft = amountNeeded;
+        const ctx = CashFlowManager._createWithdrawalContext({
+            amountNeeded,
+            year,
+            stateRate,
+            snapshot,
+            onPreTaxTaxable,
+            onLtcgRealized
+        });
 
-        const tryPullPreTax = (spouse, type, maxDraw = Infinity) => {
-            if (amountLeft <= 0 || maxDraw <= 0 || !spouse || !spouse.accounts) return 0;
-            const account = spouse.accounts[type];
-            if (!account || account.enabled === false) return 0;
-
-            const age = spouse.getAge(year);
-            const targetAmount = Math.min(amountLeft, maxDraw);
-            const grossNeeded = targetAmount / (1 - stateRate);
-
-            const d = account.withdraw(grossNeeded, age, false, snapshot.events, `${spouse.name} ${type}`);
-            if (d > 0) {
-                snapshot.recordDrawdown(spouse.key, type, d);
-                const netProvided = d * (1 - stateRate);
-                amountLeft -= netProvided;
-                if (onPreTaxTaxable) {
-                    onPreTaxTaxable(d);
-                }
-                return netProvided;
-            }
-            return 0;
-        };
-
-        const tryPullLiquid = (spouse, type) => {
-            if (amountLeft <= 0 || !spouse || !spouse.accounts) return;
-            const account = spouse.accounts[type];
-            if (!account || account.enabled === false) return;
-
-            if (type === 'taxableBrokerage' && typeof account.withdrawWithGains === 'function') {
-                const res = account.withdrawWithGains(amountLeft, snapshot.events, `${spouse.name} taxableBrokerage`);
-                if (res.drawn > 0) {
-                    snapshot.recordDrawdown(spouse.key, type, res.drawn);
-                    amountLeft -= res.drawn;
-                    if (res.realizedGain > 0 && onLtcgRealized) {
-                        onLtcgRealized(res.realizedGain);
-                    }
-                }
-            } else {
-                const d = account.withdraw(amountLeft, 0, false, snapshot.events, `${spouse.name} ${type}`);
-                if (d > 0) {
-                    snapshot.recordDrawdown(spouse.key, type, d);
-                    amountLeft -= d;
-                }
-            }
-        };
-
-        const pullRothPrincipal = (spouse) => {
-            if (amountLeft <= 0 || !spouse?.accounts?.rothIra || spouse.accounts.rothIra.enabled === false) return;
-            const d = spouse.accounts.rothIra.withdraw(amountLeft, 0, year, snapshot.events, `${spouse.name} Roth IRA`);
-            if (d > 0) {
-                amountLeft -= d;
-                snapshot.recordDrawdown(spouse.key, 'rothIra', d);
-            }
-        };
-
-        const pullRothEarnings = (spouse) => {
-            if (amountLeft <= 0 || !spouse?.accounts?.rothIra || spouse.accounts.rothIra.enabled === false) return;
-            const age = spouse.getAge(year);
-            if (age >= 59.5) {
-                const d = spouse.accounts.rothIra.withdraw(
-                    amountLeft,
-                    age,
-                    year,
-                    snapshot.events,
-                    `${spouse.name} Roth IRA Earnings`
-                );
-                if (d > 0) {
-                    amountLeft -= d;
-                    snapshot.recordDrawdown(spouse.key, 'rothIra', d);
-                }
-            }
-        };
-
-        // Strategy A: Tax-Optimized Bracket Filling (draw pre-tax up to the 12% bracket threshold first)
         if (drawdownStrategy === 'tax_optimized' && taxYearData) {
-            const statusData = taxYearData[filingStatus] || taxYearData.mfj || taxYearData;
-            const standardDeduction = statusData.standardDeduction || 29200;
-            const bracket12Ceiling = statusData.brackets?.[1]?.upTo || 94300;
-            const maxLowTaxable = standardDeduction + bracket12Ceiling;
-            const roomInLowBracket = Math.max(0, maxLowTaxable - currentTaxableIncome);
-
-            if (roomInLowBracket > 0) {
-                CashFlowManager._executeTaxOptimizedPreTaxDraws(s1, s2, roomInLowBracket, amountLeft, tryPullPreTax);
-            }
+            CashFlowManager._applyLowBracketOptimization(ctx, {
+                s1,
+                s2,
+                taxYearData,
+                filingStatus,
+                currentTaxableIncome
+            });
         }
 
-        // Strategy B: Age-Tiered Drawdown (< TierAge: Roth -> Brokerage | >= TierAge: 403b -> Roth -> IRA -> Brokerage)
         if (drawdownStrategy === 'age_tiered_60' || drawdownStrategy === 'age_tiered') {
             CashFlowManager._executeAgeTieredDrawdowns({
                 s1,
                 s2,
                 year,
-                tierAge: Number(drawdownTierAge) || 60,
-                tryPullPreTax,
-                pullRothPrincipal,
-                pullRothEarnings,
-                tryPullLiquid
+                tierAge: Number(drawdownTierAge) || DEFAULT_TIER_AGE,
+                tryPullPreTax: ctx.tryPullPreTax,
+                pullRothPrincipal: ctx.pullRothPrincipal,
+                pullRothEarnings: ctx.pullRothEarnings,
+                tryPullLiquid: ctx.tryPullLiquid
             });
         } else {
-            // Standard waterfall
-            // 1. Roth Principal (No age limit)
-            pullRothPrincipal(s1);
-            pullRothPrincipal(s2);
-
-            // 2. Liquid Accounts: HYSA & Taxable Brokerage (with cost basis & capital gains)
-            tryPullLiquid(s1, 'hysa');
-            tryPullLiquid(s2, 'hysa');
-            tryPullLiquid(s1, 'taxableBrokerage');
-            tryPullLiquid(s2, 'taxableBrokerage');
-
-            // 3. Pre-tax accounts in order: 403b -> 401k -> StandardIra
-            tryPullPreTax(s1, 'trad403b');
-            tryPullPreTax(s2, 'trad403b');
-            tryPullPreTax(s1, 'traditional401k');
-            tryPullPreTax(s2, 'traditional401k');
-            tryPullPreTax(s1, 'standardIra');
-            tryPullPreTax(s2, 'standardIra');
-
-            // 4. Roth Earnings (Age >= 59.5)
-            pullRothEarnings(s1);
-            pullRothEarnings(s2);
+            CashFlowManager._executeStandardWaterfall(ctx, s1, s2);
         }
 
-        // 5. Cushion
-        if (amountLeft > 0 && cashCushion.value > 0) {
-            const d = Math.min(cashCushion.value, amountLeft);
-            cashCushion.value -= d;
-            amountLeft -= d;
-            snapshot.income.drawdowns.cashCushion += d;
+        CashFlowManager._pullCushionAndReverseMortgage(ctx, cashCushion, primaryResidenceEquity, snapshot);
+
+        if (ctx.amountLeft > 0) {
+            CashFlowManager._executePenalizedPreTaxFallback(ctx, s1, s2);
         }
 
-        // 6. Home Equity (Reverse Mortgage manual draw)
-        const isReverseMortgageEnabled = Boolean(
-            primaryResidenceEquity?.reverseMortgageEnabled ??
-                primaryResidenceEquity?.reverseMortgage?.enabled ??
-                primaryResidenceEquity?.enabled
-        );
-        if (amountLeft > 0 && isReverseMortgageEnabled && primaryResidenceEquity.active) {
-            const d = Math.min(primaryResidenceEquity.currentValue, amountLeft);
-            primaryResidenceEquity.currentValue -= d;
-            amountLeft -= d;
-            snapshot.income.reverseMortgage += d;
-        }
+        return ctx.amountLeft;
+    }
 
-        return amountLeft; // Unfunded shortfall
+    static _activateReverseMortgageIfNeeded(year, primaryResidenceEquity, mortgage, events) {
+        if (primaryResidenceEquity.active) return;
+        primaryResidenceEquity.active = true;
+        if (mortgage?.enabled && mortgage.currentBalance > 0) {
+            const payoffAmount = Math.max(0, mortgage.currentBalance);
+            primaryResidenceEquity.currentValue = Math.max(0, primaryResidenceEquity.currentValue - payoffAmount);
+            mortgage.currentBalance = 0;
+            events.push({ year, label: 'RM Paid Off Mortgage', type: 'rm_payoff' });
+        }
     }
 
     static processReverseMortgage({ year, s1, s2, primaryResidenceEquity, mortgage, snapshot, events }) {
-        let rmIncome = 0;
-        const isReverseMortgageEnabled = Boolean(
-            primaryResidenceEquity?.reverseMortgageEnabled ??
-                primaryResidenceEquity?.reverseMortgage?.enabled ??
-                primaryResidenceEquity?.enabled
-        );
+        const isEnabled = isReverseMortgageActiveConfig(primaryResidenceEquity);
         const startAge =
-            primaryResidenceEquity?.reverseMortgageStartAge || primaryResidenceEquity?.reverseMortgage?.startAge || 65;
+            primaryResidenceEquity?.reverseMortgageStartAge ||
+            primaryResidenceEquity?.reverseMortgage?.startAge ||
+            DEFAULT_RM_START_AGE;
 
-        if (isReverseMortgageEnabled && s1.getAge(year) >= startAge) {
-            if (!primaryResidenceEquity.active) {
-                primaryResidenceEquity.active = true;
-                if (mortgage.enabled && mortgage.currentBalance > 0) {
-                    const payoffAmount = Math.max(0, mortgage.currentBalance);
-                    primaryResidenceEquity.currentValue = Math.max(
-                        0,
-                        primaryResidenceEquity.currentValue - payoffAmount
-                    );
-                    mortgage.currentBalance = 0;
-                    events.push({ year, label: 'RM Paid Off Mortgage', type: 'rm_payoff' });
-                }
-            }
+        if (!isEnabled || s1.getAge(year) < startAge) return 0;
 
-            const yearsLeft = Math.max(s1.lifeExpectancy - s1.getAge(year), s2.lifeExpectancy - s2.getAge(year));
-            if (yearsLeft > 0 && primaryResidenceEquity.currentValue > 0) {
-                const rate =
-                    (primaryResidenceEquity.annualGrowthRate !== undefined
-                        ? primaryResidenceEquity.annualGrowthRate
-                        : 3) / 100;
-                if (rate === 0) {
-                    rmIncome = primaryResidenceEquity.currentValue / yearsLeft;
-                } else {
-                    rmIncome = (rate * primaryResidenceEquity.currentValue) / (1 - Math.pow(1 + rate, -yearsLeft));
-                }
-                rmIncome = Math.min(rmIncome, primaryResidenceEquity.currentValue);
-                primaryResidenceEquity.currentValue -= rmIncome;
-                snapshot.income.reverseMortgage = rmIncome;
-            }
-        }
+        this._activateReverseMortgageIfNeeded(year, primaryResidenceEquity, mortgage, events);
+
+        const s2Remaining = s2 ? s2.lifeExpectancy - s2.getAge(year) : 0;
+        const yearsLeft = Math.max(s1.lifeExpectancy - s1.getAge(year), s2Remaining);
+        if (yearsLeft <= 0 || primaryResidenceEquity.currentValue <= 0) return 0;
+
+        const rawRate =
+            primaryResidenceEquity.annualGrowthRate !== undefined
+                ? primaryResidenceEquity.annualGrowthRate
+                : DEFAULT_HOME_GROWTH_RATE;
+        const rate = rawRate / 100;
+        const rawIncome =
+            rate === 0
+                ? primaryResidenceEquity.currentValue / yearsLeft
+                : (rate * primaryResidenceEquity.currentValue) / (1 - Math.pow(1 + rate, -yearsLeft));
+
+        const rmIncome = Math.min(rawIncome, primaryResidenceEquity.currentValue);
+        primaryResidenceEquity.currentValue -= rmIncome;
+        snapshot.income.reverseMortgage = rmIncome;
         return rmIncome;
     }
 
@@ -228,7 +332,7 @@ export class CashFlowManager {
         s1,
         s2,
         year,
-        tierAge = 60,
+        tierAge = DEFAULT_TIER_AGE,
         tryPullPreTax,
         pullRothPrincipal,
         pullRothEarnings,
@@ -237,21 +341,14 @@ export class CashFlowManager {
         const s1Age = s1 ? s1.getAge(year) : 0;
         const s2Age = s2 ? s2.getAge(year) : 0;
 
-        // 1. Post-60: Workplace 403(b) first
-        if (s1Age >= tierAge) {
-            tryPullPreTax(s1, 'trad403b');
-        }
-        if (s2Age >= tierAge) {
-            tryPullPreTax(s2, 'trad403b');
-        }
+        if (s1Age >= tierAge) tryPullPreTax(s1, 'trad403b');
+        if (s2Age >= tierAge) tryPullPreTax(s2, 'trad403b');
 
-        // 2. Roth IRA (Principal penalty-free at any age; Earnings if age >= 59.5)
         pullRothPrincipal(s1);
         pullRothPrincipal(s2);
         pullRothEarnings(s1);
         pullRothEarnings(s2);
 
-        // 3. Post-60: Traditional IRA and 401(k)
         if (s1Age >= tierAge) {
             tryPullPreTax(s1, 'standardIra');
             tryPullPreTax(s1, 'traditional401k');
@@ -261,7 +358,6 @@ export class CashFlowManager {
             tryPullPreTax(s2, 'traditional401k');
         }
 
-        // 4. Taxable Brokerage & Liquid Cash
         tryPullLiquid(s1, 'hysa');
         tryPullLiquid(s2, 'hysa');
         tryPullLiquid(s1, 'taxableBrokerage');

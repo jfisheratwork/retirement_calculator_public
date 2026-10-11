@@ -48,7 +48,8 @@ export class Account {
     /**
      * @returns {number} The amount successfully withdrawn
      */
-    withdraw(amount, _ownerAge = 0, _is72tActive = false, events = null, accountName = '') {
+    withdraw(amount, ...rest) {
+        const [, , events = null, accountName = ''] = rest;
         if (amount <= 0) return 0;
         const available = Math.max(0, this.balance);
         const drawn = Math.min(available, amount);
@@ -67,13 +68,45 @@ export class Account {
     }
 }
 
+const STATUTORY_PENALTY_FREE_AGE = 59.5;
+const RULE_OF_55_MIN_AGE = 55;
+
+function parsePreTaxWithdrawOptions(is72tOrOptions) {
+    if (typeof is72tOrOptions === 'object' && is72tOrOptions !== null) {
+        return {
+            is72tActive: Boolean(is72tOrOptions.is72tActive),
+            isRuleOf55Eligible: Boolean(is72tOrOptions.isRuleOf55Eligible),
+            allowEarlyPenalty: Boolean(is72tOrOptions.allowEarlyPenalty)
+        };
+    }
+    return {
+        is72tActive: Boolean(is72tOrOptions),
+        isRuleOf55Eligible: false,
+        allowEarlyPenalty: false
+    };
+}
+
 export class PreTaxAccount extends Account {
     constructor(id, name, balance, expectedReturn, contributionPercentage) {
         super(id, name, balance, expectedReturn, contributionPercentage);
     }
 
-    withdraw(amount, ownerAge = 0, is72tActive = false, events = null, accountName = '') {
-        if (ownerAge < 59.5 && !is72tActive) {
+    _isRuleOf55Exempt(ownerAge, isRuleOf55Eligible) {
+        const isWorkplacePlan = this.type === 'traditional401k' || this.type === 'trad403b';
+        return isRuleOf55Eligible && ownerAge >= RULE_OF_55_MIN_AGE && isWorkplacePlan;
+    }
+
+    /**
+     * Withdraws from a pre-tax retirement account.
+     * Supports IRC § 72(t)(2)(A)(v) Rule of 55 and IRC § 72(t)(1) 10% early withdrawal penalty fallback.
+     */
+    withdraw(amount, ownerAge = 0, is72tOrOptions = false, events = null, accountName = '') {
+        const { is72tActive, isRuleOf55Eligible, allowEarlyPenalty } = parsePreTaxWithdrawOptions(is72tOrOptions);
+        const isRuleOf55Exempt = this._isRuleOf55Exempt(ownerAge, isRuleOf55Eligible);
+        const isPermitted =
+            ownerAge >= STATUTORY_PENALTY_FREE_AGE || is72tActive || isRuleOf55Exempt || allowEarlyPenalty;
+
+        if (!isPermitted) {
             if (events) {
                 events.push({
                     type: 'withdrawal_blocked',
@@ -90,7 +123,8 @@ export class PreTaxAccount extends Account {
 }
 
 export class Trad401k extends PreTaxAccount {
-    constructor(id, name, balance, expectedReturn, contributionPercentage, employerMatchConfig = {}) {
+    constructor(id, name, balance, expectedReturn, ...rest) {
+        const [contributionPercentage = 0, employerMatchConfig = {}] = rest;
         super(id, name, balance, expectedReturn, contributionPercentage);
         this.type = 'traditional401k';
         this.employerMatchConfig = employerMatchConfig;
@@ -98,7 +132,8 @@ export class Trad401k extends PreTaxAccount {
 }
 
 export class Trad403b extends PreTaxAccount {
-    constructor(id, name, balance, expectedReturn, contributionPercentage, employerMatchConfig = {}) {
+    constructor(id, name, balance, expectedReturn, ...rest) {
+        const [contributionPercentage = 0, employerMatchConfig = {}] = rest;
         super(id, name, balance, expectedReturn, contributionPercentage);
         this.type = 'trad403b';
         this.employerMatchConfig = employerMatchConfig;
@@ -113,7 +148,8 @@ export class StandardIra extends PreTaxAccount {
 }
 
 export class TaxableBrokerage extends Account {
-    constructor(id, name, balance, expectedReturn, contributionPercentage, costBasis = null) {
+    constructor(id, name, balance, expectedReturn, ...rest) {
+        const [contributionPercentage = 0, costBasis = null] = rest;
         super(id, name, balance, expectedReturn, contributionPercentage);
         this.type = 'taxableBrokerage';
         this.costBasis = costBasis !== null && costBasis !== undefined ? Number(costBasis) : this.balance * 0.5;
@@ -147,7 +183,8 @@ export class Hysa extends Account {
 }
 
 export class CdAccount extends Account {
-    constructor(id, name, balance, expectedReturn = 5, contributionPercentage = 0, config = {}) {
+    constructor(id, name, balance, expectedReturn = 5, ...rest) {
+        const [contributionPercentage = 0, config = {}] = rest;
         super(id, name, balance, expectedReturn, contributionPercentage);
         this.type = 'cd';
         this.rate =
@@ -170,7 +207,8 @@ export class CdAccount extends Account {
 }
 
 export class RothIra extends Account {
-    constructor(id, name, balance, expectedReturn, contributionPercentage = 0, config = {}) {
+    constructor(id, name, balance, expectedReturn, ...rest) {
+        const [contributionPercentage = 0, config = {}] = rest;
         super(id, name, balance, expectedReturn, contributionPercentage);
         this.type = 'rothIra';
         this.annualContribution =
@@ -335,7 +373,8 @@ export class RothIra extends Account {
 }
 
 export class Hsa extends Account {
-    constructor(id, name, balance = 0, expectedReturn = 6, contributionPercentage = 0, config = {}) {
+    constructor(id, name, balance = 0, expectedReturn = 6, ...rest) {
+        const [contributionPercentage = 0, config = {}] = rest;
         super(id, name, balance, expectedReturn, contributionPercentage);
         this.type = 'hsa';
         this.coverageTier = config.coverageTier || 'single';

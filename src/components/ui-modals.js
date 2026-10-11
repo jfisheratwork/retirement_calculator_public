@@ -91,7 +91,7 @@ export class SettingsModal extends BaseComponent {
                     );
                     e.target.value = '';
                     this.close();
-                } catch (err) {
+                } catch {
                     alert('Failed to parse the imported JSON file.');
                 }
             };
@@ -137,7 +137,7 @@ export class ProfileManagerModal extends BaseComponent {
         window.removeEventListener('keydown', this._onKeyDown);
     }
 
-    getTemplate() {
+    _renderAddAndRenameModals() {
         return `
             <div id="add-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999; display: none;">
                 <div class="glass-panel" style="padding: 2rem; border-radius: 1rem; width: 400px; max-width: 90vw;">
@@ -186,7 +186,12 @@ export class ProfileManagerModal extends BaseComponent {
                     </div>
                 </div>
             </div>
+        `;
+    }
 
+    getTemplate() {
+        return `
+            ${this._renderAddAndRenameModals()}
             <div id="delete-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999; display: none;">
                 <div class="glass-panel" style="padding: 2rem; border-radius: 1rem; width: 400px; max-width: 90vw; border: 1px solid var(--error);">
                     <h2 style="margin-top: 0; color: var(--error);">Delete Profile</h2>
@@ -227,18 +232,7 @@ export class ProfileManagerModal extends BaseComponent {
         `;
     }
 
-    afterRender() {
-        // Add Profile
-        this.querySelector('#btn-add-profile-cancel').addEventListener('click', () => this.closeAll());
-        this.querySelector('#btn-add-profile-confirm').addEventListener('click', () => {
-            const name = this.querySelector('#add-profile-name').value.trim() || 'New Profile';
-            const clone = this.querySelector('#add-profile-clone').checked;
-            switchProfile(createProfile(name, clone));
-            this.dispatchUpdate();
-            this.closeAll();
-        });
-
-        // Built-in Sample Presets
+    _bindSamplePresets() {
         this.querySelectorAll('.btn-load-sample-preset').forEach((btn) => {
             btn.addEventListener('click', async () => {
                 const file = btn.getAttribute('data-file');
@@ -264,44 +258,17 @@ export class ProfileManagerModal extends BaseComponent {
                 }
             });
         });
+    }
 
-        // Rename Profile
-        this.querySelector('#btn-rename-profile-cancel').addEventListener('click', () => this.closeAll());
-        this.querySelector('#btn-rename-profile-confirm').addEventListener('click', () => {
-            const newName = this.querySelector('#rename-profile-name').value.trim() || 'Unnamed Profile';
-            renameProfile(getActiveProfileId(), newName);
-            this.dispatchUpdate();
-            this.closeAll();
-        });
-
-        // Delete Profile
-        this.querySelector('#btn-delete-profile-cancel').addEventListener('click', () => this.closeAll());
-        this.querySelector('#btn-delete-profile-confirm').addEventListener('click', () => {
-            const profiles = getProfiles();
-            if (profiles.length <= 1) {
-                alert('Cannot delete the only remaining profile.');
-                this.closeAll();
-                return;
-            }
-            deleteProfile(getActiveProfileId());
-            this.dispatchUpdate();
-            this.closeAll();
-        });
-
-        // Import Profile Radio Toggle
+    _bindImportHandlers() {
         this.querySelectorAll('input[name="import-mode"]').forEach((radio) => {
             radio.addEventListener('change', (e) => {
-                if (e.target.value === 'new') {
-                    this.querySelector('#import-new-name-group').style.display = 'block';
-                    this.querySelector('#import-replace-group').style.display = 'none';
-                } else {
-                    this.querySelector('#import-new-name-group').style.display = 'none';
-                    this.querySelector('#import-replace-group').style.display = 'block';
-                }
+                const isNew = e.target.value === 'new';
+                this.querySelector('#import-new-name-group').style.display = isNew ? 'block' : 'none';
+                this.querySelector('#import-replace-group').style.display = isNew ? 'none' : 'block';
             });
         });
 
-        // Import Confirm
         this.querySelector('#btn-import-profile-cancel').addEventListener('click', () => this.closeAll());
         this.querySelector('#btn-import-profile-confirm').addEventListener('click', () => {
             if (!this.importData) return;
@@ -320,6 +287,42 @@ export class ProfileManagerModal extends BaseComponent {
             this.dispatchUpdate();
             this.closeAll();
         });
+    }
+
+    afterRender() {
+        this.querySelector('#btn-add-profile-cancel').addEventListener('click', () => this.closeAll());
+        this.querySelector('#btn-add-profile-confirm').addEventListener('click', () => {
+            const name = this.querySelector('#add-profile-name').value.trim() || 'New Profile';
+            const clone = this.querySelector('#add-profile-clone').checked;
+            switchProfile(createProfile(name, clone));
+            this.dispatchUpdate();
+            this.closeAll();
+        });
+
+        this._bindSamplePresets();
+
+        this.querySelector('#btn-rename-profile-cancel').addEventListener('click', () => this.closeAll());
+        this.querySelector('#btn-rename-profile-confirm').addEventListener('click', () => {
+            const newName = this.querySelector('#rename-profile-name').value.trim() || 'Unnamed Profile';
+            renameProfile(getActiveProfileId(), newName);
+            this.dispatchUpdate();
+            this.closeAll();
+        });
+
+        this.querySelector('#btn-delete-profile-cancel').addEventListener('click', () => this.closeAll());
+        this.querySelector('#btn-delete-profile-confirm').addEventListener('click', () => {
+            const profiles = getProfiles();
+            if (profiles.length <= 1) {
+                alert('Cannot delete the only remaining profile.');
+                this.closeAll();
+                return;
+            }
+            deleteProfile(getActiveProfileId());
+            this.dispatchUpdate();
+            this.closeAll();
+        });
+
+        this._bindImportHandlers();
 
         this.querySelectorAll('.drawer-overlay').forEach((modal) => {
             modal.addEventListener('click', (e) => {

@@ -295,17 +295,76 @@ export class FinancialDetailsInspector extends BaseComponent {
         return `<span style="background: #d63031; color: #fff; font-size: 0.65rem; font-weight: bold; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">Ineligible</span>`;
     }
 
+    _extractTaxAmounts(tax, snap) {
+        const td = snap.taxDetails || {};
+        const ficaTax = td.ficaTax || 0;
+        const baseTotal = td.totalTax || snap.taxes || 0;
+        return {
+            ficaTax,
+            ltcgTax: td.capitalGainsTax || 0,
+            niitTax: td.niitTax || 0,
+            fedIncomeTax: td.federalTax || 0,
+            stateTax: td.stateTax || 0,
+            irmaaExp: snap.expenseBreakdown?.irmaa || 0,
+            magi: td.magi ?? tax.magi ?? 0,
+            hsaDeduction: td.hsaDeduction ?? tax.hsaDeduction ?? 0,
+            totalStatutoryTaxes: baseTotal + ficaTax
+        };
+    }
+
+    _renderItemizedTaxRows(amounts) {
+        const items = [
+            {
+                val: amounts.hsaDeduction,
+                label: '↳ HSA Pre-Tax Payroll Deduction',
+                rowColor: '#00cec9',
+                valColor: '#00cec9',
+                prefix: '-'
+            },
+            { val: amounts.fedIncomeTax, label: '↳ Federal Income Tax', rowColor: '', valColor: '', prefix: '' },
+            {
+                val: amounts.ficaTax,
+                label: '↳ FICA Payroll (OASDI + Medicare)',
+                rowColor: '#fdcb6e',
+                valColor: '',
+                prefix: ''
+            },
+            {
+                val: amounts.ltcgTax,
+                label: '↳ Long-Term Capital Gains Tax',
+                rowColor: '#74b9ff',
+                valColor: '',
+                prefix: ''
+            },
+            {
+                val: amounts.niitTax,
+                label: '↳ Net Investment Income Tax (3.8% NIIT)',
+                rowColor: '#e17055',
+                valColor: '',
+                prefix: ''
+            },
+            { val: amounts.stateTax, label: '↳ State Income Tax', rowColor: '', valColor: '', prefix: '' },
+            {
+                val: amounts.irmaaExp,
+                label: '↳ Medicare IRMAA Surcharges (Healthcare)',
+                rowColor: '#ff7675',
+                valColor: '',
+                prefix: ''
+            }
+        ];
+        return items
+            .filter((item) => item.val > 0)
+            .map((item) => {
+                const rowStyle = item.rowColor ? `font-size: 0.82rem; color: ${item.rowColor};` : 'font-size: 0.82rem;';
+                const valStyle = item.valColor ? ` style="color: ${item.valColor};"` : '';
+                return `<div class="inspector-row" style="${rowStyle}"><span class="inspector-label">${item.label}</span><span class="inspector-value"${valStyle}>${item.prefix}${this._fmt(item.val)}</span></div>`;
+            })
+            .join('');
+    }
+
     _renderFinancialTaxes(tax, snap) {
-        const ficaTax = snap.taxDetails?.ficaTax || 0;
-        const ltcgTax = snap.taxDetails?.capitalGainsTax || 0;
-        const niitTax = snap.taxDetails?.niitTax || 0;
-        const fedIncomeTax = snap.taxDetails?.federalTax || 0;
-        const stateTax = snap.taxDetails?.stateTax || 0;
-        const irmaaExp = snap.expenseBreakdown?.irmaa || 0;
-        const magi = snap.taxDetails?.magi ?? tax.magi ?? 0;
-        const hsaDeduction = snap.taxDetails?.hsaDeduction ?? tax.hsaDeduction ?? 0;
-        const totalStatutoryTaxes = (snap.taxDetails?.totalTax || snap.taxes || 0) + ficaTax;
-        const rothBadge = this._getRothStatusBadge(magi, tax.filingStatus);
+        const amounts = this._extractTaxAmounts(tax, snap);
+        const rothBadge = this._getRothStatusBadge(amounts.magi, tax.filingStatus);
         const magiTooltip = escapeHtml(
             `Modified AGI determines statutory Roth IRA eligibility. Phases out between $150k–$165k (Single) and $236k–$246k (MFJ). Pre-tax 401(k) and workplace HSA contributions reduce MAGI.`
         );
@@ -317,19 +376,13 @@ export class FinancialDetailsInspector extends BaseComponent {
                 <div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Top Ordinary Bracket</span><span class="inspector-value">${tax.topBracketPct}%</span></div>
                 <div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Remaining Room</span><span class="inspector-value" style="color: var(--success);">${this._fmt(tax.bracketRoom)}</span></div>
                 <div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Effective Federal Rate</span><span class="inspector-value">${tax.effectiveRate}%</span></div>
-                <div class="inspector-row" style="font-size: 0.85rem;" title="${magiTooltip}"><span class="inspector-label">Modified AGI (MAGI) ℹ️</span><span class="inspector-value" style="font-weight: 600;">${this._fmt(magi)} ${rothBadge}</span></div>
+                <div class="inspector-row" style="font-size: 0.85rem;" title="${magiTooltip}"><span class="inspector-label">Modified AGI (MAGI) ℹ️</span><span class="inspector-value" style="font-weight: 600;">${this._fmt(amounts.magi)} ${rothBadge}</span></div>
                 
                 <div style="margin-top: 6px; padding-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1);">
-                    ${hsaDeduction > 0 ? `<div class="inspector-row" style="font-size: 0.82rem; color: #00cec9;"><span class="inspector-label">↳ HSA Pre-Tax Payroll Deduction</span><span class="inspector-value" style="color: #00cec9;">-${this._fmt(hsaDeduction)}</span></div>` : ''}
-                    ${fedIncomeTax > 0 ? `<div class="inspector-row" style="font-size: 0.82rem;"><span class="inspector-label">↳ Federal Income Tax</span><span class="inspector-value">${this._fmt(fedIncomeTax)}</span></div>` : ''}
-                    ${ficaTax > 0 ? `<div class="inspector-row" style="font-size: 0.82rem; color: #fdcb6e;"><span class="inspector-label">↳ FICA Payroll (OASDI + Medicare)</span><span class="inspector-value">${this._fmt(ficaTax)}</span></div>` : ''}
-                    ${ltcgTax > 0 ? `<div class="inspector-row" style="font-size: 0.82rem; color: #74b9ff;"><span class="inspector-label">↳ Long-Term Capital Gains Tax</span><span class="inspector-value">${this._fmt(ltcgTax)}</span></div>` : ''}
-                    ${niitTax > 0 ? `<div class="inspector-row" style="font-size: 0.82rem; color: #e17055;"><span class="inspector-label">↳ Net Investment Income Tax (3.8% NIIT)</span><span class="inspector-value">${this._fmt(niitTax)}</span></div>` : ''}
-                    ${stateTax > 0 ? `<div class="inspector-row" style="font-size: 0.82rem;"><span class="inspector-label">↳ State Income Tax</span><span class="inspector-value">${this._fmt(stateTax)}</span></div>` : ''}
-                    ${irmaaExp > 0 ? `<div class="inspector-row" style="font-size: 0.82rem; color: #ff7675;"><span class="inspector-label">↳ Medicare IRMAA Surcharges (Healthcare)</span><span class="inspector-value">${this._fmt(irmaaExp)}</span></div>` : ''}
+                    ${this._renderItemizedTaxRows(amounts)}
                 </div>
                 <div class="inspector-row" style="font-size: 0.85rem; font-weight: bold; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 2px;">
-                    <span class="inspector-label">Total Taxes & Payroll Levies</span><span class="inspector-value" style="color: var(--danger);">${this._fmt(totalStatutoryTaxes)}</span>
+                    <span class="inspector-label">Total Taxes & Payroll Levies</span><span class="inspector-value" style="color: var(--danger);">${this._fmt(amounts.totalStatutoryTaxes)}</span>
                 </div>
             </div>
         `;
@@ -376,56 +429,92 @@ export class FinancialDetailsInspector extends BaseComponent {
         return out;
     }
 
+    _extractGrowthStats(data) {
+        const d = data || {};
+        const conversionsOut = d.conversionsOut || 0;
+        const rolloverOut = d.rolloverOut || 0;
+        const withdrawals = d.withdrawals || 0;
+        return {
+            interest: d.interest || 0,
+            contributions: d.contributions || 0,
+            conversionsIn: d.conversionsIn || 0,
+            conversionsOut,
+            rolloverIn: d.rolloverIn || 0,
+            rolloverOut,
+            netWithdrawals: Math.max(0, withdrawals - conversionsOut - rolloverOut)
+        };
+    }
+
+    _hasGrowthActivity(stats, balance) {
+        if (balance && balance !== 0) return true;
+        return Object.values(stats).some((v) => v !== 0);
+    }
+
+    _renderGrowthMovementRows(stats) {
+        const rows = [
+            {
+                val: stats.contributions,
+                label: '↳ Contributions',
+                rowColor: 'var(--success)',
+                valColor: '',
+                prefix: '+'
+            },
+            {
+                val: stats.conversionsIn,
+                label: '↳ Roth Conversion (In)',
+                rowColor: '#a29bfe',
+                valColor: '#a29bfe',
+                prefix: '+'
+            },
+            {
+                val: stats.conversionsOut,
+                label: '↳ Roth Conversion (Out)',
+                rowColor: '#fdcb6e',
+                valColor: '#fdcb6e',
+                prefix: '-'
+            },
+            { val: stats.rolloverIn, label: '↳ Rollover (In)', rowColor: '#74b9ff', valColor: '#74b9ff', prefix: '+' },
+            {
+                val: stats.rolloverOut,
+                label: '↳ Rollover (Out)',
+                rowColor: '#fab1a0',
+                valColor: '#fab1a0',
+                prefix: '-'
+            },
+            {
+                val: stats.netWithdrawals,
+                label: '↳ Withdrawals / SEPP',
+                rowColor: 'var(--danger)',
+                valColor: '',
+                prefix: '-'
+            }
+        ];
+        return rows
+            .filter((r) => r.val > 0)
+            .map((r) => {
+                const valStyle = r.valColor ? ` style="color: ${r.valColor};"` : '';
+                return `<div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px; color: ${r.rowColor};"><span class="inspector-label">${r.label}</span><span class="inspector-value"${valStyle}>${r.prefix}${this._fmt(r.val)}</span></div>`;
+            })
+            .join('');
+    }
+
     _renderGrowth(name, data, balance) {
         if (!data && (!balance || balance === 0)) return '';
-        const interest = data?.interest || 0;
-        const contributions = data?.contributions || 0;
-        const conversionsIn = data?.conversionsIn || 0;
-        const conversionsOut = data?.conversionsOut || 0;
-        const rolloverIn = data?.rolloverIn || 0;
-        const rolloverOut = data?.rolloverOut || 0;
-        const withdrawals = data?.withdrawals || 0;
-        const netWithdrawals = Math.max(0, withdrawals - conversionsOut - rolloverOut);
+        const stats = this._extractGrowthStats(data);
+        if (!this._hasGrowthActivity(stats, balance)) return '';
 
-        if (
-            interest === 0 &&
-            contributions === 0 &&
-            conversionsIn === 0 &&
-            conversionsOut === 0 &&
-            rolloverIn === 0 &&
-            rolloverOut === 0 &&
-            netWithdrawals === 0 &&
-            (!balance || balance === 0)
-        )
-            return '';
-        const earningBase = balance - interest;
-        const pctGrowth = earningBase > 0 ? (interest / earningBase) * 100 : 0;
+        const earningBase = balance - stats.interest;
+        const pctGrowth = earningBase > 0 ? (stats.interest / earningBase) * 100 : 0;
 
         let out = `<div style="margin-bottom: 12px;">
                     <div style="color: var(--text-main); font-size: 0.9rem; font-weight: bold; margin-bottom: 4px;">${escapeHtml(name)}</div>`;
         out += `<div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px;"><span class="inspector-label">↳ Balance</span><span class="inspector-value" style="font-weight: bold;">${this._fmt(balance)}</span></div>`;
-        if (contributions > 0) {
-            out += `<div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px; color: var(--success);"><span class="inspector-label">↳ Contributions</span><span class="inspector-value">+${this._fmt(contributions)}</span></div>`;
-        }
-        if (conversionsIn > 0) {
-            out += `<div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px; color: #a29bfe;"><span class="inspector-label">↳ Roth Conversion (In)</span><span class="inspector-value" style="color: #a29bfe;">+${this._fmt(conversionsIn)}</span></div>`;
-        }
-        if (conversionsOut > 0) {
-            out += `<div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px; color: #fdcb6e;"><span class="inspector-label">↳ Roth Conversion (Out)</span><span class="inspector-value" style="color: #fdcb6e;">-${this._fmt(conversionsOut)}</span></div>`;
-        }
-        if (rolloverIn > 0) {
-            out += `<div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px; color: #74b9ff;"><span class="inspector-label">↳ Rollover (In)</span><span class="inspector-value" style="color: #74b9ff;">+${this._fmt(rolloverIn)}</span></div>`;
-        }
-        if (rolloverOut > 0) {
-            out += `<div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px; color: #fab1a0;"><span class="inspector-label">↳ Rollover (Out)</span><span class="inspector-value" style="color: #fab1a0;">-${this._fmt(rolloverOut)}</span></div>`;
-        }
-        if (netWithdrawals > 0) {
-            out += `<div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px; color: var(--danger);"><span class="inspector-label">↳ Withdrawals / SEPP</span><span class="inspector-value">-${this._fmt(netWithdrawals)}</span></div>`;
-        }
-        if (interest !== 0) {
-            const color = interest > 0 ? 'var(--success)' : 'var(--danger)';
-            const sign = interest > 0 ? '+' : '';
-            out += `<div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px; color: ${color};"><span class="inspector-label">↳ Interest/Apprec.</span><span class="inspector-value">${sign}${this._fmt(interest)} (${pctGrowth.toFixed(1)}%)</span></div>`;
+        out += this._renderGrowthMovementRows(stats);
+
+        if (stats.interest !== 0) {
+            const color = stats.interest > 0 ? 'var(--success)' : 'var(--danger)';
+            const sign = stats.interest > 0 ? '+' : '';
+            out += `<div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px; color: ${color};"><span class="inspector-label">↳ Interest/Apprec.</span><span class="inspector-value">${sign}${this._fmt(stats.interest)} (${pctGrowth.toFixed(1)}%)</span></div>`;
         }
         out += this._renderRothPrincipalBreakdown(data?.rothPrincipalBreakdown, balance);
         out += `</div>`;
@@ -450,123 +539,214 @@ export class FinancialDetailsInspector extends BaseComponent {
         return out;
     }
 
+    _shouldRenderCdGrowth(balances, growth, key) {
+        return (balances[key] || 0) > 0 || (growth[key]?.interest || 0) > 0 || (growth[key]?.rolloverOut || 0) > 0;
+    }
+
+    _renderPrimaryResidenceBlock(balances) {
+        const netEq = balances.primaryResidenceEquity || 0;
+        const homeVal = balances.homeValue || 0;
+        if (netEq <= 0 && homeVal <= 0) return '';
+        const mortBal = balances.mortgageBalance || 0;
+        return `<div style="margin-bottom: 12px;">
+                    <div style="color: var(--text-main); font-size: 0.9rem; font-weight: bold; margin-bottom: 4px;">Primary Residence</div>
+                    <div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px;"><span class="inspector-label">↳ Net Home Equity</span><span class="inspector-value" style="font-weight: bold; color: #fdcb6e;">${this._fmt(netEq)}</span></div>
+                    <div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; opacity: 0.8;"><span class="inspector-label">↳ Property Value</span><span class="inspector-value">${this._fmt(homeVal)}</span></div>
+                    ${mortBal > 0 ? `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; opacity: 0.8;"><span class="inspector-label">↳ Mortgage Debt</span><span class="inspector-value" style="color: #e17055;">-${this._fmt(mortBal)}</span></div>` : ''}
+                 </div>`;
+    }
+
+    _renderSpecialPortfolioBlocks(snap) {
+        let html = '';
+        if ((snap.balances.college529 || 0) > 0 || (snap.growth.college529?.interest || 0) > 0) {
+            html += this._renderGrowth(`529 College Savings`, snap.growth.college529, snap.balances.college529 || 0);
+            html += this._renderCollege529Children(snap.college529?.children);
+        }
+        if (snap.balances.cashCushion > 0) {
+            html += `<div style="margin-bottom: 12px;">
+                        <div style="color: var(--text-main); font-size: 0.9rem; font-weight: bold; margin-bottom: 4px;">Cash Cushion</div>
+                        <div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px;"><span class="inspector-label">↳ Balance</span><span class="inspector-value" style="font-weight: bold;">${this._fmt(snap.balances.cashCushion)}</span></div>
+                     </div>`;
+        }
+        html += this._renderPrimaryResidenceBlock(snap.balances);
+        return html;
+    }
+
     _buildPortfolioColumn(snap, s1Name, s2Name) {
         let html = `<div class="timeline-container" style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">`;
         html += `<h3 style="color: var(--secondary); text-align: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-top: 0;">Portfolio Details</h3>`;
 
         if (snap.growth && snap.balances) {
-            html += this._renderGrowth(`${s1Name} 401k`, snap.growth.s1Trad401k, snap.balances.s1Trad401k || 0);
-            html += this._renderGrowth(`${s1Name} 403b`, snap.growth.s1Trad403b, snap.balances.s1Trad403b || 0);
-            html += this._renderGrowth(`${s2Name} 401k`, snap.growth.s2Trad401k, snap.balances.s2Trad401k || 0);
-            html += this._renderGrowth(`${s2Name} 403b`, snap.growth.s2Trad403b, snap.balances.s2Trad403b || 0);
-            html += this._renderGrowth(
-                `${s1Name} Std IRA`,
-                snap.growth.s1StandardIra,
-                snap.balances.s1StandardIra || 0
-            );
-            html += this._renderGrowth(
-                `${s2Name} Std IRA`,
-                snap.growth.s2StandardIra,
-                snap.balances.s2StandardIra || 0
-            );
-            html += this._renderGrowth(`${s1Name} Roth IRA`, snap.growth.s1RothIra, snap.balances.s1RothIra || 0);
-            html += this._renderGrowth(`${s2Name} Roth IRA`, snap.growth.s2RothIra, snap.balances.s2RothIra || 0);
-            html += this._renderGrowth(
-                `${s1Name} Brokerage & Sweep`,
-                snap.growth.s1Brokerage,
-                snap.balances.s1Brokerage || 0
-            );
-            html += this._renderGrowth(`${s2Name} Brokerage`, snap.growth.s2Brokerage, snap.balances.s2Brokerage || 0);
-            html += this._renderGrowth(
-                `${s1Name} High-Yield Savings (HYSA)`,
-                snap.growth.s1Hysa,
-                snap.balances.s1Hysa || 0
-            );
-            html += this._renderGrowth(
-                `${s2Name} High-Yield Savings (HYSA)`,
-                snap.growth.s2Hysa,
-                snap.balances.s2Hysa || 0
-            );
-            if (
-                (snap.balances.s1Cd || 0) > 0 ||
-                (snap.growth.s1Cd?.interest || 0) > 0 ||
-                (snap.growth.s1Cd?.rolloverOut || 0) > 0
-            ) {
+            const accountPairs = [
+                [`${s1Name} 401k`, 's1Trad401k'],
+                [`${s1Name} 403b`, 's1Trad403b'],
+                [`${s2Name} 401k`, 's2Trad401k'],
+                [`${s2Name} 403b`, 's2Trad403b'],
+                [`${s1Name} Std IRA`, 's1StandardIra'],
+                [`${s2Name} Std IRA`, 's2StandardIra'],
+                [`${s1Name} Roth IRA`, 's1RothIra'],
+                [`${s2Name} Roth IRA`, 's2RothIra'],
+                [`${s1Name} Brokerage & Sweep`, 's1Brokerage'],
+                [`${s2Name} Brokerage`, 's2Brokerage'],
+                [`${s1Name} High-Yield Savings (HYSA)`, 's1Hysa'],
+                [`${s2Name} High-Yield Savings (HYSA)`, 's2Hysa']
+            ];
+            accountPairs.forEach(([label, key]) => {
+                html += this._renderGrowth(label, snap.growth[key], snap.balances[key] || 0);
+            });
+            if (this._shouldRenderCdGrowth(snap.balances, snap.growth, 's1Cd')) {
                 html += this._renderGrowth(
                     `${s1Name} Certificates of Deposit (CD)`,
                     snap.growth.s1Cd,
                     snap.balances.s1Cd || 0
                 );
             }
-            if (
-                (snap.balances.s2Cd || 0) > 0 ||
-                (snap.growth.s2Cd?.interest || 0) > 0 ||
-                (snap.growth.s2Cd?.rolloverOut || 0) > 0
-            ) {
+            if (this._shouldRenderCdGrowth(snap.balances, snap.growth, 's2Cd')) {
                 html += this._renderGrowth(
                     `${s2Name} Certificates of Deposit (CD)`,
                     snap.growth.s2Cd,
                     snap.balances.s2Cd || 0
                 );
             }
-            if ((snap.balances.college529 || 0) > 0 || (snap.growth.college529?.interest || 0) > 0) {
-                html += this._renderGrowth(
-                    `529 College Savings`,
-                    snap.growth.college529,
-                    snap.balances.college529 || 0
-                );
-                html += this._renderCollege529Children(snap.college529?.children);
-            }
-            if (snap.balances.cashCushion > 0) {
-                html += `<div style="margin-bottom: 12px;">
-                            <div style="color: var(--text-main); font-size: 0.9rem; font-weight: bold; margin-bottom: 4px;">Cash Cushion</div>
-                            <div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px;"><span class="inspector-label">↳ Balance</span><span class="inspector-value" style="font-weight: bold;">${this._fmt(snap.balances.cashCushion)}</span></div>
-                         </div>`;
-            }
-            if ((snap.balances.primaryResidenceEquity || 0) > 0 || (snap.balances.homeValue || 0) > 0) {
-                const netEq = snap.balances.primaryResidenceEquity || 0;
-                const homeVal = snap.balances.homeValue || 0;
-                const mortBal = snap.balances.mortgageBalance || 0;
-                html += `<div style="margin-bottom: 12px;">
-                            <div style="color: var(--text-main); font-size: 0.9rem; font-weight: bold; margin-bottom: 4px;">Primary Residence</div>
-                            <div class="inspector-row" style="font-size: 0.85rem; padding-left: 12px;"><span class="inspector-label">↳ Net Home Equity</span><span class="inspector-value" style="font-weight: bold; color: #fdcb6e;">${this._fmt(netEq)}</span></div>
-                            <div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; opacity: 0.8;"><span class="inspector-label">↳ Property Value</span><span class="inspector-value">${this._fmt(homeVal)}</span></div>
-                            ${mortBal > 0 ? `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; opacity: 0.8;"><span class="inspector-label">↳ Mortgage Debt</span><span class="inspector-value" style="color: #e17055;">-${this._fmt(mortBal)}</span></div>` : ''}
-                         </div>`;
-            }
+            html += this._renderSpecialPortfolioBlocks(snap);
         }
         html += '</div>';
         return html;
     }
 
-    _getEventsForMonth(events, month) {
-        if (!Array.isArray(events)) {
-            return { externalCash: 0, w2Milestones: [], otherLabels: [] };
+    _classifyMonthEvent(evt, buckets) {
+        if (evt.type === 'income_bonus' || evt.type === 'income_lti') {
+            buckets.w2Milestones.push({
+                type: evt.type,
+                name: evt.name || (evt.type === 'income_bonus' ? 'Bonus' : 'LTI'),
+                amount: Number(evt.amount) || 0
+            });
+            return;
         }
-        let externalCash = 0;
-        const w2Milestones = [];
-        const otherLabels = [];
+        if ((evt.type === 'cash_inflow' || evt.type === 'windfall') && typeof evt.amount === 'number') {
+            buckets.externalCash += evt.amount;
+        }
+        const label = evt.label || evt.name;
+        if (label) buckets.otherLabels.push(label);
+    }
+
+    _getEventsForMonth(events, month) {
+        const buckets = { externalCash: 0, w2Milestones: [], otherLabels: [] };
+        if (!Array.isArray(events)) return buckets;
 
         events.forEach((evt) => {
             if (evt && evt.month === month) {
-                if (evt.type === 'income_bonus' || evt.type === 'income_lti') {
-                    w2Milestones.push({
-                        type: evt.type,
-                        name: evt.name || (evt.type === 'income_bonus' ? 'Bonus' : 'LTI'),
-                        amount: Number(evt.amount) || 0
-                    });
-                } else if (evt.type === 'cash_inflow' || evt.type === 'windfall') {
-                    if (typeof evt.amount === 'number') {
-                        externalCash += evt.amount;
-                    }
-                    if (evt.label || evt.name) otherLabels.push(evt.label || evt.name);
-                } else {
-                    if (evt.label || evt.name) otherLabels.push(evt.label || evt.name);
-                }
+                this._classifyMonthEvent(evt, buckets);
             }
         });
+        return buckets;
+    }
 
-        return { externalCash, w2Milestones, otherLabels };
+    _formatMonthEventCell(externalCash, w2Milestones, otherLabels, bonusMilestone) {
+        const totalMilestoneGross = bonusMilestone
+            ? bonusMilestone.gross
+            : w2Milestones.reduce((acc, curr) => acc + curr.amount, 0);
+        const totalMilestoneNet = bonusMilestone ? bonusMilestone.netTakeHome : null;
+        const milestoneDetails = bonusMilestone?.items
+            ? bonusMilestone.items
+                  .map(
+                      (item) =>
+                          `${item.name}: +$${Math.round(item.gross).toLocaleString()} gross (+$${Math.round(item.netTakeHome).toLocaleString()} take-home)`
+                  )
+                  .join('\n')
+            : w2Milestones
+                  .map((item) => `${item.name}: +$${Math.round(item.amount).toLocaleString()} gross`)
+                  .join('\n');
+
+        if (externalCash > 0 && totalMilestoneGross > 0) {
+            const takeHomeBadge =
+                totalMilestoneNet !== null ? `(+${this._fmt(totalMilestoneNet)} Take-Home)` : `(in Take-Home)`;
+            return `
+                <div style="color: var(--success); font-weight: bold;">+${this._fmt(externalCash)}</div>
+                <div style="font-size: 0.72rem; color: var(--accent); margin-top: 2px;" title="${milestoneDetails}">+${this._fmt(totalMilestoneGross)} Gross ${takeHomeBadge}</div>
+            `;
+        }
+        if (externalCash > 0) {
+            return `<span style="color: var(--success); font-weight: bold;">+${this._fmt(externalCash)}</span>`;
+        }
+        if (totalMilestoneGross > 0) {
+            const takeHomeBadge =
+                totalMilestoneNet !== null
+                    ? `<span style="display: block; font-size: 0.72rem; color: var(--accent); font-weight: normal;">(+${this._fmt(totalMilestoneNet)} Take-Home)</span>`
+                    : `<span style="display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(in Take-Home)</span>`;
+            return `
+                <div style="color: var(--success); font-weight: bold; line-height: 1.2;" title="${milestoneDetails}">
+                    +${this._fmt(totalMilestoneGross)} Gross
+                    ${takeHomeBadge}
+                </div>
+            `;
+        }
+        if (otherLabels.length > 0) {
+            return `<span style="font-size: 0.75rem; color: var(--accent);">${otherLabels[0]}</span>`;
+        }
+        return '-';
+    }
+
+    _resolveFallbackMonthMetrics(snapshot, externalCash) {
+        const inc = snapshot.income || {};
+        const takeHome = (inc.takeHome || inc.w2 || 0) / 12;
+        const ssn1 = inc.s1?.ssn || 0;
+        const ssn2 = inc.s2?.ssn || 0;
+        const totalMonthlyIncome = takeHome + (ssn1 + ssn2) / 12;
+        const expenses = (snapshot.expenses || 0) / 12;
+        return {
+            totalMonthlyIncome,
+            convAmount: 0,
+            expenses,
+            netFlow: totalMonthlyIncome + externalCash - expenses
+        };
+    }
+
+    _resolveMonthRowMetrics(snapshot, mSnap, externalCash) {
+        if (!mSnap) {
+            return this._resolveFallbackMonthMetrics(snapshot, externalCash);
+        }
+        const takeHome = mSnap.takeHome !== undefined ? mSnap.takeHome : mSnap.w2Net;
+        const otherIncome = (mSnap.ssn || 0) + (mSnap.rule72t || 0);
+        return {
+            totalMonthlyIncome: takeHome + otherIncome,
+            convAmount: mSnap.rothConverted || 0,
+            expenses: mSnap.expenses,
+            netFlow: mSnap.netFlow
+        };
+    }
+
+    _renderMonthBreakdownRow(snapshot, mSnap, monthName, monthNum) {
+        const { externalCash, w2Milestones, otherLabels } = this._getEventsForMonth(snapshot.events, monthNum);
+        const { totalMonthlyIncome, convAmount, expenses, netFlow } = this._resolveMonthRowMetrics(
+            snapshot,
+            mSnap,
+            externalCash
+        );
+        const flowColor = netFlow >= 0 ? 'var(--success)' : 'var(--danger)';
+
+        let transferText = '-';
+        if (convAmount > 0) {
+            transferText = `<span style="color: #a29bfe; font-weight: bold;">+${this._fmt(convAmount)} Roth</span>`;
+        } else if (otherLabels.some((l) => l.toLowerCase().includes('rollover'))) {
+            transferText = `<span style="color: #74b9ff; font-size: 0.8rem;">Rollover</span>`;
+        }
+
+        const eventCellHtml = this._formatMonthEventCell(
+            externalCash,
+            w2Milestones,
+            otherLabels,
+            mSnap?.bonusMilestone
+        );
+
+        return `<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <td style="text-align: left; padding: 8px; font-weight: bold;">${monthName}</td>
+                    <td style="padding: 8px;">${this._fmt(totalMonthlyIncome)}</td>
+                    <td style="padding: 8px;">${eventCellHtml}</td>
+                    <td style="padding: 8px;">${transferText}</td>
+                    <td style="padding: 8px; color: var(--danger);">${this._fmt(expenses)}</td>
+                    <td style="padding: 8px; color: ${flowColor}; font-weight: bold;">${this._fmt(netFlow)}</td>
+                 </tr>`;
     }
 
     _buildMonthlyBreakdown(snapshot) {
@@ -591,79 +771,7 @@ export class FinancialDetailsInspector extends BaseComponent {
 
         for (let m = 0; m < 12; m++) {
             const mSnap = hasMonthlyData ? snapshot.monthlySnapshots[m] : null;
-            const { externalCash, w2Milestones, otherLabels } = this._getEventsForMonth(snapshot.events, m + 1);
-
-            const takeHome = mSnap
-                ? mSnap.takeHome !== undefined
-                    ? mSnap.takeHome
-                    : mSnap.w2Net
-                : (snapshot.income?.takeHome || snapshot.income?.w2 || 0) / 12;
-            const otherIncome = mSnap
-                ? (mSnap.ssn || 0) + (mSnap.rule72t || 0)
-                : ((snapshot.income?.s1?.ssn || 0) + (snapshot.income?.s2?.ssn || 0)) / 12;
-            const totalMonthlyIncome = takeHome + otherIncome;
-            const convAmount = mSnap ? mSnap.rothConverted || 0 : 0;
-            const expenses = mSnap ? mSnap.expenses : (snapshot.expenses || 0) / 12;
-            const netFlow = mSnap ? mSnap.netFlow : totalMonthlyIncome + externalCash - expenses;
-            const flowColor = netFlow >= 0 ? 'var(--success)' : 'var(--danger)';
-
-            let transferText = '-';
-            if (convAmount > 0) {
-                transferText = `<span style="color: #a29bfe; font-weight: bold;">+${this._fmt(convAmount)} Roth</span>`;
-            } else if (otherLabels.some((l) => l.toLowerCase().includes('rollover'))) {
-                transferText = `<span style="color: #74b9ff; font-size: 0.8rem;">Rollover</span>`;
-            }
-
-            const bonusMilestone = mSnap?.bonusMilestone;
-            const totalMilestoneGross = bonusMilestone
-                ? bonusMilestone.gross
-                : w2Milestones.reduce((acc, curr) => acc + curr.amount, 0);
-            const totalMilestoneNet = bonusMilestone ? bonusMilestone.netTakeHome : null;
-
-            const milestoneDetails = bonusMilestone?.items
-                ? bonusMilestone.items
-                      .map(
-                          (item) =>
-                              `${item.name}: +$${Math.round(item.gross).toLocaleString()} gross (+$${Math.round(item.netTakeHome).toLocaleString()} take-home)`
-                      )
-                      .join('\n')
-                : w2Milestones
-                      .map((item) => `${item.name}: +$${Math.round(item.amount).toLocaleString()} gross`)
-                      .join('\n');
-
-            let eventCellHtml = '-';
-            if (externalCash > 0 && totalMilestoneGross > 0) {
-                const takeHomeBadge =
-                    totalMilestoneNet !== null ? `(+${this._fmt(totalMilestoneNet)} Take-Home)` : `(in Take-Home)`;
-                eventCellHtml = `
-                    <div style="color: var(--success); font-weight: bold;">+${this._fmt(externalCash)}</div>
-                    <div style="font-size: 0.72rem; color: var(--accent); margin-top: 2px;" title="${milestoneDetails}">+${this._fmt(totalMilestoneGross)} Gross ${takeHomeBadge}</div>
-                `;
-            } else if (externalCash > 0) {
-                eventCellHtml = `<span style="color: var(--success); font-weight: bold;">+${this._fmt(externalCash)}</span>`;
-            } else if (totalMilestoneGross > 0) {
-                const takeHomeBadge =
-                    totalMilestoneNet !== null
-                        ? `<span style="display: block; font-size: 0.72rem; color: var(--accent); font-weight: normal;">(+${this._fmt(totalMilestoneNet)} Take-Home)</span>`
-                        : `<span style="display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(in Take-Home)</span>`;
-                eventCellHtml = `
-                    <div style="color: var(--success); font-weight: bold; line-height: 1.2;" title="${milestoneDetails}">
-                        +${this._fmt(totalMilestoneGross)} Gross
-                        ${takeHomeBadge}
-                    </div>
-                `;
-            } else if (otherLabels.length > 0) {
-                eventCellHtml = `<span style="font-size: 0.75rem; color: var(--accent);">${otherLabels[0]}</span>`;
-            }
-
-            html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                        <td style="text-align: left; padding: 8px; font-weight: bold;">${monthNames[m]}</td>
-                        <td style="padding: 8px;">${this._fmt(totalMonthlyIncome)}</td>
-                        <td style="padding: 8px;">${eventCellHtml}</td>
-                        <td style="padding: 8px;">${transferText}</td>
-                        <td style="padding: 8px; color: var(--danger);">${this._fmt(expenses)}</td>
-                        <td style="padding: 8px; color: ${flowColor}; font-weight: bold;">${this._fmt(netFlow)}</td>
-                     </tr>`;
+            html += this._renderMonthBreakdownRow(snapshot, mSnap, monthNames[m], m + 1);
         }
         html += `</tbody></table>`;
         const nav = this._getNavState();

@@ -26,12 +26,8 @@ export class HousingPanel extends BaseComponent {
         return Math.max(0, homeVal - curMortBal);
     }
 
-    getTemplate() {
-        this.state = this.getEffectiveState();
-        let html = '';
-
-        // Card A: Mortgage Loan Terms
-        html += this._startSection('Mortgage Loan Terms');
+    _renderMortgageSection() {
+        let html = this._startSection('Mortgage Loan Terms');
         html += this._checkbox(
             'Enable Mortgage',
             'primaryResidenceMortgage.enabled',
@@ -44,14 +40,12 @@ export class HousingPanel extends BaseComponent {
         const mortgageOrigFormatted = mortgageOrig.length === 7 ? `${mortgageOrig}-01` : mortgageOrig;
         const monthlyPI = this._calculateMonthlyPI();
 
-        // Row 1: Origination Date, Origination Amount, Current Balance (3 columns)
         html += `<div class="tab-stop-grid-3">`;
         html += `<div>${this._input('Origination Date', 'primaryResidenceMortgage.originationDate', 'date', mortgageOrigFormatted, 'Original loan start month and year.')}</div>`;
         html += `<div>${this._input('Origination Amount ($)', 'primaryResidenceMortgage.originationAmount', 'number', this.state.primaryResidenceMortgage.originationAmount, 'Total original loan principal borrowed.')}</div>`;
         html += `<div>${this._input('Current Balance ($)', 'primaryResidenceMortgage.currentBalance', 'number', this.state.primaryResidenceMortgage.currentBalance || this.state.primaryResidenceMortgage.originationAmount, 'Current remaining principal balance due today.')}</div>`;
         html += `</div>`;
 
-        // Row 2: Term, Interest Rate, Monthly P&I Preview (3 columns)
         html += `<div class="tab-stop-grid-3">`;
         html += `<div>${this._input('Term (Years)', 'primaryResidenceMortgage.termYears', 'number', this.state.primaryResidenceMortgage.termYears, 'Total amortization length of the loan in years (e.g. 15 or 30).')}</div>`;
         html += `<div>${this._input('Interest Rate (%)', 'primaryResidenceMortgage.interestRate', 'number', this.state.primaryResidenceMortgage.interestRate, 'Annual mortgage interest rate.')}</div>`;
@@ -67,9 +61,14 @@ export class HousingPanel extends BaseComponent {
                 </div>
             </div>
         </div>`;
-        html += `</div>`;
-        html += `</div>`;
+        html += `</div></div>`;
         html += this._endSection();
+        return html;
+    }
+
+    getTemplate() {
+        this.state = this.getEffectiveState();
+        let html = this._renderMortgageSection();
 
         // Card B: Property Value & Holding Costs
         html += this._startSection('Property Value & Holding Costs');
@@ -79,7 +78,6 @@ export class HousingPanel extends BaseComponent {
                 : 3;
         const estEquity = this._calculateEstimatedEquity();
 
-        // Row 1: Home Value, Appreciation Rate, Estimated Equity (3 columns)
         html += `<div class="tab-stop-grid-3">`;
         html += `<div>${this._input('Home Value ($)', 'primaryResidenceEquity.currentValue', 'number', this.state.primaryResidenceEquity.currentValue, 'Current estimated market value of primary residence.')}</div>`;
         html += `<div>${this._input('Annual Appreciation (%)', 'primaryResidenceEquity.annualGrowthRate', 'number', homeGrowth, 'Estimated annual property growth rate. Case-Shiller long-term national average is ~3.0%–4.5%.')}</div>`;
@@ -97,7 +95,6 @@ export class HousingPanel extends BaseComponent {
         </div>`;
         html += `</div>`;
 
-        // Row 2: Yearly Taxes, Yearly Insurance, Yearly Repairs (3 columns)
         html += `<div class="tab-stop-grid-3">`;
         html += `<div>${this._input('Yearly Taxes ($)', 'primaryResidenceMortgage.yearlyTaxes', 'number', this.state.primaryResidenceMortgage.yearlyTaxes, 'Annual municipal property taxes.')}</div>`;
         html += `<div>${this._input('Yearly Insurance ($)', 'primaryResidenceMortgage.yearlyInsurance', 'number', this.state.primaryResidenceMortgage.yearlyInsurance, 'Annual homeowner property insurance premium.')}</div>`;

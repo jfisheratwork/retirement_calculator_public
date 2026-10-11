@@ -109,15 +109,13 @@ export class BaseComponent extends BaseElement {
             });
             input.addEventListener('change', (e) => {
                 const val = e.target.value;
-                if (val && typeof val === 'string') {
-                    const normalized = normalizeDateStr(val);
-                    if (normalized) {
-                        const parts = normalized.split('-');
-                        const safeVal = `${parts[0]}-${parts[1] || '01'}-01`;
-                        if (e.target.value !== safeVal) {
-                            e.target.value = safeVal;
-                        }
-                    }
+                if (!val || typeof val !== 'string') return;
+                const normalized = normalizeDateStr(val);
+                if (!normalized) return;
+                const parts = normalized.split('-');
+                const safeVal = `${parts[0]}-${parts[1] || '01'}-01`;
+                if (e.target.value !== safeVal) {
+                    e.target.value = safeVal;
                 }
             });
         });
@@ -358,6 +356,20 @@ export class BaseComponent extends BaseElement {
         return null;
     }
 
+    _inferCurrencyConfig(cleanLabel) {
+        if (!this._isCurrencyField(cleanLabel)) return null;
+        const largeKeywords = ['annual', 'salary', 'balance', 'value', 'target cap'];
+        const isLarge = largeKeywords.some((k) => cleanLabel.includes(k));
+        return {
+            prefix: '$',
+            suffix: '',
+            sizingClass: isLarge ? 'input-currency-md' : 'input-currency-sm',
+            minAttr: 'min="0"',
+            maxAttr: 'max="50000000"',
+            stepAttr: 'step="1"'
+        };
+    }
+
     _inferNumberFieldConfig(cleanLabel, path) {
         if (path.startsWith('phaseBasedExpensesPerMonth.')) {
             return {
@@ -379,11 +391,9 @@ export class BaseComponent extends BaseElement {
                 stepAttr: 'step="1"'
             };
         }
-        const rate = this._inferRateConfig(cleanLabel);
-        if (rate) return rate;
-        const yr = this._inferYearConfig(cleanLabel, path);
-        if (yr) return yr;
-        if (cleanLabel.includes('age') || cleanLabel.includes('expectancy') || cleanLabel.includes('term (years)')) {
+        const specialized = this._inferRateConfig(cleanLabel) || this._inferYearConfig(cleanLabel, path);
+        if (specialized) return specialized;
+        if (['age', 'expectancy', 'term (years)'].some((k) => cleanLabel.includes(k))) {
             const { min, max } = this._inferAgeConfig(cleanLabel);
             return {
                 prefix: '',
@@ -404,23 +414,16 @@ export class BaseComponent extends BaseElement {
                 stepAttr: 'step="0.05"'
             };
         }
-        if (this._isCurrencyField(cleanLabel)) {
-            const isLarge =
-                cleanLabel.includes('annual') ||
-                cleanLabel.includes('salary') ||
-                cleanLabel.includes('balance') ||
-                cleanLabel.includes('value') ||
-                cleanLabel.includes('target cap');
-            return {
-                prefix: '$',
+        return (
+            this._inferCurrencyConfig(cleanLabel) || {
+                prefix: '',
                 suffix: '',
-                sizingClass: isLarge ? 'input-currency-md' : 'input-currency-sm',
-                minAttr: 'min="0"',
-                maxAttr: 'max="50000000"',
-                stepAttr: 'step="1"'
-            };
-        }
-        return { prefix: '', suffix: '', sizingClass: '', minAttr: '', maxAttr: '', stepAttr: '' };
+                sizingClass: '',
+                minAttr: '',
+                maxAttr: '',
+                stepAttr: ''
+            }
+        );
     }
 
     _renderInputTag(config) {

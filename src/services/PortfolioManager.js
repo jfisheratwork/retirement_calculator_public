@@ -9,36 +9,38 @@ import { SORR_SCENARIOS } from './SimulationEngine.js';
 
 const SECURITY_ACCOUNT_TYPES = ['traditional401k', 'trad403b', 'standardIra', 'rothIra', 'taxableBrokerage'];
 
-export function calculateSorrRate({ year, s1, assumptions, sorrOverride }) {
-    let arr = null;
-    let overrideConfig = sorrOverride;
-
+function resolveSorrArrayAndConfig(assumptions, sorrOverride) {
     if (sorrOverride) {
-        arr = sorrOverride.returnsArray || (sorrOverride.scenarioKey ? SORR_SCENARIOS[sorrOverride.scenarioKey] : null);
-    } else if (
-        assumptions?.sorrScenario &&
-        assumptions.sorrScenario !== 'average' &&
-        assumptions.sorrScenario !== 'none'
-    ) {
-        arr = SORR_SCENARIOS[assumptions.sorrScenario];
-        overrideConfig = assumptions;
+        const arr =
+            sorrOverride.returnsArray || (sorrOverride.scenarioKey ? SORR_SCENARIOS[sorrOverride.scenarioKey] : null);
+        return { arr, overrideConfig: sorrOverride };
     }
+    const scenario = assumptions?.sorrScenario;
+    if (scenario && scenario !== 'average' && scenario !== 'none') {
+        return { arr: SORR_SCENARIOS[scenario], overrideConfig: assumptions };
+    }
+    return { arr: null, overrideConfig: null };
+}
 
-    if (!arr || !Array.isArray(arr)) {
+function resolveSorrStartYear(s1, overrideConfig) {
+    const currentYear = new Date().getFullYear();
+    const s1BirthYear = Number(s1?.birthYear || s1?.yearOfBirth) || 1980;
+    if (overrideConfig?.startYear !== undefined) {
+        return overrideConfig.startYear > 1000 ? overrideConfig.startYear : currentYear + overrideConfig.startYear;
+    }
+    if (overrideConfig?.startAge !== undefined) {
+        return s1BirthYear + overrideConfig.startAge;
+    }
+    return s1BirthYear + (s1?.targetRetirementAge || 65);
+}
+
+export function calculateSorrRate({ year, s1, assumptions, sorrOverride }) {
+    const { arr, overrideConfig } = resolveSorrArrayAndConfig(assumptions, sorrOverride);
+    if (!Array.isArray(arr)) {
         return { isSorrActive: false, sorrRate: 0 };
     }
 
-    const currentYear = new Date().getFullYear();
-    const s1BirthYear = Number(s1?.birthYear || s1?.yearOfBirth) || 1980;
-    const startYearForSorr =
-        overrideConfig?.startYear !== undefined
-            ? overrideConfig.startYear > 1000
-                ? overrideConfig.startYear
-                : currentYear + overrideConfig.startYear
-            : overrideConfig?.startAge !== undefined
-              ? s1BirthYear + overrideConfig.startAge
-              : s1BirthYear + (s1?.targetRetirementAge || 65);
-
+    const startYearForSorr = resolveSorrStartYear(s1, overrideConfig);
     if (year >= startYearForSorr) {
         const idx = year - startYearForSorr;
         if (idx < arr.length) {
@@ -49,8 +51,19 @@ export function calculateSorrRate({ year, s1, assumptions, sorrOverride }) {
     return { isSorrActive: false, sorrRate: 0 };
 }
 
-export function getAccountGrowthRate(account, year, assumptions, isSorrActive, sorrRate, isConservativeShift) {
-    // 1. FDIC-insured cash equivalents (CDs and HYSAs) earn fixed yields and never experience equity market crashes
+function getStandardSecurityRate(account, year, assumptions) {
+    const hasExpected = account.expectedReturn !== undefined && account.expectedReturn !== null;
+    if (SECURITY_ACCOUNT_TYPES.includes(account.type) && PortfolioManager.hasMarketReturnSchedule(assumptions)) {
+        return PortfolioManager.getMarketReturnRate(year, assumptions);
+    }
+    if (hasExpected) {
+        return Number(account.expectedReturn) / 100;
+    }
+    return PortfolioManager.getMarketReturnRate(year, assumptions);
+}
+
+export function getAccountGrowthRate(account, year, assumptions, ...rest) {
+    const [isSorrActive = false, sorrRate = 0, isConservativeShift = false] = rest;
     if (account.type === 'cd') {
         return (account.rate !== undefined ? Number(account.rate) : account.expectedReturn || 5) / 100;
     }
@@ -59,30 +72,10 @@ export function getAccountGrowthRate(account, year, assumptions, isSorrActive, s
             ? Number(account.expectedReturn) / 100
             : 0.04;
     }
+    if (isSorrActive) return sorrRate;
+    if (isConservativeShift) return Number(assumptions.conservativeShift?.returnRate || 5.5) / 100;
 
-    // 2. Active equity market crash / sequence of returns scenario applies to security accounts
-    if (isSorrActive) {
-        return sorrRate;
-    }
-
-    // 3. Post-crisis or planned conservative portfolio glidepath
-    if (isConservativeShift) {
-        return Number(assumptions.conservativeShift?.returnRate || 5.5) / 100;
-    }
-
-    // 4. Standard security account growth rate
-    if (SECURITY_ACCOUNT_TYPES.includes(account.type)) {
-        if (PortfolioManager.hasMarketReturnSchedule(assumptions)) {
-            return PortfolioManager.getMarketReturnRate(year, assumptions);
-        }
-        if (account.expectedReturn !== undefined && account.expectedReturn !== null) {
-            return Number(account.expectedReturn) / 100;
-        }
-        return PortfolioManager.getMarketReturnRate(year, assumptions);
-    }
-    return account.expectedReturn !== undefined && account.expectedReturn !== null
-        ? Number(account.expectedReturn) / 100
-        : PortfolioManager.getMarketReturnRate(year, assumptions);
+    return getStandardSecurityRate(account, year, assumptions);
 }
 
 export class PortfolioManager {
@@ -109,11 +102,7 @@ export class PortfolioManager {
     }
 
     static hasMarketReturnSchedule(assumptions) {
-        return Boolean(
-            assumptions.marketReturnRates &&
-                Array.isArray(assumptions.marketReturnRates) &&
-                assumptions.marketReturnRates.length > 0
-        );
+        return Boolean(Array.isArray(assumptions.marketReturnRates) && assumptions.marketReturnRates.length > 0);
     }
 
     static applyGrowthAndInflation(params) {
@@ -262,50 +251,68 @@ export class PortfolioManager {
         });
     }
 
-    static processSingleCdMonthly({ cd, year, month, currentYear, spouse, s1, s2, events }) {
-        let maturityYear = 0;
-        let maturityMonth = 1;
-        if (cd.currentMaturityYear && cd.currentMaturityMonth) {
-            maturityYear = cd.currentMaturityYear;
-            maturityMonth = cd.currentMaturityMonth;
-        } else if (cd.maturityDate) {
+    static _resolveCdMaturitySchedule(cd, currentYear, defaultWhenMissing = true) {
+        if (cd.currentMaturityYear) {
+            return {
+                maturityYear: cd.currentMaturityYear,
+                maturityMonth: cd.currentMaturityMonth || 1
+            };
+        }
+        if (cd.maturityDate) {
             const parts = String(cd.maturityDate).split('-');
-            maturityYear = parseInt(parts[0], 10) || currentYear + 1;
-            maturityMonth = parseInt(parts[1], 10) || 1;
+            const maturityYear = parseInt(parts[0], 10) || currentYear + 1;
+            const maturityMonth = parseInt(parts[1], 10) || 1;
             cd.currentMaturityYear = maturityYear;
             cd.currentMaturityMonth = maturityMonth;
-        } else {
-            maturityYear = currentYear + 1;
-            maturityMonth = 1;
-            cd.currentMaturityYear = maturityYear;
-            cd.currentMaturityMonth = maturityMonth;
+            return { maturityYear, maturityMonth };
         }
+        if (defaultWhenMissing) {
+            cd.currentMaturityYear = currentYear + 1;
+            cd.currentMaturityMonth = 1;
+            return { maturityYear: cd.currentMaturityYear, maturityMonth: 1 };
+        }
+        return { maturityYear: 0, maturityMonth: 1 };
+    }
 
-        const termMonths = Number(cd.termMonths) || (Number(cd.termYears) ? Number(cd.termYears) * 12 : 12);
+    static _getCdTermMonths(cd) {
+        const directMonths = Number(cd.termMonths);
+        if (directMonths > 0) return directMonths;
+        const years = Number(cd.termYears);
+        return years > 0 ? years * 12 : 12;
+    }
 
-        if (maturityYear > 0 && (year > maturityYear || (year === maturityYear && month >= maturityMonth))) {
-            const action = cd.maturityAction || 'sweep';
-            const maxRollovers = Number(cd.rolloverCount) || 1;
+    static _advanceCdRollover(cd, year, month, termMonths) {
+        cd.rolloversCompleted = (cd.rolloversCompleted || 0) + 1;
+        const nextTotalMonths = year * 12 + (month - 1) + termMonths;
+        cd.currentMaturityYear = Math.floor(nextTotalMonths / 12);
+        cd.currentMaturityMonth = (nextTotalMonths % 12) + 1;
+    }
 
-            if (action === 'rollover' && (cd.rolloversCompleted || 0) < maxRollovers) {
-                cd.rolloversCompleted = (cd.rolloversCompleted || 0) + 1;
-                const currentTotalMonths = year * 12 + (month - 1);
-                const nextTotalMonths = currentTotalMonths + termMonths;
-                cd.currentMaturityYear = Math.floor(nextTotalMonths / 12);
-                cd.currentMaturityMonth = (nextTotalMonths % 12) + 1;
-                if (events) {
-                    events.push({
-                        year,
-                        month,
-                        label: `${spouse.name || 'Primary'} CD Rolled Over (${termMonths}m term ➔ ${cd.currentMaturityYear}-${String(cd.currentMaturityMonth).padStart(2, '0')})`,
-                        type: 'cd_rollover'
-                    });
-                }
-            } else {
-                const targetAcc = PortfolioManager.findTargetSavingsAccount(spouse, cd, s1, s2);
-                PortfolioManager._sweepMaturedCd({ cd, targetAcc, year, month, spouse, events });
+    static processSingleCdMonthly({ cd, year, month, currentYear, spouse, s1, s2, events }) {
+        const { maturityYear, maturityMonth } = this._resolveCdMaturitySchedule(cd, currentYear, true);
+        const isDue = maturityYear > 0 && (year > maturityYear || (year === maturityYear && month >= maturityMonth));
+        if (!isDue) return;
+
+        const termMonths = this._getCdTermMonths(cd);
+        const action = cd.maturityAction || 'sweep';
+        const maxRollovers = Number(cd.rolloverCount) || 1;
+
+        if (action === 'rollover' && (cd.rolloversCompleted || 0) < maxRollovers) {
+            this._advanceCdRollover(cd, year, month, termMonths);
+            if (events) {
+                const nextDateStr = `${cd.currentMaturityYear}-${String(cd.currentMaturityMonth).padStart(2, '0')}`;
+                events.push({
+                    year,
+                    month,
+                    label: `${spouse.name || 'Primary'} CD Rolled Over (${termMonths}m term ➔ ${nextDateStr})`,
+                    type: 'cd_rollover'
+                });
             }
+            return;
         }
+
+        const targetAcc = PortfolioManager.findTargetSavingsAccount(spouse, cd, s1, s2);
+        PortfolioManager._sweepMaturedCd({ cd, targetAcc, year, month, spouse, events });
     }
 
     static _sweepMaturedCd({ cd, targetAcc, year, month, spouse, events }) {
@@ -319,7 +326,7 @@ export class PortfolioManager {
 
         targetAcc.balance += maturedBalance;
         targetAcc.yearRolloverIn = (targetAcc.yearRolloverIn || 0) + maturedBalance;
-        if (events) {
+        if (events && Array.isArray(events)) {
             events.push({
                 year,
                 month,
@@ -330,78 +337,44 @@ export class PortfolioManager {
     }
 
     static processSingleCd({ cd, year, currentYear, spouse, s1, s2, events }) {
-        let maturityYear = 0;
-        let maturityMonth = 1;
-        if (cd.currentMaturityYear) {
-            maturityYear = cd.currentMaturityYear;
-            maturityMonth = cd.currentMaturityMonth || 1;
-        } else if (cd.maturityDate) {
-            const parts = String(cd.maturityDate).split('-');
-            maturityYear = parseInt(parts[0], 10) || currentYear + 1;
-            maturityMonth = parseInt(parts[1], 10) || 1;
-            cd.currentMaturityYear = maturityYear;
-            cd.currentMaturityMonth = maturityMonth;
+        const { maturityYear, maturityMonth } = this._resolveCdMaturitySchedule(cd, currentYear, false);
+        if (maturityYear <= 0 || year < maturityYear) return;
+
+        const termMonths = this._getCdTermMonths(cd);
+        const action = cd.maturityAction || 'sweep';
+        const maxRollovers = Number(cd.rolloverCount) || 1;
+
+        if (action === 'rollover' && (cd.rolloversCompleted || 0) < maxRollovers) {
+            this._advanceCdRollover(cd, year, maturityMonth, termMonths);
+            return;
         }
 
-        const termMonths = Number(cd.termMonths) || (Number(cd.termYears) ? Number(cd.termYears) * 12 : 12);
+        const targetAcc = PortfolioManager.findTargetSavingsAccount(spouse, cd, s1, s2);
+        PortfolioManager._sweepMaturedCd({ cd, targetAcc, year, month: maturityMonth, spouse, events });
+    }
 
-        if (maturityYear > 0 && year >= maturityYear) {
-            const action = cd.maturityAction || 'sweep';
-            const maxRollovers = Number(cd.rolloverCount) || 1;
-
-            if (action === 'rollover' && (cd.rolloversCompleted || 0) < maxRollovers) {
-                cd.rolloversCompleted = (cd.rolloversCompleted || 0) + 1;
-                const currentTotalMonths = year * 12 + (maturityMonth - 1);
-                const nextTotalMonths = currentTotalMonths + termMonths;
-                cd.currentMaturityYear = Math.floor(nextTotalMonths / 12);
-                cd.currentMaturityMonth = (nextTotalMonths % 12) + 1;
-            } else {
-                const targetAcc = PortfolioManager.findTargetSavingsAccount(spouse, cd, s1, s2);
-                const maturedBalance = cd.balance;
-                if (targetAcc && maturedBalance > 0) {
-                    cd.balance = 0;
-                    cd.yearRolloverOut = (cd.yearRolloverOut || 0) + maturedBalance;
-                    cd.yearWithdrawals = (cd.yearWithdrawals || 0) + maturedBalance;
-                    cd.isMatured = true;
-
-                    targetAcc.balance += maturedBalance;
-                    targetAcc.yearRolloverIn = (targetAcc.yearRolloverIn || 0) + maturedBalance;
-                    if (events && Array.isArray(events)) {
-                        events.push({
-                            year,
-                            month: maturityMonth,
-                            label: `${spouse.name || 'Primary'} CD Matured ($${Math.round(maturedBalance).toLocaleString()} ➔ ${targetAcc.name || 'Brokerage'})`,
-                            type: 'cd_matured'
-                        });
-                    }
-                }
-            }
-        }
+    static _findAccountByIdOrName(accounts, targetId) {
+        return (accounts || []).find((a) => a.id === targetId || a.name === targetId) || null;
     }
 
     static findTargetSavingsAccount(spouse, cd, s1, s2) {
+        const otherSpouse = spouse === s1 ? s2 : s1;
+        const primaryAccounts = spouse?.accounts || [];
+        const secondaryAccounts = otherSpouse?.accounts || [];
+
         if (cd.sweepTargetAccountId) {
-            const foundSame = (spouse.accounts || []).find(
-                (a) => a.id === cd.sweepTargetAccountId || a.name === cd.sweepTargetAccountId
-            );
-            if (foundSame) return foundSame;
-            const otherSpouse = spouse === s1 ? s2 : s1;
-            const foundOther = (otherSpouse.accounts || []).find(
-                (a) => a.id === cd.sweepTargetAccountId || a.name === cd.sweepTargetAccountId
-            );
-            if (foundOther) return foundOther;
+            const match =
+                this._findAccountByIdOrName(primaryAccounts, cd.sweepTargetAccountId) ||
+                this._findAccountByIdOrName(secondaryAccounts, cd.sweepTargetAccountId);
+            if (match) return match;
         }
 
-        const sameHysa = (spouse.accounts || []).find((a) => a.type === 'hysa');
-        if (sameHysa) return sameHysa;
-
-        const otherSpouse = spouse === s1 ? s2 : s1;
-        const otherHysa = (otherSpouse.accounts || []).find((a) => a.type === 'hysa');
-        if (otherHysa) return otherHysa;
-
-        const sameBrokerage = (spouse.accounts || []).find((a) => a.type === 'taxableBrokerage');
-        if (sameBrokerage) return sameBrokerage;
-
-        return (otherSpouse.accounts || []).find((a) => a.type === 'taxableBrokerage') || null;
+        return (
+            primaryAccounts.find((a) => a.type === 'hysa') ||
+            secondaryAccounts.find((a) => a.type === 'hysa') ||
+            primaryAccounts.find((a) => a.type === 'taxableBrokerage') ||
+            secondaryAccounts.find((a) => a.type === 'taxableBrokerage') ||
+            null
+        );
     }
 }

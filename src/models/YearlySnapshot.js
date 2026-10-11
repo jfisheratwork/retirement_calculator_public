@@ -1,112 +1,137 @@
+function parseSnapshotArgs(yearOrOptions, person1, person2, cashCushion, rest) {
+    if (typeof yearOrOptions === 'object' && yearOrOptions !== null) {
+        return {
+            year: yearOrOptions.year,
+            p1: yearOrOptions.person1,
+            p2: yearOrOptions.person2,
+            cushion: yearOrOptions.cashCushion || 0,
+            equity: yearOrOptions.primaryResidenceEquity || 0,
+            mortgage: yearOrOptions.mortgageBalance || 0,
+            homeValue: yearOrOptions.homeValue || 0
+        };
+    }
+    const [primaryResidenceEquity = 0, mortgageBalance = 0] = rest;
+    return {
+        year: yearOrOptions,
+        p1: person1,
+        p2: person2,
+        cushion: cashCushion || 0,
+        equity: primaryResidenceEquity || 0,
+        mortgage: mortgageBalance || 0,
+        homeValue: 0
+    };
+}
+
+function createInitialSpouseIncome() {
+    return {
+        w2Gross: 0,
+        w2TaxableGross: 0,
+        w2Net: 0,
+        takeHome: 0,
+        employerMatch: 0,
+        ssn: 0,
+        rule72t: 0,
+        rothConversion: 0,
+        rmd: 0
+    };
+}
+
+function createInitialIncome() {
+    return {
+        s1: createInitialSpouseIncome(),
+        s2: createInitialSpouseIncome(),
+        drawdowns: {
+            s1Hysa: 0,
+            s2Hysa: 0,
+            s1Brokerage: 0,
+            s2Brokerage: 0,
+            s1Trad401k: 0,
+            s2Trad401k: 0,
+            s1Trad403b: 0,
+            s2Trad403b: 0,
+            s1StandardIra: 0,
+            s2StandardIra: 0,
+            s1RothIra: 0,
+            s2RothIra: 0,
+            s1Hsa: 0,
+            s2Hsa: 0,
+            cashCushion: 0,
+            penalizedPreTax: 0,
+            s1PenalizedPreTax: 0,
+            s2PenalizedPreTax: 0
+        },
+        reverseMortgage: 0,
+        mandatoryRmd: 0,
+        w2: 0,
+        takeHome: 0,
+        employerMatchTotal: 0
+    };
+}
+
+function getAccountBalance(person, accountKey) {
+    const acc = person?.accounts?.[accountKey];
+    return acc ? acc.balance : 0;
+}
+
+function createInitialBalances(p1, p2, { cushion, equity, homeValue, mortgage }) {
+    return {
+        s1Trad401k: getAccountBalance(p1, 'traditional401k'),
+        s2Trad401k: getAccountBalance(p2, 'traditional401k'),
+        s1Trad403b: getAccountBalance(p1, 'trad403b'),
+        s2Trad403b: getAccountBalance(p2, 'trad403b'),
+        s1StandardIra: getAccountBalance(p1, 'standardIra'),
+        s2StandardIra: getAccountBalance(p2, 'standardIra'),
+        s1Hysa: getAccountBalance(p1, 'hysa'),
+        s2Hysa: getAccountBalance(p2, 'hysa'),
+        s1Cd: getAccountBalance(p1, 'cd'),
+        s2Cd: getAccountBalance(p2, 'cd'),
+        s1Brokerage: getAccountBalance(p1, 'taxableBrokerage'),
+        s2Brokerage: getAccountBalance(p2, 'taxableBrokerage'),
+        s1RothIra: getAccountBalance(p1, 'rothIra'),
+        s2RothIra: getAccountBalance(p2, 'rothIra'),
+        s1Hsa: getAccountBalance(p1, 'hsa'),
+        s2Hsa: getAccountBalance(p2, 'hsa'),
+        cashCushion: cushion,
+        primaryResidenceEquity: equity,
+        homeValue,
+        mortgageBalance: mortgage
+    };
+}
+
 export class YearlySnapshot {
-    constructor(yearOrOptions, person1, person2, cashCushion, primaryResidenceEquity, mortgageBalance = 0) {
-        let year, p1, p2, cushion, equity, mortgage;
-        if (typeof yearOrOptions === 'object' && yearOrOptions !== null) {
-            year = yearOrOptions.year;
-            p1 = yearOrOptions.person1;
-            p2 = yearOrOptions.person2;
-            cushion = yearOrOptions.cashCushion || 0;
-            equity = yearOrOptions.primaryResidenceEquity || 0;
-            mortgage = yearOrOptions.mortgageBalance || 0;
-        } else {
-            year = yearOrOptions;
-            p1 = person1;
-            p2 = person2;
-            cushion = cashCushion || 0;
-            equity = primaryResidenceEquity || 0;
-            mortgage = mortgageBalance || 0;
-        }
+    constructor(yearOrOptions, person1, person2, cashCushion, ...rest) {
+        const { year, p1, p2, cushion, equity, mortgage, homeValue } = parseSnapshotArgs(
+            yearOrOptions,
+            person1,
+            person2,
+            cashCushion,
+            rest
+        );
 
         this.year = year;
         this.age1 = p1 ? p1.getAge(year) : 0;
         this.age2 = p2 ? p2.getAge(year) : 0;
-
-        this.income = {
-            s1: {
-                w2Gross: 0,
-                w2TaxableGross: 0,
-                w2Net: 0,
-                takeHome: 0,
-                employerMatch: 0,
-                ssn: 0,
-                rule72t: 0,
-                rothConversion: 0,
-                rmd: 0
-            },
-            s2: {
-                w2Gross: 0,
-                w2TaxableGross: 0,
-                w2Net: 0,
-                takeHome: 0,
-                employerMatch: 0,
-                ssn: 0,
-                rule72t: 0,
-                rothConversion: 0,
-                rmd: 0
-            },
-            drawdowns: {
-                s1Hysa: 0,
-                s2Hysa: 0,
-                s1Brokerage: 0,
-                s2Brokerage: 0,
-                s1Trad401k: 0,
-                s2Trad401k: 0,
-                s1Trad403b: 0,
-                s2Trad403b: 0,
-                s1StandardIra: 0,
-                s2StandardIra: 0,
-                s1RothIra: 0,
-                s2RothIra: 0,
-                s1Hsa: 0,
-                s2Hsa: 0,
-                cashCushion: 0
-            },
-            reverseMortgage: 0,
-            mandatoryRmd: 0,
-            w2: 0, // Keep total for convenience in KPI
-            takeHome: 0,
-            employerMatchTotal: 0
-        };
+        this.income = createInitialIncome();
 
         this.expenses = 0;
-        this.expenseBreakdown = { base: 0, housing: 0, mortgage: 0, childcare: 0, irmaa: 0 };
+        this.expenseBreakdown = { base: 0, housing: 0, mortgage: 0, childcare: 0, irmaa: 0, healthcare: 0 };
         this.reinvestedToBrokerage = 0;
         this.reinvestedToSweep = 0;
         this.sweepAccountName = '';
         this.reinvestedToCushion = 0;
         this.rothConversionTax = 0;
+        this.earlyWithdrawalPenalty = 0;
         this.taxes = 0;
         this.taxDetails = null;
         this.surplus = 0;
         this.unfundedShortfall = 0;
         this.mortgageBalance = mortgage;
 
-        this.balances = {
-            s1Trad401k: p1 ? p1.accounts.traditional401k.balance : 0,
-            s2Trad401k: p2 ? p2.accounts.traditional401k.balance : 0,
-            s1Trad403b: p1 ? p1.accounts.trad403b.balance : 0,
-            s2Trad403b: p2 ? p2.accounts.trad403b.balance : 0,
-            s1StandardIra: p1 ? p1.accounts.standardIra.balance : 0,
-            s2StandardIra: p2 ? p2.accounts.standardIra.balance : 0,
-            s1Hysa: p1 ? p1.accounts.hysa.balance : 0,
-            s2Hysa: p2 ? p2.accounts.hysa.balance : 0,
-            s1Cd: p1 && p1.accounts.cd ? p1.accounts.cd.balance : 0,
-            s2Cd: p2 && p2.accounts.cd ? p2.accounts.cd.balance : 0,
-            s1Brokerage: p1 ? p1.accounts.taxableBrokerage.balance : 0,
-            s2Brokerage: p2 ? p2.accounts.taxableBrokerage.balance : 0,
-            s1RothIra: p1 && p1.accounts.rothIra ? p1.accounts.rothIra.balance : 0,
-            s2RothIra: p2 && p2.accounts.rothIra ? p2.accounts.rothIra.balance : 0,
-            s1Hsa: p1 && p1.accounts.hsa ? p1.accounts.hsa.balance : 0,
-            s2Hsa: p2 && p2.accounts.hsa ? p2.accounts.hsa.balance : 0,
-            cashCushion: cushion,
-            primaryResidenceEquity: equity,
-            homeValue: typeof yearOrOptions === 'object' && yearOrOptions?.homeValue ? yearOrOptions.homeValue : 0,
-            mortgageBalance: mortgage
-        };
+        this.balances = createInitialBalances(p1, p2, { cushion, equity, homeValue, mortgage });
 
         this.rothCohorts = {
-            s1: p1 ? JSON.parse(JSON.stringify(p1.accounts.rothIra.cohorts)) : [],
-            s2: p2 ? JSON.parse(JSON.stringify(p2.accounts.rothIra.cohorts)) : []
+            s1: p1?.accounts?.rothIra ? JSON.parse(JSON.stringify(p1.accounts.rothIra.cohorts)) : [],
+            s2: p2?.accounts?.rothIra ? JSON.parse(JSON.stringify(p2.accounts.rothIra.cohorts)) : []
         };
 
         this.events = [];

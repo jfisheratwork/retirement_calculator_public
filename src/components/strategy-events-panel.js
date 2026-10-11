@@ -29,38 +29,12 @@ export class StrategyEventsPanel extends BaseComponent {
         `;
     }
 
-    _renderAdvancedRothSection() {
-        const advRoth = this.state.strategies?.advancedRothStrategy || {};
-        const isEnabled = Boolean(advRoth.enabled);
-        const bracketOptions = [
-            { value: '10', label: '10%' },
-            { value: '12', label: '12%' },
-            { value: '22', label: '22%' },
-            { value: '24', label: '24%' },
-            { value: '32', label: '32%' },
-            { value: '35', label: '35%' },
-            { value: '37', label: '37%' }
-        ];
+    _getBracketOptions() {
+        return ['10', '12', '22', '24', '32', '35', '37'].map((val) => ({ value: val, label: `${val}%` }));
+    }
 
-        const currentYear = new Date().getFullYear();
-        const advStartYear = advRoth.startYear || currentYear;
-        const advStartDate = normalizeDateStr(advRoth.startDate, advStartYear, 1) || `${advStartYear}-01-01`;
-
-        let html = `<div class="card" style="padding: 1rem; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 1.5rem;">
-            <div class="pane-section-header" style="margin-bottom: 0.5rem;">Advanced Dynamic Roth Conversion Ladder (Household Bracket Filling)</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.4;">
-                Automatically calculates remaining headroom under your target tax bracket each year and converts Traditional IRA funds dynamically. When enabled, this replaces static per-spouse conversions.
-            </div>`;
-
-        html += this._checkbox(
-            'Enable Advanced Roth Strategy',
-            'strategies.advancedRothStrategy.enabled',
-            isEnabled,
-            'Dynamically converts pre-tax Traditional IRA funds to Roth IRA to fill up a target tax bracket without crossing into a higher bracket.'
-        );
-
-        html += `<div id="advanced-roth-inputs" style="display: ${isEnabled ? 'block' : 'none'}; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08);">`;
-        html += `<div class="tab-stop-grid-2">`;
+    _renderAdvancedRothPrimaryInputs(advRoth, bracketOptions, advStartDate) {
+        let html = `<div class="tab-stop-grid-2">`;
         html +=
             `<div>` +
             this._select(
@@ -102,33 +76,39 @@ export class StrategyEventsPanel extends BaseComponent {
             ) +
             `</div>`;
         html += `</div>`;
+        return html;
+    }
 
+    _renderAdvancedRothSection() {
+        const advRoth = this.state.strategies?.advancedRothStrategy || {};
+        const isEnabled = Boolean(advRoth.enabled);
+        const bracketOptions = this._getBracketOptions();
+        const currentYear = new Date().getFullYear();
+        const advStartYear = advRoth.startYear || currentYear;
+        const advStartDate = normalizeDateStr(advRoth.startDate, advStartYear, 1) || `${advStartYear}-01-01`;
+
+        let html = `<div class="card" style="padding: 1rem; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 1.5rem;">
+            <div class="pane-section-header" style="margin-bottom: 0.5rem;">Advanced Dynamic Roth Conversion Ladder (Household Bracket Filling)</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.4;">
+                Automatically calculates remaining headroom under your target tax bracket each year and converts Traditional IRA funds dynamically. When enabled, this replaces static per-spouse conversions.
+            </div>`;
+
+        html += this._checkbox(
+            'Enable Advanced Roth Strategy',
+            'strategies.advancedRothStrategy.enabled',
+            isEnabled,
+            'Dynamically converts pre-tax Traditional IRA funds to Roth IRA to fill up a target tax bracket without crossing into a higher bracket.'
+        );
+
+        html += `<div id="advanced-roth-inputs" style="display: ${isEnabled ? 'block' : 'none'}; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08);">`;
+        html += this._renderAdvancedRothPrimaryInputs(advRoth, bracketOptions, advStartDate);
         html += `<div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem;">
-            <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Minimum Conversion Rules</div>`;
-        html += `<div class="tab-stop-grid-2">`;
-        html +=
-            `<div>` +
-            this._input(
-                'Minimum Annual Conversion ($)',
-                'strategies.advancedRothStrategy.minConversion',
-                'number',
-                advRoth.minConversion || 0,
-                'Guarantees at least this amount is converted annually even if it exceeds the target bracket up to the absolute max bracket.'
-            ) +
-            `</div>`;
-        html +=
-            `<div>` +
-            this._select(
-                'Absolute Max Bracket',
-                'strategies.advancedRothStrategy.maxBracket',
-                bracketOptions,
-                advRoth.maxBracket || '24',
-                'The hard tax bracket ceiling that minimum conversions will never exceed.'
-            ) +
-            `</div>`;
-        html += `</div></div>`;
-
-        html += `</div></div>`;
+            <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Minimum Conversion Rules</div>
+            <div class="tab-stop-grid-2">
+                <div>${this._input('Minimum Annual Conversion ($)', 'strategies.advancedRothStrategy.minConversion', 'number', advRoth.minConversion || 0, 'Guarantees at least this amount is converted annually even if it exceeds the target bracket up to the absolute max bracket.')}</div>
+                <div>${this._select('Absolute Max Bracket', 'strategies.advancedRothStrategy.maxBracket', bracketOptions, advRoth.maxBracket || '24', 'The hard tax bracket ceiling that minimum conversions will never exceed.')}</div>
+            </div>
+        </div></div></div>`;
         return html;
     }
 
@@ -145,25 +125,31 @@ export class StrategyEventsPanel extends BaseComponent {
         return out;
     }
 
+    _lookupAggregateBalance(b, prefix, type) {
+        const spouseCode = prefix === 'primarySpouse' ? 's1' : 's2';
+        if (type === 'standardIra') return b[`${spouseCode}StandardIra`] ?? null;
+        if (type === 'traditional401k') return b[`${spouseCode}Trad401k`] ?? null;
+        return null;
+    }
+
+    _lookupSnapshotBalance(prefix, account, targetYear, targetMonth) {
+        if (typeof window === 'undefined' || !window.__lastSimResult?.data) return null;
+        const snap = window.__lastSimResult.data.find((d) => d.year === targetYear);
+        const b = snap?.monthlySnapshots?.[targetMonth - 1]?.balances;
+        if (!b) return null;
+
+        const id = account.id || account.name;
+        if (b.byAccount && b.byAccount[id] !== undefined) {
+            return b.byAccount[id];
+        }
+        return this._lookupAggregateBalance(b, prefix, account.type);
+    }
+
     _getProjectedAccountBalance(prefix, account, targetYear, targetMonth) {
         if (!account) return 0;
-        if (typeof window !== 'undefined' && window.__lastSimResult?.data) {
-            const snap = window.__lastSimResult.data.find((d) => d.year === targetYear);
-            if (snap?.monthlySnapshots && snap.monthlySnapshots[targetMonth - 1]?.balances) {
-                const b = snap.monthlySnapshots[targetMonth - 1].balances;
-                const id = account.id || account.name;
-                if (b.byAccount && b.byAccount[id] !== undefined) {
-                    return b.byAccount[id];
-                }
-                const spouseCode = prefix === 'primarySpouse' ? 's1' : 's2';
-                if (account.type === 'standardIra' && b[`${spouseCode}StandardIra`] !== undefined) {
-                    return b[`${spouseCode}StandardIra`];
-                }
-                if (account.type === 'traditional401k' && b[`${spouseCode}Trad401k`] !== undefined) {
-                    return b[`${spouseCode}Trad401k`];
-                }
-            }
-        }
+        const simBal = this._lookupSnapshotBalance(prefix, account, targetYear, targetMonth);
+        if (simBal !== null) return simBal;
+
         const currentYear = new Date().getFullYear();
         const years = Math.max(0, targetYear - currentYear);
         const rate = Number(account.expectedReturn ?? 7) / 100;
@@ -202,24 +188,54 @@ export class StrategyEventsPanel extends BaseComponent {
         return iraOpts;
     }
 
-    _render72tInputs(prefix, spouseObj, r72t) {
-        const birthYear = Number(spouseObj.yearOfBirth) || 1980;
-        const startAge = r72t.startAge || 55;
-        const r72tMonth = Number(r72t.startMonth) || 1;
-        const default72tYear = birthYear + startAge;
-        const { year: targetYear, month: targetMonth } = parseDateParts(r72t.startDate, default72tYear, r72tMonth);
-        const r72tDate =
-            normalizeDateStr(r72t.startDate, default72tYear, r72tMonth) ||
-            `${default72tYear}-${String(r72tMonth).padStart(2, '0')}-01`;
-        const calculatedR72tAge = targetYear - birthYear;
-        const r72tBadge = `<span id="${prefix}-72t-age-badge" class="badge-subtle badge-subtle-blue">Age ${calculatedR72tAge}</span>`;
+    _resolveActive72tAccount(spouseObj, r72t) {
+        const accounts = spouseObj.accounts || [];
+        const matchKey = (key) => accounts.find((a) => a.id === key || a.name === key || a.type === key);
+        const targetAcc = matchKey(r72t.targetAccount) || accounts.find((a) => a.type === 'standardIra');
+        const sourceAcc = matchKey(r72t.sourceAccount) || targetAcc;
+        return targetAcc || sourceAcc;
+    }
 
+    _get72tInterestRate() {
+        const DEFAULT_72T_RATE = 0.05;
+        return this.state.strategies?.rule72tInterestRate
+            ? Number(this.state.strategies.rule72tInterestRate) / 100
+            : DEFAULT_72T_RATE;
+    }
+
+    _render72tPreviewCallout(prefix, spouseObj, r72t, timing) {
+        const { targetYear, targetMonth, r72tDate, calculatedR72tAge } = timing;
+        const activeAcc = this._resolveActive72tAccount(spouseObj, r72t);
+        const projectedBal = this._getProjectedAccountBalance(prefix, activeAcc, targetYear, targetMonth);
+        const hasCustomSplit = r72t.splitAmount !== undefined && r72t.splitAmount !== null && r72t.splitAmount !== '';
+        const effective72tBal = hasCustomSplit ? Math.min(projectedBal, Number(r72t.splitAmount)) : projectedBal;
+        const rate72t = this._get72tInterestRate();
+        const method = spouseObj.rule72tMethod || 'amortization';
+        const projectedAnnualPayout = Math.round(
+            calculate72tPayment(effective72tBal, rate72t, calculatedR72tAge, method)
+        );
+        const projectedMonthlyPayout = Math.round(projectedAnnualPayout / 12);
+
+        return `
+            <div id="${prefix}-sepp-payout-preview-box" class="sepp-payout-preview-box" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 0.75rem; margin-top: 0.75rem; margin-bottom: 0.5rem;">
+                <div style="font-weight: 600; font-size: 0.85rem; color: #10b981; display: flex; align-items: center; justify-content: space-between;">
+                    <span>📊 Estimated 72(t) SEPP Payout at Conversion</span>
+                    <span id="${prefix}-72t-preview-header-meta" style="font-size: 0.75rem; color: var(--text-muted);">${r72tDate} (Age ${calculatedR72tAge})</span>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; line-height: 1.5;">
+                    <div>Estimated IRA Balance at Conversion: <strong id="${prefix}-72t-preview-balance" style="color: var(--text-primary);">$${Math.round(effective72tBal).toLocaleString()}</strong></div>
+                    <div>Statutory Annual Distribution: <strong id="${prefix}-72t-preview-annual" style="color: #10b981;">$${projectedAnnualPayout.toLocaleString()}/yr</strong> (<span id="${prefix}-72t-preview-monthly">~$${projectedMonthlyPayout.toLocaleString()}/mo</span>)</div>
+                </div>
+            </div>
+        `;
+    }
+
+    _render72tAccountSelectors(prefix, spouseObj, r72t, targetYear, targetMonth) {
         const srcOpts = this._get72tSourceOptions(prefix, spouseObj, targetYear, targetMonth);
         const iraOpts = this._get72tIraOptions(prefix, spouseObj, targetYear, targetMonth);
         const targetMode = r72t.targetIraMode || 'existing';
 
-        let out = `<div class="tab-stop-grid-2">`;
-        out +=
+        let out =
             `<div>` +
             this._select(
                 'Source Account (Funds Coming From)',
@@ -261,8 +277,24 @@ export class StrategyEventsPanel extends BaseComponent {
             r72t.newIraName || `${spouseObj.name || 'Spouse'} 72(t) IRA`,
             'Name for the new isolated Traditional IRA created specifically for 72(t) SEPP.'
         );
-        out += `</div>`;
-        out += `</div>`;
+        out += `</div></div>`;
+        return out;
+    }
+
+    _render72tInputs(prefix, spouseObj, r72t) {
+        const birthYear = Number(spouseObj.yearOfBirth) || 1980;
+        const startAge = r72t.startAge || 55;
+        const r72tMonth = Number(r72t.startMonth) || 1;
+        const default72tYear = birthYear + startAge;
+        const { year: targetYear, month: targetMonth } = parseDateParts(r72t.startDate, default72tYear, r72tMonth);
+        const r72tDate =
+            normalizeDateStr(r72t.startDate, default72tYear, r72tMonth) ||
+            `${default72tYear}-${String(r72tMonth).padStart(2, '0')}-01`;
+        const calculatedR72tAge = targetYear - birthYear;
+        const r72tBadge = `<span id="${prefix}-72t-age-badge" class="badge-subtle badge-subtle-blue">Age ${calculatedR72tAge}</span>`;
+
+        let out = `<div class="tab-stop-grid-2">`;
+        out += this._render72tAccountSelectors(prefix, spouseObj, r72t, targetYear, targetMonth);
 
         const splitVal = r72t.splitAmount !== undefined && r72t.splitAmount !== null ? r72t.splitAmount : '';
         out +=
@@ -275,7 +307,6 @@ export class StrategyEventsPanel extends BaseComponent {
                 'Initial amount transferred from source account into the 72(t) IRA at plan start. Leave blank to use full source balance.'
             ) +
             `</div>`;
-
         out +=
             `<div>` +
             this._input('72(t) Start Date', `${prefix}.rule72t.startDate`, 'date', r72tDate, {
@@ -301,43 +332,12 @@ export class StrategyEventsPanel extends BaseComponent {
 
         const warning = HeuristicValidator.validate72tAge(calculatedR72tAge);
         out += this._warningBox(`${prefix}-72t-age-warning`, warning ? warning.message : '');
-
-        // Live SEPP Payout Preview Callout
-        const targetAcc =
-            (spouseObj.accounts || []).find(
-                (a) => a.id === r72t.targetAccount || a.name === r72t.targetAccount || a.type === r72t.targetAccount
-            ) || (spouseObj.accounts || []).find((a) => a.type === 'standardIra');
-        const sourceAcc =
-            (spouseObj.accounts || []).find(
-                (a) => a.id === r72t.sourceAccount || a.name === r72t.sourceAccount || a.type === r72t.sourceAccount
-            ) || targetAcc;
-        const activeAcc = targetAcc || sourceAcc;
-        const projectedBal = this._getProjectedAccountBalance(prefix, activeAcc, targetYear, targetMonth);
-        const hasCustomSplit = r72t.splitAmount !== undefined && r72t.splitAmount !== null && r72t.splitAmount !== '';
-        const effective72tBal = hasCustomSplit ? Math.min(projectedBal, Number(r72t.splitAmount)) : projectedBal;
-        const DEFAULT_72T_RATE = 0.05;
-        const rate72t = this.state.strategies?.rule72tInterestRate
-            ? Number(this.state.strategies.rule72tInterestRate) / 100
-            : DEFAULT_72T_RATE;
-        const method = spouseObj.rule72tMethod || 'amortization';
-        const projectedAnnualPayout = Math.round(
-            calculate72tPayment(effective72tBal, rate72t, calculatedR72tAge, method)
-        );
-        const projectedMonthlyPayout = Math.round(projectedAnnualPayout / 12);
-
-        out += `
-            <div id="${prefix}-sepp-payout-preview-box" class="sepp-payout-preview-box" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 0.75rem; margin-top: 0.75rem; margin-bottom: 0.5rem;">
-                <div style="font-weight: 600; font-size: 0.85rem; color: #10b981; display: flex; align-items: center; justify-content: space-between;">
-                    <span>📊 Estimated 72(t) SEPP Payout at Conversion</span>
-                    <span id="${prefix}-72t-preview-header-meta" style="font-size: 0.75rem; color: var(--text-muted);">${r72tDate} (Age ${calculatedR72tAge})</span>
-                </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; line-height: 1.5;">
-                    <div>Estimated IRA Balance at Conversion: <strong id="${prefix}-72t-preview-balance" style="color: var(--text-primary);">$${Math.round(effective72tBal).toLocaleString()}</strong></div>
-                    <div>Statutory Annual Distribution: <strong id="${prefix}-72t-preview-annual" style="color: #10b981;">$${projectedAnnualPayout.toLocaleString()}/yr</strong> (<span id="${prefix}-72t-preview-monthly">~$${projectedMonthlyPayout.toLocaleString()}/mo</span>)</div>
-                </div>
-            </div>
-        `;
-
+        out += this._render72tPreviewCallout(prefix, spouseObj, r72t, {
+            targetYear,
+            targetMonth,
+            r72tDate,
+            calculatedR72tAge
+        });
         return out;
     }
 
@@ -442,43 +442,8 @@ export class StrategyEventsPanel extends BaseComponent {
         badge.innerHTML = `<span>🗓️</span> <span>Active Window: <strong>${startYear} – ${endYear}</strong> (${duration} ${duration === 1 ? 'year' : 'years'})</span>`;
     }
 
-    _update72tLivePreview(prefix) {
-        const spouseObj = this.state[prefix] || {};
-        const birthYear = Number(spouseObj.yearOfBirth) || 1980;
-        const dateInput = this.querySelector(`input[data-path="${prefix}.rule72t.startDate"]`);
-        const splitInput = this.querySelector(`input[data-path="${prefix}.rule72t.splitAmount"]`);
-        const methodSelect = this.querySelector(`select[data-path="${prefix}.rule72tMethod"]`);
-
-        const dateVal = dateInput?.value || `${birthYear + 55}-01-01`;
-        const rYear = parseInt(String(dateVal).split('-')[0], 10) || birthYear + 55;
-        const rMonth = parseInt(String(dateVal).split('-')[1], 10) || 1;
-        const calcAge = Math.max(18, rYear - birthYear);
-
-        const method = methodSelect?.value || spouseObj.rule72tMethod || 'amortization';
-        const r72t = spouseObj.rule72t || {};
-        const targetAcc =
-            (spouseObj.accounts || []).find(
-                (a) => a.id === r72t.targetAccount || a.name === r72t.targetAccount || a.type === r72t.targetAccount
-            ) || (spouseObj.accounts || []).find((a) => a.type === 'standardIra');
-        const sourceAcc =
-            (spouseObj.accounts || []).find(
-                (a) => a.id === r72t.sourceAccount || a.name === r72t.sourceAccount || a.type === r72t.sourceAccount
-            ) || targetAcc;
-        const activeAcc = targetAcc || sourceAcc;
-        const projectedBal = this._getProjectedAccountBalance(prefix, activeAcc, rYear, rMonth);
-
-        const splitVal = splitInput?.value !== undefined && splitInput?.value !== '' ? Number(splitInput.value) : null;
-        const effectiveBal =
-            splitVal !== null && !isNaN(splitVal) && splitVal > 0 ? Math.min(projectedBal, splitVal) : projectedBal;
-
-        const DEFAULT_72T_RATE = 0.05;
-        const rate72t = this.state.strategies?.rule72tInterestRate
-            ? Number(this.state.strategies.rule72tInterestRate) / 100
-            : DEFAULT_72T_RATE;
-
-        const projectedAnnual = Math.round(calculate72tPayment(effectiveBal, rate72t, calcAge, method));
+    _set72tPreviewDomValues(prefix, dateVal, calcAge, effectiveBal, projectedAnnual) {
         const projectedMonthly = Math.round(projectedAnnual / 12);
-
         const headerMetaEl = this.querySelector(`#${prefix}-72t-preview-header-meta`);
         const balEl = this.querySelector(`#${prefix}-72t-preview-balance`);
         const annualEl = this.querySelector(`#${prefix}-72t-preview-annual`);
@@ -488,6 +453,35 @@ export class StrategyEventsPanel extends BaseComponent {
         if (balEl) balEl.textContent = `$${Math.round(effectiveBal).toLocaleString()}`;
         if (annualEl) annualEl.textContent = `$${projectedAnnual.toLocaleString()}/yr`;
         if (monthlyEl) monthlyEl.textContent = `~$${projectedMonthly.toLocaleString()}/mo`;
+    }
+
+    _capBalanceBySplitInput(projectedBal, rawSplit) {
+        const splitVal = Number(rawSplit);
+        if (rawSplit && !isNaN(splitVal) && splitVal > 0) {
+            return Math.min(projectedBal, splitVal);
+        }
+        return projectedBal;
+    }
+
+    _update72tLivePreview(prefix) {
+        const spouseObj = this.state[prefix] || {};
+        const birthYear = Number(spouseObj.yearOfBirth) || 1980;
+        const dateInput = this.querySelector(`input[data-path="${prefix}.rule72t.startDate"]`);
+        const splitInput = this.querySelector(`input[data-path="${prefix}.rule72t.splitAmount"]`);
+        const methodSelect = this.querySelector(`select[data-path="${prefix}.rule72tMethod"]`);
+
+        const dateVal = dateInput?.value || `${birthYear + 55}-01-01`;
+        const { year: rYear, month: rMonth } = parseDateParts(dateVal, birthYear + 55, 1);
+        const calcAge = Math.max(18, rYear - birthYear);
+
+        const method = methodSelect?.value || spouseObj.rule72tMethod || 'amortization';
+        const activeAcc = this._resolveActive72tAccount(spouseObj, spouseObj.rule72t || {});
+        const projectedBal = this._getProjectedAccountBalance(prefix, activeAcc, rYear, rMonth);
+        const effectiveBal = this._capBalanceBySplitInput(projectedBal, splitInput?.value);
+
+        const rate72t = this._get72tInterestRate();
+        const projectedAnnual = Math.round(calculate72tPayment(effectiveBal, rate72t, calcAge, method));
+        this._set72tPreviewDomValues(prefix, dateVal, calcAge, effectiveBal, projectedAnnual);
     }
 
     _renderRothSection(prefix, spouseObj) {
@@ -507,6 +501,39 @@ export class StrategyEventsPanel extends BaseComponent {
         out += this._renderRothInputs(prefix, spouseObj);
         out += `</div></div>`;
         return out;
+    }
+
+    _toggleAdvancedRothStaticContainers(isAdvanced) {
+        const rothBox = this.querySelector('#advanced-roth-inputs');
+        if (rothBox) rothBox.style.display = isAdvanced ? 'block' : 'none';
+        ['primarySpouse', 'secondarySpouse'].forEach((p) => {
+            const staticContainer = this.querySelector(`#${p}-roth-static-container`);
+            const staticWarn = this.querySelector(`#${p}-roth-static-warning`);
+            if (staticContainer) {
+                staticContainer.style.opacity = isAdvanced ? '0.5' : '1';
+                staticContainer.style.pointerEvents = isAdvanced ? 'none' : 'auto';
+            }
+            if (staticWarn) {
+                staticWarn.style.display = isAdvanced ? 'block' : 'none';
+            }
+        });
+    }
+
+    _handleFieldChangeVisibility(path, prefix, target) {
+        if (path.endsWith('.rule72t.enabled')) {
+            const c = this.querySelector(`#${prefix}-72t-container`);
+            if (c) c.style.display = target.checked ? 'block' : 'none';
+        } else if (path.endsWith('.rule72t.targetIraMode')) {
+            const existWrap = this.querySelector(`#${prefix}-72t-target-existing-wrap`);
+            const newWrap = this.querySelector(`#${prefix}-72t-target-new-wrap`);
+            if (existWrap) existWrap.style.display = target.value === 'existing' ? 'block' : 'none';
+            if (newWrap) newWrap.style.display = target.value === 'new' ? 'block' : 'none';
+        } else if (path.endsWith('.rothConversion.enabled')) {
+            const c = this.querySelector(`#${prefix}-roth-static-inputs`);
+            if (c) c.style.display = target.checked ? 'block' : 'none';
+        } else if (path === 'strategies.advancedRothStrategy.enabled') {
+            this._toggleAdvancedRothStaticContainers(Boolean(target.checked));
+        }
     }
 
     afterRender() {
@@ -546,35 +573,7 @@ export class StrategyEventsPanel extends BaseComponent {
                 if (path.includes('.rothConversion.')) {
                     this._updateRothDurationBadge(prefix);
                 }
-                if (path.endsWith('.rule72t.enabled')) {
-                    const c = this.querySelector(`#${prefix}-72t-container`);
-                    if (c) c.style.display = e.target.checked ? 'block' : 'none';
-                } else if (path.endsWith('.rule72t.targetIraMode')) {
-                    const existWrap = this.querySelector(`#${prefix}-72t-target-existing-wrap`);
-                    const newWrap = this.querySelector(`#${prefix}-72t-target-new-wrap`);
-                    if (existWrap) existWrap.style.display = e.target.value === 'existing' ? 'block' : 'none';
-                    if (newWrap) newWrap.style.display = e.target.value === 'new' ? 'block' : 'none';
-                } else if (path.endsWith('.rothConversion.enabled')) {
-                    const c = this.querySelector(`#${prefix}-roth-static-inputs`);
-                    if (c) c.style.display = e.target.checked ? 'block' : 'none';
-                } else if (path === 'strategies.advancedRothStrategy.enabled') {
-                    const rothBox = this.querySelector('#advanced-roth-inputs');
-                    if (rothBox) {
-                        rothBox.style.display = e.target.checked ? 'block' : 'none';
-                    }
-                    const isAdvanced = Boolean(e.target.checked);
-                    ['primarySpouse', 'secondarySpouse'].forEach((p) => {
-                        const staticContainer = this.querySelector(`#${p}-roth-static-container`);
-                        const staticWarn = this.querySelector(`#${p}-roth-static-warning`);
-                        if (staticContainer) {
-                            staticContainer.style.opacity = isAdvanced ? '0.5' : '1';
-                            staticContainer.style.pointerEvents = isAdvanced ? 'none' : 'auto';
-                        }
-                        if (staticWarn) {
-                            staticWarn.style.display = isAdvanced ? 'block' : 'none';
-                        }
-                    });
-                }
+                this._handleFieldChangeVisibility(path, prefix, e.target);
             }
 
             this.dispatchEvent(

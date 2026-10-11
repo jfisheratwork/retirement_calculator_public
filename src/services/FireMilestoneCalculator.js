@@ -271,6 +271,27 @@ export class FireMilestoneCalculator {
         };
     }
 
+    static _resolvePrimaryLifeExpectancy(state) {
+        return (
+            state?.primarySpouse?.lifeExpectancy ||
+            state?.primarySpouse?.estimatedLifeExpectancy ||
+            state?.assumptions?.estimatedLifeExpectancy ||
+            95
+        );
+    }
+
+    static _findCrossoverSnap(simulationData, milestone, fallbackIdx = 0) {
+        if (!simulationData || simulationData.length === 0) return { idx: -1, snap: null };
+        const idx =
+            milestone?.year != null
+                ? Math.max(
+                      0,
+                      simulationData.findIndex((s) => s.year === milestone.year)
+                  )
+                : fallbackIdx;
+        return { idx, snap: simulationData[idx] || simulationData[0] || null };
+    }
+
     /**
      * Extracts and calculates initial configuration parameters.
      * @private
@@ -290,13 +311,8 @@ export class FireMilestoneCalculator {
         const coastTargetIdx = this._findCoastTargetIndex(simulationData, coastRetireYear);
 
         const endAge = firstAge + simulationData.length - 1;
-        const lifeExpectancy =
-            state?.primarySpouse?.lifeExpectancy ||
-            state?.primarySpouse?.estimatedLifeExpectancy ||
-            state?.assumptions?.estimatedLifeExpectancy ||
-            95;
+        const lifeExpectancy = this._resolvePrimaryLifeExpectancy(state);
         const terminalYears = Math.max(0, lifeExpectancy - endAge);
-
         const earnerProfile = this._resolveEarnerProfiles(state, simulationData);
 
         return {
@@ -335,16 +351,10 @@ export class FireMilestoneCalculator {
      */
     static _buildCoastMathBreakdown(context, milestone) {
         const targetRetirementAge = context.coastTargetAge;
-        const crossoverIdx =
-            milestone?.year != null
-                ? Math.max(
-                      0,
-                      context.simulationData.findIndex((s) => s.year === milestone.year)
-                  )
-                : 0;
+        const { idx: crossoverIdx } = this._findCrossoverSnap(context.simulationData, milestone, 0);
         const currentPortfolio =
             milestone?.portfolio || (context.simulationData[0] ? this.getPortfolioValue(context.simulationData[0]) : 0);
-        const yearsOfCompounding = Math.max(0, context.coastTargetIdx - crossoverIdx);
+        const yearsOfCompounding = Math.max(0, context.coastTargetIdx - Math.max(0, crossoverIdx));
         const realReturnRatePct = Math.round(context.realRate * PERCENT_CONVERSION_FACTOR * 100) / 100;
         const projectedRetirementNestEgg = Math.round(
             currentPortfolio * Math.pow(1 + context.realRate, yearsOfCompounding)
@@ -366,23 +376,18 @@ export class FireMilestoneCalculator {
      * Computes the math breakdown object for Barista FIRE.
      * @private
      */
+    static _getContinuingSpouseIncome(snap, isDualEarner) {
+        if (!snap || !isDualEarner) return 0;
+        const s2Inc = snap.income?.s2 || {};
+        return Math.round(s2Inc.w2Net ?? s2Inc.w2Gross ?? 0);
+    }
+
     static _buildBaristaMathBreakdown(context, milestone) {
         const { simulationData, baristaAnnualIncome, downshiftingSpouseName, continuingSpouseName, isDualEarner } =
             context;
-        const crossoverIdx =
-            milestone?.year != null
-                ? Math.max(
-                      0,
-                      simulationData.findIndex((s) => s.year === milestone.year)
-                  )
-                : simulationData[0]
-                  ? 0
-                  : -1;
-
-        const snap = crossoverIdx >= 0 ? simulationData[crossoverIdx] : null;
+        const { snap } = this._findCrossoverSnap(simulationData, milestone, 0);
         const annualLivingSpend = snap ? Math.round(snap.expenses || 0) : 0;
-        const continuingSpouseIncome =
-            snap && isDualEarner ? Math.round((snap.income?.s2?.w2Net ?? snap.income?.s2?.w2Gross) || 0) : 0;
+        const continuingSpouseIncome = this._getContinuingSpouseIncome(snap, isDualEarner);
         const totalHouseholdIncome = baristaAnnualIncome + continuingSpouseIncome;
         const incomeReplacementPct =
             annualLivingSpend > 0
@@ -416,14 +421,7 @@ export class FireMilestoneCalculator {
      */
     static _buildLeanMathBreakdown(context, leanMilestone, fullMilestone) {
         const { simulationData, leanRatio } = context;
-        const crossoverIdx =
-            leanMilestone?.year != null
-                ? Math.max(
-                      0,
-                      simulationData.findIndex((s) => s.year === leanMilestone.year)
-                  )
-                : 0;
-        const snap = simulationData[crossoverIdx] || simulationData[0];
+        const { snap } = this._findCrossoverSnap(simulationData, leanMilestone, 0);
         const baselineBudget = snap ? Math.round(snap.expenses || 0) : 0;
         const leanBudget = Math.round(baselineBudget * leanRatio);
         const leanRatioPct = Math.round(leanRatio * PERCENT_CONVERSION_FACTOR);
@@ -450,35 +448,20 @@ export class FireMilestoneCalculator {
      */
     static _buildFullMathBreakdown(context, milestone, state) {
         const { simulationData, realRate, terminalYears } = context;
-        const crossoverIdx =
-            milestone?.year != null
-                ? Math.max(
-                      0,
-                      simulationData.findIndex((s) => s.year === milestone.year)
-                  )
-                : context.coastTargetIdx;
-        const snap = simulationData[crossoverIdx] || simulationData[0];
+        const { snap } = this._findCrossoverSnap(simulationData, milestone, context.coastTargetIdx);
         const annualRetirementExpenses = snap ? Math.round(snap.expenses || 0) : 0;
         const guaranteedInflows = snap ? Math.round(this.getGuaranteedInflows(snap)) : 0;
         const netAnnualNeed = Math.max(0, annualRetirementExpenses - guaranteedInflows);
         const targetPortfolio = milestone?.target || context.requiredNestEggAtRetirement;
-        const initialSafeWithdrawalRatePct =
-            targetPortfolio > 0
-                ? Math.round((netAnnualNeed / targetPortfolio) * PERCENT_CONVERSION_FACTOR * 100) / 100
-                : Math.round(realRate * PERCENT_CONVERSION_FACTOR * 100) / 100;
-
-        const primaryLifeExp =
-            state?.primarySpouse?.lifeExpectancy ||
-            state?.primarySpouse?.estimatedLifeExpectancy ||
-            state?.assumptions?.estimatedLifeExpectancy ||
-            95;
+        const rawRate = targetPortfolio > 0 ? netAnnualNeed / targetPortfolio : realRate;
+        const initialSafeWithdrawalRatePct = Math.round(rawRate * PERCENT_CONVERSION_FACTOR * 100) / 100;
 
         return {
             annualRetirementExpenses,
             guaranteedInflows,
             netAnnualNeed,
             initialSafeWithdrawalRatePct,
-            lifeExpectancyAge: primaryLifeExp,
+            lifeExpectancyAge: this._resolvePrimaryLifeExpectancy(state),
             terminalReserveIncluded: terminalYears > 0
         };
     }

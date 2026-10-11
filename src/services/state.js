@@ -185,17 +185,116 @@ export function deepMerge(target, source) {
     return output;
 }
 
-function normalizeState(state) {
-    if (!state) return state;
+function normalizeSpouseJobs(spouse) {
+    if (!Array.isArray(spouse.jobs)) return;
+    spouse.jobs = spouse.jobs.filter(
+        (j) =>
+            j &&
+            typeof j === 'object' &&
+            j.id &&
+            (Boolean(j.title) || Number(j.baseSalary || 0) > 0 || Boolean(j.startDate))
+    );
+    spouse.jobs.forEach((j) => {
+        if (j.startDate) j.startDate = normalizeDateStr(j.startDate);
+        if (j.endDate) j.endDate = normalizeDateStr(j.endDate);
+    });
+}
+
+function isPlaceholderEmpty401k(a) {
+    return (
+        Boolean(a.id && a.id.startsWith('acc-')) &&
+        a.name === '401k' &&
+        Number(a.balance || 0) === 0 &&
+        Number(a.contributionPercentage || 0) === 0
+    );
+}
+
+function normalizeSpouseAccounts(spouse, birthYear) {
+    if (!Array.isArray(spouse.accounts)) return;
+    spouse.accounts = spouse.accounts.filter((a) => a && typeof a === 'object' && !isPlaceholderEmpty401k(a));
+
+    spouse.accounts.forEach((acc) => {
+        if (acc.type !== 'traditional401k' && acc.type !== 'trad403b') return;
+        if (!acc.rollover) {
+            acc.rollover = {
+                enabled: false,
+                timing: 'job_end',
+                startDate: `${birthYear + (Number(spouse.targetRetirementAge) || 65)}-01`,
+                targetIraMode: 'existing',
+                targetAccount: '',
+                newIraName: `${acc.name || '401k'} Rollover IRA`,
+                isFullBalance: true,
+                amount: 0
+            };
+        } else if (acc.rollover.startDate) {
+            acc.rollover.startDate = normalizeDateStr(acc.rollover.startDate);
+        }
+    });
+}
+
+function normalizeSpouseMilestones(spouse, birthYear) {
+    if (!spouse.targetRetirementDate && spouse.targetRetirementAge) {
+        spouse.targetRetirementDate = `${birthYear + Number(spouse.targetRetirementAge)}-01`;
+    } else if (spouse.targetRetirementDate) {
+        spouse.targetRetirementDate = normalizeDateStr(spouse.targetRetirementDate);
+    }
+
+    if (!spouse.socialSecurityStartDate && spouse.socialSecurityStartAge) {
+        const ssnMonth = String(spouse.socialSecurityStartMonth || 1).padStart(2, '0');
+        spouse.socialSecurityStartDate = `${birthYear + Number(spouse.socialSecurityStartAge)}-${ssnMonth}`;
+    } else if (spouse.socialSecurityStartDate) {
+        spouse.socialSecurityStartDate = normalizeDateStr(spouse.socialSecurityStartDate);
+    }
+}
+
+function normalizeSpouseEvents(spouse, birthYear) {
+    if (spouse.rule72t) {
+        if (!spouse.rule72t.startDate && spouse.rule72t.startAge) {
+            const r72tMonth = String(spouse.rule72t.startMonth || 1).padStart(2, '0');
+            spouse.rule72t.startDate = `${birthYear + Number(spouse.rule72t.startAge)}-${r72tMonth}`;
+        } else if (spouse.rule72t.startDate) {
+            spouse.rule72t.startDate = normalizeDateStr(spouse.rule72t.startDate);
+        }
+    }
+
+    if (spouse.rolloverEvent) {
+        if (!spouse.rolloverEvent.startDate && spouse.rolloverEvent.year) {
+            const rMonth = String(spouse.rolloverEvent.month || 1).padStart(2, '0');
+            spouse.rolloverEvent.startDate = `${spouse.rolloverEvent.year}-${rMonth}`;
+        } else if (spouse.rolloverEvent.startDate) {
+            spouse.rolloverEvent.startDate = normalizeDateStr(spouse.rolloverEvent.startDate);
+        }
+    }
+
+    if (spouse.rothConversion) {
+        if (!spouse.rothConversion.startDate) {
+            const convYear = new Date().getFullYear() + (Number(spouse.rothConversion.startDelayYears) || 0);
+            const convMonth = String(spouse.rothConversion.startMonth || 12).padStart(2, '0');
+            spouse.rothConversion.startDate = `${convYear}-${convMonth}`;
+        } else {
+            spouse.rothConversion.startDate = normalizeDateStr(spouse.rothConversion.startDate);
+        }
+    }
+}
+
+function normalizeSingleSpouse(spouse) {
+    if (!spouse) return;
+    const birthYear = Number(spouse.yearOfBirth) || 1980;
+    normalizeSpouseJobs(spouse);
+    normalizeSpouseAccounts(spouse, birthYear);
+    normalizeSpouseMilestones(spouse, birthYear);
+    normalizeSpouseEvents(spouse, birthYear);
+}
+
+function normalizeAssumptions(state) {
     if (!state.assumptions) state.assumptions = {};
+    const nowYear = new Date().getFullYear();
+    const nowMonth = new Date().getMonth() + 1;
+
     if (!state.assumptions.startDate) {
-        state.assumptions.startDate = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+        state.assumptions.startDate = `${nowYear}-${String(nowMonth).padStart(2, '0')}`;
     } else {
-        state.assumptions.startDate = normalizeDateStr(
-            state.assumptions.startDate,
-            new Date().getFullYear(),
-            new Date().getMonth() + 1
-        );
+        state.assumptions.startDate = normalizeDateStr(state.assumptions.startDate, nowYear, nowMonth);
     }
     if (state.assumptions.stateTaxRate === undefined) {
         state.assumptions.stateTaxRate = 0.0;
@@ -203,7 +302,7 @@ function normalizeState(state) {
     if (!Array.isArray(state.assumptions.marketReturnRates) || state.assumptions.marketReturnRates.length === 0) {
         state.assumptions.marketReturnRates = [
             {
-                startYear: new Date().getFullYear(),
+                startYear: nowYear,
                 rate:
                     state.assumptions.generalReturnRate !== undefined
                         ? Number(state.assumptions.generalReturnRate)
@@ -211,121 +310,23 @@ function normalizeState(state) {
             }
         ];
     }
+}
 
-    [state.primarySpouse, state.secondarySpouse].forEach((spouse) => {
-        if (!spouse) return;
-        const birthYear = Number(spouse.yearOfBirth) || 1980;
-
-        // Clean up jobs
-        if (Array.isArray(spouse.jobs)) {
-            spouse.jobs = spouse.jobs.filter(
-                (j) =>
-                    j &&
-                    typeof j === 'object' &&
-                    j.id &&
-                    (Boolean(j.title) || Number(j.baseSalary || 0) > 0 || Boolean(j.startDate))
-            );
-            spouse.jobs.forEach((j) => {
-                if (j.startDate) j.startDate = normalizeDateStr(j.startDate);
-                if (j.endDate) j.endDate = normalizeDateStr(j.endDate);
-            });
-        }
-
-        // Normalize accounts & clean up empty placeholders
-        if (Array.isArray(spouse.accounts)) {
-            spouse.accounts = spouse.accounts.filter((a) => {
-                if (!a || typeof a !== 'object') return false;
-                if (
-                    a.id &&
-                    a.id.startsWith('acc-') &&
-                    a.name === '401k' &&
-                    Number(a.balance || 0) === 0 &&
-                    Number(a.contributionPercentage || 0) === 0
-                ) {
-                    return false;
-                }
-                return true;
-            });
-
-            spouse.accounts.forEach((acc) => {
-                if (acc.type === 'traditional401k' || acc.type === 'trad403b') {
-                    if (!acc.rollover) {
-                        acc.rollover = {
-                            enabled: false,
-                            timing: 'job_end',
-                            startDate: `${birthYear + (Number(spouse.targetRetirementAge) || 65)}-01`,
-                            targetIraMode: 'existing',
-                            targetAccount: '',
-                            newIraName: `${acc.name || '401k'} Rollover IRA`,
-                            isFullBalance: true,
-                            amount: 0
-                        };
-                    } else if (acc.rollover.startDate) {
-                        acc.rollover.startDate = normalizeDateStr(acc.rollover.startDate);
-                    }
-                }
-            });
-        }
-
-        // Normalize Target Retirement Date
-        if (!spouse.targetRetirementDate && spouse.targetRetirementAge) {
-            spouse.targetRetirementDate = `${birthYear + Number(spouse.targetRetirementAge)}-01`;
-        } else if (spouse.targetRetirementDate) {
-            spouse.targetRetirementDate = normalizeDateStr(spouse.targetRetirementDate);
-        }
-
-        // Normalize Social Security Start Date
-        if (!spouse.socialSecurityStartDate && spouse.socialSecurityStartAge) {
-            const ssnMonth = String(spouse.socialSecurityStartMonth || 1).padStart(2, '0');
-            spouse.socialSecurityStartDate = `${birthYear + Number(spouse.socialSecurityStartAge)}-${ssnMonth}`;
-        } else if (spouse.socialSecurityStartDate) {
-            spouse.socialSecurityStartDate = normalizeDateStr(spouse.socialSecurityStartDate);
-        }
-
-        // Normalize 72(t) Start Date
-        if (spouse.rule72t) {
-            if (!spouse.rule72t.startDate && spouse.rule72t.startAge) {
-                const r72tMonth = String(spouse.rule72t.startMonth || 1).padStart(2, '0');
-                spouse.rule72t.startDate = `${birthYear + Number(spouse.rule72t.startAge)}-${r72tMonth}`;
-            } else if (spouse.rule72t.startDate) {
-                spouse.rule72t.startDate = normalizeDateStr(spouse.rule72t.startDate);
-            }
-        }
-
-        // Normalize Rollover Start Date
-        if (spouse.rolloverEvent) {
-            if (!spouse.rolloverEvent.startDate && spouse.rolloverEvent.year) {
-                const rMonth = String(spouse.rolloverEvent.month || 1).padStart(2, '0');
-                spouse.rolloverEvent.startDate = `${spouse.rolloverEvent.year}-${rMonth}`;
-            } else if (spouse.rolloverEvent.startDate) {
-                spouse.rolloverEvent.startDate = normalizeDateStr(spouse.rolloverEvent.startDate);
-            }
-        }
-
-        // Normalize Roth Conversion Start Date
-        if (spouse.rothConversion) {
-            if (!spouse.rothConversion.startDate) {
-                const convYear = new Date().getFullYear() + (Number(spouse.rothConversion.startDelayYears) || 0);
-                const convMonth = String(spouse.rothConversion.startMonth || 12).padStart(2, '0');
-                spouse.rothConversion.startDate = `${convYear}-${convMonth}`;
-            } else {
-                spouse.rothConversion.startDate = normalizeDateStr(spouse.rothConversion.startDate);
-            }
-        }
-    });
+function normalizeState(state) {
+    if (!state) return state;
+    normalizeAssumptions(state);
+    [state.primarySpouse, state.secondarySpouse].forEach(normalizeSingleSpouse);
 
     if (state.strategies?.advancedRothStrategy) {
-        if (!state.strategies.advancedRothStrategy.startDate) {
-            const advYr = state.strategies.advancedRothStrategy.startYear || new Date().getFullYear();
-            state.strategies.advancedRothStrategy.startDate = `${advYr}-01`;
+        const adv = state.strategies.advancedRothStrategy;
+        if (!adv.startDate) {
+            adv.startDate = `${adv.startYear || new Date().getFullYear()}-01`;
         } else {
-            state.strategies.advancedRothStrategy.startDate = normalizeDateStr(
-                state.strategies.advancedRothStrategy.startDate
-            );
+            adv.startDate = normalizeDateStr(adv.startDate);
         }
     }
 
-    if (state.primaryResidenceMortgage && state.primaryResidenceMortgage.originationDate) {
+    if (state.primaryResidenceMortgage?.originationDate) {
         state.primaryResidenceMortgage.originationDate = normalizeDateStr(
             state.primaryResidenceMortgage.originationDate
         );
@@ -334,15 +335,9 @@ function normalizeState(state) {
     if (Array.isArray(state.dependents)) {
         state.dependents.forEach((dep) => {
             if (!dep || typeof dep !== 'object') return;
-            if (dep.contributionMode === undefined) {
-                dep.contributionMode = 'fixed';
-            }
-            if (dep.annualContribution === undefined) {
-                dep.annualContribution = 0;
-            }
-            if (dep.targetCollegeSavingsBalance === undefined) {
-                dep.targetCollegeSavingsBalance = 0;
-            }
+            if (dep.contributionMode === undefined) dep.contributionMode = 'fixed';
+            if (dep.annualContribution === undefined) dep.annualContribution = 0;
+            if (dep.targetCollegeSavingsBalance === undefined) dep.targetCollegeSavingsBalance = 0;
         });
     }
 
@@ -356,8 +351,8 @@ export function safeGetStorage(key) {
         if (typeof localStorage !== 'undefined') {
             return localStorage.getItem(key);
         }
-    } catch (e) {
-        console.warn('LocalStorage read blocked or unavailable; falling back to memory store:', e.message);
+    } catch (storageErr) {
+        console.warn('LocalStorage read blocked or unavailable; falling back to memory store:', storageErr.message);
     }
     return memoryStorageFallback[key] || null;
 }
@@ -372,8 +367,8 @@ export function safeSetStorage(key, value, allowPinOverwrite = false) {
         if (typeof localStorage !== 'undefined') {
             localStorage.setItem(key, value);
         }
-    } catch (e) {
-        console.warn('LocalStorage write blocked or quota exceeded; stored in memory store:', e.message);
+    } catch (storageErr) {
+        console.warn('LocalStorage write blocked or quota exceeded; stored in memory store:', storageErr.message);
     }
 }
 
@@ -422,6 +417,64 @@ function _migrateSpouseSsn(spouse) {
     return migrated;
 }
 
+function _migrateLegacyStateFields(stateObj, shouldMigrateToShield) {
+    let migrated = shouldMigrateToShield;
+    if (_migrateSpouseSsn(stateObj.primarySpouse)) migrated = true;
+    if (_migrateSpouseSsn(stateObj.secondarySpouse)) migrated = true;
+    if (stateObj.assumptions && !stateObj.assumptions.startDate) {
+        stateObj.assumptions.startDate = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+        migrated = true;
+    }
+    if ('rothConversions' in stateObj) {
+        delete stateObj.rothConversions;
+        migrated = true;
+    }
+    if ('phaseBasedExpenses' in stateObj) {
+        stateObj.phaseBasedExpensesPerMonth = stateObj.phaseBasedExpenses;
+        delete stateObj.phaseBasedExpenses;
+        migrated = true;
+    }
+    for (const spouse of [stateObj.primarySpouse, stateObj.secondarySpouse]) {
+        if (spouse && 'rule72tEarlyWithdrawalStartAge' in spouse) {
+            spouse.rule72t = {
+                enabled: spouse.rule72tEarlyWithdrawalStartAge > 0,
+                startAge: spouse.rule72tEarlyWithdrawalStartAge || 55
+            };
+            delete spouse.rule72tEarlyWithdrawalStartAge;
+            migrated = true;
+        }
+    }
+    return migrated;
+}
+
+function _resetToDefaultProfile() {
+    currentProfileId = 'default';
+    profiles = { default: { id: 'default', name: 'Default Profile', data: structuredClone(defaultState) } };
+    currentState = structuredClone(defaultState);
+    saveStore();
+}
+
+function _decodeSavedStorePayload(unlockedJsonStr) {
+    if (unlockedJsonStr) return { saved: unlockedJsonStr, shouldMigrateToShield: false, locked: false };
+    const raw = safeGetStorage(LOCAL_STORAGE_KEY);
+    if (!raw) return { saved: null, shouldMigrateToShield: false, locked: false };
+
+    const format = StorageShield.inspectFormat(raw);
+    if (format === 'option_b' && !StorageShield.hasActiveSessionKey()) {
+        return { saved: null, shouldMigrateToShield: false, locked: true };
+    }
+    try {
+        return {
+            saved: StorageShield.syncDecode(raw),
+            shouldMigrateToShield: format === 'cleartext',
+            locked: false
+        };
+    } catch (decryptErr) {
+        console.error('Storage decryption error:', decryptErr);
+        return { saved: null, shouldMigrateToShield: false, locked: false };
+    }
+}
+
 /**
  * Initializes the state from LocalStorage or falls back to default.
  * @param {string|null} [unlockedJsonStr] - Optional cleartext JSON string when unlocked via PIN
@@ -431,110 +484,39 @@ export function initState(unlockedJsonStr = null) {
     if (!unlockedJsonStr && currentState && currentProfileId && StorageShield.hasActiveSessionKey()) {
         return;
     }
-    let saved = unlockedJsonStr;
-    let shouldMigrateToShield = false;
-    if (!saved) {
-        const raw = safeGetStorage(LOCAL_STORAGE_KEY);
-        if (raw) {
-            const format = StorageShield.inspectFormat(raw);
-            if (format === 'option_b' && !StorageShield.hasActiveSessionKey()) {
-                return { locked: true };
-            }
-            if (format === 'cleartext') {
-                shouldMigrateToShield = true;
-            }
-            try {
-                saved = StorageShield.syncDecode(raw);
-            } catch (err) {
-                console.error('Storage decryption error:', err);
-                saved = null;
-            }
-        }
+    const { saved, shouldMigrateToShield, locked } = _decodeSavedStorePayload(unlockedJsonStr);
+    if (locked) {
+        return { locked: true };
     }
+
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
-
             if (parsed.dataVersion !== MODEL_VERSION) {
                 console.warn('Data version mismatch. Resetting to default state.');
                 throw new Error('Data version mismatch');
             }
 
-            // Check if it's the old format (no activeProfileId)
             if (!parsed.activeProfileId) {
-                // Migrate
                 currentProfileId = 'default';
-                profiles = {
-                    default: {
-                        id: 'default',
-                        name: 'Default Profile',
-                        data: parsed
-                    }
-                };
+                profiles = { default: { id: 'default', name: 'Default Profile', data: parsed } };
             } else {
                 currentProfileId = parsed.activeProfileId;
                 profiles = parsed.profiles;
             }
-
-            if (parsed.globalSettings) {
-                globalSettings = parsed.globalSettings;
-            }
-
-            if (!profiles[currentProfileId]) {
-                currentProfileId = Object.keys(profiles)[0];
-            }
+            if (parsed.globalSettings) globalSettings = parsed.globalSettings;
+            if (!profiles[currentProfileId]) currentProfileId = Object.keys(profiles)[0];
 
             currentState = deepMerge(structuredClone(defaultState), profiles[currentProfileId].data);
-
-            // Migration for SSN Benefit
-            let migrated = shouldMigrateToShield;
-            if (_migrateSpouseSsn(currentState.primarySpouse)) migrated = true;
-            if (_migrateSpouseSsn(currentState.secondarySpouse)) migrated = true;
-            if (currentState.assumptions && !currentState.assumptions.startDate) {
-                currentState.assumptions.startDate = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-                migrated = true;
-            }
-
-            if (migrated) saveStore();
-
-            // Clean up legacy keys
-            if ('rothConversions' in currentState) {
-                delete currentState.rothConversions;
+            if (_migrateLegacyStateFields(currentState, shouldMigrateToShield)) {
                 saveStore();
             }
-            if ('phaseBasedExpenses' in currentState) {
-                currentState.phaseBasedExpensesPerMonth = currentState.phaseBasedExpenses;
-                delete currentState.phaseBasedExpenses;
-                saveStore();
-            }
-            if (currentState.primarySpouse && 'rule72tEarlyWithdrawalStartAge' in currentState.primarySpouse) {
-                currentState.primarySpouse.rule72t = {
-                    enabled: currentState.primarySpouse.rule72tEarlyWithdrawalStartAge > 0,
-                    startAge: currentState.primarySpouse.rule72tEarlyWithdrawalStartAge || 55
-                };
-                delete currentState.primarySpouse.rule72tEarlyWithdrawalStartAge;
-                saveStore();
-            }
-            if (currentState.secondarySpouse && 'rule72tEarlyWithdrawalStartAge' in currentState.secondarySpouse) {
-                currentState.secondarySpouse.rule72t = {
-                    enabled: currentState.secondarySpouse.rule72tEarlyWithdrawalStartAge > 0,
-                    startAge: currentState.secondarySpouse.rule72tEarlyWithdrawalStartAge || 55
-                };
-                delete currentState.secondarySpouse.rule72tEarlyWithdrawalStartAge;
-                saveStore();
-            }
-        } catch (e) {
-            console.error('Failed to parse saved state, falling back to default.', e);
-            currentProfileId = 'default';
-            profiles = { default: { id: 'default', name: 'Default Profile', data: structuredClone(defaultState) } };
-            currentState = structuredClone(defaultState);
-            saveStore();
+        } catch (parseErr) {
+            console.error('Failed to parse saved state, falling back to default.', parseErr);
+            _resetToDefaultProfile();
         }
     } else {
-        currentProfileId = 'default';
-        profiles = { default: { id: 'default', name: 'Default Profile', data: structuredClone(defaultState) } };
-        currentState = structuredClone(defaultState);
-        saveStore();
+        _resetToDefaultProfile();
     }
     currentState = normalizeState(currentState);
     return currentState;

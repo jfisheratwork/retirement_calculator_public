@@ -168,36 +168,10 @@ export class FinancialInputPanel extends BaseComponent {
         return { current, keys };
     }
 
-    _handleDerivedPathLogic(workingState, current, path, val, keys) {
-        if (path.endsWith('.targetRetirementDate') && typeof val === 'string') {
-            const parts = val.split('-');
-            const birthYear = Number(current.yearOfBirth || current.birthYear) || 1980;
-            const retYear = parseInt(parts[0], 10) || birthYear + 65;
-            current.targetRetirementAge = retYear - birthYear;
-        } else if (path.endsWith('.socialSecurityMonthlyBenefit')) {
-            current.socialSecurityAnnualBenefit = Number(val) * 12;
-        } else if (path.endsWith('.isActiveContributor') && val === true) {
-            this._handleActiveContributorToggle(workingState, keys[0], keys[2]);
-        } else if (path.endsWith('.isSweepAccount')) {
-            this._handleSweepAccountToggle(workingState, current, val);
-        } else if (path.endsWith('.linked401kAccountId')) {
-            const spouseKey = keys[0];
-            const currentJobIdx = parseInt(keys[2], 10);
-            if (workingState[spouseKey]?.jobs) {
-                if (val) {
-                    workingState[spouseKey].jobs.forEach((j, idx) => {
-                        if (idx !== currentJobIdx && j.linked401kAccountId === val) {
-                            j.linked401kAccountId = '';
-                        }
-                    });
-                }
-                this._applyStructuralChange();
-            }
-        } else if (path.endsWith('.rollover.enabled') && val === true) {
-            this._handleRolloverEnabledToggle(workingState, keys[0], current);
-        } else if (path.endsWith('.rule72t.startDate') && typeof val === 'string') {
-            const spouse = workingState[keys[0]];
-            const birthYear = Number(spouse?.yearOfBirth) || 1980;
+    _syncRule72tDerivedDates(workingState, current, path, val, spouseKey) {
+        const spouse = workingState[spouseKey];
+        const birthYear = Number(spouse?.yearOfBirth) || 1980;
+        if (path.endsWith('.rule72t.startDate') && typeof val === 'string') {
             const parts = val.split('-');
             const rYear = parseInt(parts[0], 10);
             const rMonth = parseInt(parts[1], 10) || 1;
@@ -206,17 +180,64 @@ export class FinancialInputPanel extends BaseComponent {
                 current.startMonth = rMonth;
             }
         } else if (path.endsWith('.rule72t.startAge')) {
-            const spouse = workingState[keys[0]];
-            const birthYear = Number(spouse?.yearOfBirth) || 1980;
             const rMonth = String(current.startMonth || 1).padStart(2, '0');
             current.startDate = `${birthYear + Number(val)}-${rMonth}`;
         } else if (path.endsWith('.rule72t.startMonth')) {
-            const spouse = workingState[keys[0]];
-            const birthYear = Number(spouse?.yearOfBirth) || 1980;
             const startAge = Number(current.startAge) || 55;
             const rMonth = String(val).padStart(2, '0');
             current.startDate = `${birthYear + startAge}-${rMonth}`;
-        } else if (path.includes('dependents') && path.endsWith('.contributionMode')) {
+        }
+    }
+
+    _handleLinked401kChange(workingState, spouseKey, currentJobIdx, val) {
+        if (!workingState[spouseKey]?.jobs) return;
+        if (val) {
+            workingState[spouseKey].jobs.forEach((jobItem, idx) => {
+                if (idx !== currentJobIdx && jobItem.linked401kAccountId === val) {
+                    jobItem.linked401kAccountId = '';
+                }
+            });
+        }
+        this._applyStructuralChange();
+    }
+
+    _syncRetirementDateDerivedAge(current, val) {
+        const parts = val.split('-');
+        const birthYear = Number(current.yearOfBirth || current.birthYear) || 1980;
+        const retYear = parseInt(parts[0], 10) || birthYear + 65;
+        current.targetRetirementAge = retYear - birthYear;
+    }
+
+    _handleDerivedPathLogic(workingState, current, path, val, keys) {
+        if (path.endsWith('.targetRetirementDate') && typeof val === 'string') {
+            this._syncRetirementDateDerivedAge(current, val);
+            return;
+        }
+        if (path.endsWith('.socialSecurityMonthlyBenefit')) {
+            current.socialSecurityAnnualBenefit = Number(val) * 12;
+            return;
+        }
+        if (path.endsWith('.isActiveContributor') && val === true) {
+            this._handleActiveContributorToggle(workingState, keys[0], keys[2]);
+            return;
+        }
+        if (path.endsWith('.isSweepAccount')) {
+            this._handleSweepAccountToggle(workingState, current, val);
+            return;
+        }
+        if (path.endsWith('.linked401kAccountId')) {
+            this._handleLinked401kChange(workingState, keys[0], parseInt(keys[2], 10), val);
+            return;
+        }
+        if (path.endsWith('.rollover.enabled') && val === true) {
+            this._handleRolloverEnabledToggle(workingState, keys[0], current);
+            return;
+        }
+        if (path.includes('.rule72t.')) {
+            this._syncRule72tDerivedDates(workingState, current, path, val, keys[0]);
+            return;
+        }
+        if (path.includes('dependents') && path.endsWith('.contributionMode')) {
             this._applyStructuralChange();
         }
     }
@@ -260,29 +281,36 @@ export class FinancialInputPanel extends BaseComponent {
         }
     }
 
+    _syncCardDisclosure(detailsEl, workingState, isJob) {
+        const card = detailsEl.closest(isJob ? 'job-panel' : 'account-panel');
+        const prefix = card?.getAttribute('prefix');
+        const idx = parseInt(card?.getAttribute('index'), 10);
+        if (!prefix || isNaN(idx)) return;
+        const list = workingState[prefix]?.[isJob ? 'jobs' : 'accounts'];
+        if (list?.[idx]) list[idx].isOpen = detailsEl.open;
+    }
+
+    _syncDisclosureElementState(detailsEl, workingState) {
+        if (detailsEl.classList.contains('job-card')) {
+            this._syncCardDisclosure(detailsEl, workingState, true);
+            return;
+        }
+        if (detailsEl.classList.contains('account-card')) {
+            this._syncCardDisclosure(detailsEl, workingState, false);
+            return;
+        }
+        if (detailsEl.hasAttribute('data-child-index')) {
+            const idx = parseInt(detailsEl.getAttribute('data-child-index'), 10);
+            if (!isNaN(idx) && workingState.dependents?.[idx]) {
+                workingState.dependents[idx].isOpen = detailsEl.open;
+            }
+        }
+    }
+
     _snapshotOpenDisclosures() {
         const workingState = this.getWorkingState();
-        this.querySelectorAll('details').forEach((d) => {
-            if (d.classList.contains('job-card')) {
-                const card = d.closest('job-panel');
-                const prefix = card?.getAttribute('prefix');
-                const idx = parseInt(card?.getAttribute('index'), 10);
-                if (prefix && !isNaN(idx) && workingState[prefix]?.jobs?.[idx]) {
-                    workingState[prefix].jobs[idx].isOpen = d.open;
-                }
-            } else if (d.classList.contains('account-card')) {
-                const card = d.closest('account-panel');
-                const prefix = card?.getAttribute('prefix');
-                const idx = parseInt(card?.getAttribute('index'), 10);
-                if (prefix && !isNaN(idx) && workingState[prefix]?.accounts?.[idx]) {
-                    workingState[prefix].accounts[idx].isOpen = d.open;
-                }
-            } else if (d.hasAttribute('data-child-index')) {
-                const idx = parseInt(d.getAttribute('data-child-index'), 10);
-                if (!isNaN(idx) && workingState.dependents?.[idx]) {
-                    workingState.dependents[idx].isOpen = d.open;
-                }
-            }
+        this.querySelectorAll('details').forEach((detailsEl) => {
+            this._syncDisclosureElementState(detailsEl, workingState);
         });
     }
 
@@ -426,52 +454,69 @@ export class FinancialInputPanel extends BaseComponent {
         }
     }
 
+    _renderTabNavigationBar() {
+        const tabs = [
+            ['personal-details', 'Personal Details'],
+            ['job-details', 'Job Details'],
+            ['account-details', 'Account Details'],
+            ['conversion-sepp-events', 'Conversion & SEPP Events'],
+            ['expenses', 'Expenses'],
+            ['housing', 'Housing'],
+            ['global', 'Global'],
+            ['kids', 'Kids']
+        ];
+        const buttons = tabs
+            .map(
+                ([tabId, label]) =>
+                    `<button type="button" class="tab-button ${this.activeTab === tabId ? 'active' : ''}" data-tab="${tabId}">${label}</button>`
+            )
+            .join('');
+        return `<div class="tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); overflow-x: auto;">${buttons}</div>`;
+    }
+
+    _tabDisplay(tabId, activeDisplay = 'block') {
+        return this.activeTab === tabId ? activeDisplay : 'none';
+    }
+
     getTemplate() {
         const state = this.getWorkingState();
+        const s1JobTitle = `${state.primarySpouse?.name || 'My'} Jobs & Income`;
+        const s2JobTitle = `${state.secondarySpouse?.name || 'Spouse'} Jobs & Income`;
         return `
             <div class="tabs-container">
-                <div class="tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); overflow-x: auto;">
-                    <button type="button" class="tab-button ${this.activeTab === 'personal-details' ? 'active' : ''}" data-tab="personal-details">Personal Details</button>
-                    <button type="button" class="tab-button ${this.activeTab === 'job-details' ? 'active' : ''}" data-tab="job-details">Job Details</button>
-                    <button type="button" class="tab-button ${this.activeTab === 'account-details' ? 'active' : ''}" data-tab="account-details">Account Details</button>
-                    <button type="button" class="tab-button ${this.activeTab === 'conversion-sepp-events' ? 'active' : ''}" data-tab="conversion-sepp-events">Conversion & SEPP Events</button>
-                    <button type="button" class="tab-button ${this.activeTab === 'expenses' ? 'active' : ''}" data-tab="expenses">Expenses</button>
-                    <button type="button" class="tab-button ${this.activeTab === 'housing' ? 'active' : ''}" data-tab="housing">Housing</button>
-                    <button type="button" class="tab-button ${this.activeTab === 'global' ? 'active' : ''}" data-tab="global">Global</button>
-                    <button type="button" class="tab-button ${this.activeTab === 'kids' ? 'active' : ''}" data-tab="kids">Kids</button>
-                </div>
+                ${this._renderTabNavigationBar()}
 
-                <div class="tab-content" id="tab-personal-details" style="display: ${this.activeTab === 'personal-details' ? 'grid' : 'none'}; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1400px;">
+                <div class="tab-content" id="tab-personal-details" style="display: ${this._tabDisplay('personal-details', 'grid')}; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1400px;">
                     <spouse-panel prefix="primarySpouse"></spouse-panel>
                     <spouse-panel prefix="secondarySpouse"></spouse-panel>
                 </div>
 
-                <div class="tab-content" id="tab-job-details" style="display: ${this.activeTab === 'job-details' ? 'grid' : 'none'}; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1400px;">
-                    ${this._renderJobsColumn('primarySpouse', `${state.primarySpouse?.name || 'My'} Jobs & Income`, state)}
-                    ${this._renderJobsColumn('secondarySpouse', `${state.secondarySpouse?.name || 'Spouse'} Jobs & Income`, state)}
+                <div class="tab-content" id="tab-job-details" style="display: ${this._tabDisplay('job-details', 'grid')}; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1400px;">
+                    ${this._renderJobsColumn('primarySpouse', s1JobTitle, state)}
+                    ${this._renderJobsColumn('secondarySpouse', s2JobTitle, state)}
                 </div>
 
-                <div class="tab-content" id="tab-account-details" style="display: ${this.activeTab === 'account-details' ? 'block' : 'none'}; max-width: 1400px;">
+                <div class="tab-content" id="tab-account-details" style="display: ${this._tabDisplay('account-details')}; max-width: 1400px;">
                     <account-details-panel></account-details-panel>
                 </div>
 
-                <div class="tab-content" id="tab-conversion-sepp-events" style="display: ${this.activeTab === 'conversion-sepp-events' ? 'block' : 'none'}; max-width: 1400px;">
+                <div class="tab-content" id="tab-conversion-sepp-events" style="display: ${this._tabDisplay('conversion-sepp-events')}; max-width: 1400px;">
                     <strategy-events-panel></strategy-events-panel>
                 </div>
 
-                <div class="tab-content" id="tab-expenses" style="display: ${this.activeTab === 'expenses' ? 'block' : 'none'}; max-width: 1200px;">
+                <div class="tab-content" id="tab-expenses" style="display: ${this._tabDisplay('expenses')}; max-width: 1200px;">
                     <expenses-panel></expenses-panel>
                 </div>
 
-                <div class="tab-content" id="tab-housing" style="display: ${this.activeTab === 'housing' ? 'block' : 'none'}; max-width: 1200px;">
+                <div class="tab-content" id="tab-housing" style="display: ${this._tabDisplay('housing')}; max-width: 1200px;">
                     <housing-panel></housing-panel>
                 </div>
 
-                <div class="tab-content" id="tab-global" style="display: ${this.activeTab === 'global' ? 'block' : 'none'}; max-width: 1200px;">
+                <div class="tab-content" id="tab-global" style="display: ${this._tabDisplay('global')}; max-width: 1200px;">
                     <assumptions-panel></assumptions-panel>
                 </div>
 
-                <div class="tab-content" id="tab-kids" style="display: ${this.activeTab === 'kids' ? 'block' : 'none'}; max-width: 1200px;">
+                <div class="tab-content" id="tab-kids" style="display: ${this._tabDisplay('kids')}; max-width: 1200px;">
                     <children-panel></children-panel>
                 </div>
             </div>

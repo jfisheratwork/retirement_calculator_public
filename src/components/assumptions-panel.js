@@ -11,88 +11,38 @@ export class AssumptionsPanel extends BaseComponent {
         this.state = this.getEffectiveState();
     }
 
-    getTemplate() {
-        this.state = this.getEffectiveState();
-        let html = this._startSection('Global Assumptions', true);
-
+    _renderCoreAssumptionsRows() {
         const startDateVal =
             this.state.assumptions.startDate ||
             `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
 
-        // Row 1: Simulation Start Date, Initial Cash Cushion, Graph Years
-        html += `<div class="tab-stop-grid-3">`;
-        html +=
-            `<div>` +
-            this._input(
-                'Simulation Start Date',
-                'assumptions.startDate',
-                'date',
-                startDateVal,
-                'The starting month of your financial plan. All entered portfolio account balances represent balances as of this date. Months prior to this date in Year 1 are treated as past history.'
-            ) +
-            `</div>`;
-        html +=
-            `<div>` +
-            this._input(
-                'Initial Cash Cushion ($)',
-                'assumptions.initialCashCushion',
-                'number',
-                this.state.assumptions.initialCashCushion,
-                'Starting liquid cash reserve available before retirement investment accounts are tapped for deficit funding.'
-            ) +
-            `</div>`;
-        html +=
-            `<div>` +
-            this._input(
-                'Graph Years',
-                'assumptions.graphYears',
-                'number',
-                this.state.assumptions.graphYears,
-                'Total duration (number of years) simulated into the future and displayed on all charts and tables.'
-            ) +
-            `</div>`;
+        let html = `<div class="tab-stop-grid-3">`;
+        html += `<div>${this._input('Simulation Start Date', 'assumptions.startDate', 'date', startDateVal, 'The starting month of your financial plan. All entered portfolio account balances represent balances as of this date. Months prior to this date in Year 1 are treated as past history.')}</div>`;
+        html += `<div>${this._input('Initial Cash Cushion ($)', 'assumptions.initialCashCushion', 'number', this.state.assumptions.initialCashCushion, 'Starting liquid cash reserve available before retirement investment accounts are tapped for deficit funding.')}</div>`;
+        html += `<div>${this._input('Graph Years', 'assumptions.graphYears', 'number', this.state.assumptions.graphYears, 'Total duration (number of years) simulated into the future and displayed on all charts and tables.')}</div>`;
         html += `</div>`;
 
-        // Row 2: Inflation Rate, Expected W2 Raise, State Tax Rate
         const inflRate = this.state.assumptions.inflationRate;
         const w2Raise = this.state.assumptions.w2RaiseRate || 2.0;
+        const stateTax = this.state.assumptions.stateTaxRate !== undefined ? this.state.assumptions.stateTaxRate : 0;
+
         html += `<div class="tab-stop-grid-3">`;
-        html +=
-            `<div>` +
-            this._input(
-                'Inflation Rate (%)',
-                'assumptions.inflationRate',
-                'number',
-                inflRate,
-                'Estimated compound annual inflation rate. Used to inflate future expenses, phase budgets, and college costs. Historical 50-year US CPI average is ~2.5%–3.2%.'
-            ) +
-            `</div>`;
-        html +=
-            `<div>` +
-            this._input(
-                'Expected W2 Raise (%)',
-                'assumptions.w2RaiseRate',
-                'number',
-                w2Raise,
-                'Annual nominal wage growth rate applied to base W2 salaries. Standard corporate merit raises typically average 2.0%–3.5%.'
-            ) +
-            `</div>`;
-        html +=
-            `<div>` +
-            this._input(
-                'State Tax Rate (%)',
-                'assumptions.stateTaxRate',
-                'number',
-                this.state.assumptions.stateTaxRate !== undefined ? this.state.assumptions.stateTaxRate : 0,
-                'Estimated flat state income tax rate applied on top of Federal 2024 Married Filing Jointly tax brackets.'
-            ) +
-            `</div>`;
+        html += `<div>${this._input('Inflation Rate (%)', 'assumptions.inflationRate', 'number', inflRate, 'Estimated compound annual inflation rate. Used to inflate future expenses, phase budgets, and college costs. Historical 50-year US CPI average is ~2.5%–3.2%.')}</div>`;
+        html += `<div>${this._input('Expected W2 Raise (%)', 'assumptions.w2RaiseRate', 'number', w2Raise, 'Annual nominal wage growth rate applied to base W2 salaries. Standard corporate merit raises typically average 2.0%–3.5%.')}</div>`;
+        html += `<div>${this._input('State Tax Rate (%)', 'assumptions.stateTaxRate', 'number', stateTax, 'Estimated flat state income tax rate applied on top of Federal 2024 Married Filing Jointly tax brackets.')}</div>`;
         html += `</div>`;
 
         const inflWarn = HeuristicValidator.validateInflation(inflRate);
         html += this._warningBox('assumptions-inflation-warning', inflWarn ? inflWarn.message : '');
         const wageWarn = HeuristicValidator.validateWageGrowth(w2Raise);
         html += this._warningBox('assumptions-wage-warning', wageWarn ? wageWarn.message : '');
+        return html;
+    }
+
+    getTemplate() {
+        this.state = this.getEffectiveState();
+        let html = this._startSection('Global Assumptions', true);
+        html += this._renderCoreAssumptionsRows();
 
         html += `<div style="margin-top: 0.25rem;">`;
         html += this._checkbox(
@@ -141,6 +91,49 @@ export class AssumptionsPanel extends BaseComponent {
         });
         html += `<button id="btn-add-market-rate" type="button" class="btn btn-secondary btn-small" style="margin-top: 0.35rem;">+ Add Rate Tier</button>`;
         html += `</div>`;
+        return html;
+    }
+
+    _renderWithdrawalWaterfallSubsection() {
+        const waterfallOptions = [
+            {
+                value: 'age_tiered_60',
+                label: 'Age-Tiered (<60: Roth ➔ Brokerage | ≥60: 403b ➔ Roth ➔ IRA ➔ Brokerage)'
+            },
+            { value: 'standard', label: 'Standard Waterfall (Roth Principal ➔ Brokerage ➔ Pre-Tax ➔ Roth Earnings)' },
+            { value: 'tax_optimized', label: 'Tax-Bracket Filling (Pre-Tax to 12% Bracket ➔ Roth ➔ Brokerage)' }
+        ];
+        const currentWaterfall = this.state.strategies?.drawdownStrategy || 'age_tiered_60';
+        const tierAge =
+            this.state.strategies?.drawdownTierAge !== undefined ? this.state.strategies.drawdownTierAge : 60;
+
+        let html = `<div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.75rem;">
+            <div style="font-weight: 600; font-size: 0.85rem; color: var(--primary); margin-bottom: 0.35rem;">Withdrawal Priority Waterfall</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem; line-height: 1.35;">
+                Controls the liquidation sequence when investment portfolio drawdowns are needed to cover cash flow deficits.
+            </div>`;
+        html += this._select(
+            'Withdrawal Priority',
+            'strategies.drawdownStrategy',
+            waterfallOptions,
+            currentWaterfall,
+            'Defines the order of accounts liquidated to fund deficits across early and traditional retirement.'
+        );
+
+        const isAgeTiered = currentWaterfall === 'age_tiered_60' || currentWaterfall === 'age_tiered';
+        html += `<div id="age-tiered-drawdown-settings" style="display: ${isAgeTiered ? 'block' : 'none'}; margin-top: 0.5rem;">`;
+        html += this._input(
+            'Drawdown Transition Age',
+            'strategies.drawdownTierAge',
+            'number',
+            tierAge,
+            'The age milestone where the liquidation priority transitions from early retirement bridge to post-60 decumulation. Defaults to 60.'
+        );
+        html += `<div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 0.65rem 0.85rem; margin-top: 0.5rem; font-size: 0.78rem; line-height: 1.5; color: var(--text-color);">
+            <div style="font-weight: 600; color: #34d399; margin-bottom: 0.25rem;">Active Liquidation Sequence:</div>
+            <div><strong>Before Age ${tierAge} (Early Bridge):</strong> Roth IRA (Principal &amp; Mature Conversions) ➔ Taxable Brokerage &amp; HYSA. <em>Pre-tax accounts preserved &amp; locked.</em></div>
+            <div style="margin-top: 0.2rem;"><strong>Age ${tierAge}+ (Retirement Decumulation):</strong> 1. Workplace 403(b) ➔ 2. Roth IRA ➔ 3. Traditional IRA &amp; 401(k) ➔ 4. Taxable Brokerage.</div>
+        </div></div></div>`;
         return html;
     }
 
@@ -193,47 +186,8 @@ export class AssumptionsPanel extends BaseComponent {
             'Simulates biological health aging faster (+years) or slower (-years) than chronological calendar age, dynamically accelerating retirement phase expense transitions.'
         );
         html += `</div>`;
-
-        // Withdrawal Waterfall Section
-        const waterfallOptions = [
-            {
-                value: 'age_tiered_60',
-                label: 'Age-Tiered (<60: Roth ➔ Brokerage | ≥60: 403b ➔ Roth ➔ IRA ➔ Brokerage)'
-            },
-            { value: 'standard', label: 'Standard Waterfall (Roth Principal ➔ Brokerage ➔ Pre-Tax ➔ Roth Earnings)' },
-            { value: 'tax_optimized', label: 'Tax-Bracket Filling (Pre-Tax to 12% Bracket ➔ Roth ➔ Brokerage)' }
-        ];
-        const currentWaterfall = this.state.strategies?.drawdownStrategy || 'age_tiered_60';
-        const tierAge =
-            this.state.strategies?.drawdownTierAge !== undefined ? this.state.strategies.drawdownTierAge : 60;
-
-        html += `<div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.75rem;">
-            <div style="font-weight: 600; font-size: 0.85rem; color: var(--primary); margin-bottom: 0.35rem;">Withdrawal Priority Waterfall</div>
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem; line-height: 1.35;">
-                Controls the liquidation sequence when investment portfolio drawdowns are needed to cover cash flow deficits.
-            </div>`;
-        html += this._select(
-            'Withdrawal Priority',
-            'strategies.drawdownStrategy',
-            waterfallOptions,
-            currentWaterfall,
-            'Defines the order of accounts liquidated to fund deficits across early and traditional retirement.'
-        );
-
-        const isAgeTiered = currentWaterfall === 'age_tiered_60' || currentWaterfall === 'age_tiered';
-        html += `<div id="age-tiered-drawdown-settings" style="display: ${isAgeTiered ? 'block' : 'none'}; margin-top: 0.5rem;">`;
-        html += this._input(
-            'Drawdown Transition Age',
-            'strategies.drawdownTierAge',
-            'number',
-            tierAge,
-            'The age milestone where the liquidation priority transitions from early retirement bridge to post-60 decumulation. Defaults to 60.'
-        );
-        html += `<div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 0.65rem 0.85rem; margin-top: 0.5rem; font-size: 0.78rem; line-height: 1.5; color: var(--text-color);">
-            <div style="font-weight: 600; color: #34d399; margin-bottom: 0.25rem;">Active Liquidation Sequence:</div>
-            <div><strong>Before Age ${tierAge} (Early Bridge):</strong> Roth IRA (Principal &amp; Mature Conversions) ➔ Taxable Brokerage &amp; HYSA. <em>Pre-tax accounts preserved &amp; locked.</em></div>
-            <div style="margin-top: 0.2rem;"><strong>Age ${tierAge}+ (Retirement Decumulation):</strong> 1. Workplace 403(b) ➔ 2. Roth IRA ➔ 3. Traditional IRA &amp; 401(k) ➔ 4. Taxable Brokerage.</div>
-        </div></div></div></div>`;
+        html += this._renderWithdrawalWaterfallSubsection();
+        html += `</div>`;
         return html;
     }
 

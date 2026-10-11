@@ -1,22 +1,28 @@
+import { AcaHealthcareCalculator } from './AcaHealthcareCalculator.js';
+
 /**
  * Handles phase-based household expenses, housing, mortgage, college 529s, and healthcare
  */
 export class ExpenseCalculator {
-    static getBaseMonthlyExpense(dependents, year, s1, phases, strategies = {}) {
-        if (phases?.phase1?.monthlyExpense !== undefined) {
-            return Number(phases.phase1.monthlyExpense) || 0;
-        }
-
+    static _classifyDependents(dependents, year) {
         let hasPreTeens = false;
         let hasTeenagers = false;
         let hasCollege = false;
-
         for (const child of dependents || []) {
             const childAge = year - child.yearOfBirth;
             if (childAge >= 0 && childAge < 13) hasPreTeens = true;
             else if (childAge >= 13 && childAge <= 17) hasTeenagers = true;
             else if (childAge >= 18 && childAge <= 22) hasCollege = true;
         }
+        return { hasPreTeens, hasTeenagers, hasCollege };
+    }
+
+    static getBaseMonthlyExpense(dependents, year, s1, phases, strategies = {}) {
+        if (phases?.phase1?.monthlyExpense !== undefined) {
+            return Number(phases.phase1.monthlyExpense) || 0;
+        }
+
+        const { hasPreTeens, hasTeenagers, hasCollege } = ExpenseCalculator._classifyDependents(dependents, year);
 
         if (hasTeenagers) {
             return ExpenseCalculator._resolvePhase(phases, [
@@ -58,6 +64,14 @@ export class ExpenseCalculator {
         return 0;
     }
 
+    static _getGogoMultiplier(strategies) {
+        const rawMult = Number(strategies?.gogoMultiplier || 1.0);
+        const isFrontLoaded = strategies?.decumulationMode === 'front_loaded' || rawMult > 1.0;
+        if (!isFrontLoaded) return { gogo: 1.0, midGogo: 1.0 };
+        const gogo = Number(strategies?.gogoMultiplier || 1.25);
+        return { gogo, midGogo: 1 + (gogo - 1) / 2 };
+    }
+
     static _getEmptyNesterExpense(year, s1, phases, strategies) {
         const healthOffset = Number(strategies?.healthAgingOffset || 0);
         const retAge = s1?.targetRetirementAge || 65;
@@ -73,26 +87,19 @@ export class ExpenseCalculator {
         }
 
         const yearsRetired = currentAge - retAge;
-        const isFrontLoaded =
-            strategies?.decumulationMode === 'front_loaded' || Number(strategies?.gogoMultiplier || 1.0) > 1.0;
-        const gogo = isFrontLoaded ? Number(strategies?.gogoMultiplier || 1.25) : 1.0;
+        const { gogo, midGogo } = ExpenseCalculator._getGogoMultiplier(strategies);
 
         if (yearsRetired < 5) {
-            const baseAmt = ExpenseCalculator._resolvePhase(phases, [
-                'earlyRetirement',
-                'preRetirementNoKids',
-                'midRetirement'
-            ]);
-            return baseAmt * gogo;
+            return (
+                ExpenseCalculator._resolvePhase(phases, ['earlyRetirement', 'preRetirementNoKids', 'midRetirement']) *
+                gogo
+            );
         }
         if (yearsRetired < 10) {
-            const baseAmt = ExpenseCalculator._resolvePhase(phases, [
-                'midRetirement',
-                'earlyRetirement',
-                'olderRetirement'
-            ]);
-            const midGogo = isFrontLoaded ? 1 + (gogo - 1) / 2 : 1.0;
-            return baseAmt * midGogo;
+            return (
+                ExpenseCalculator._resolvePhase(phases, ['midRetirement', 'earlyRetirement', 'olderRetirement']) *
+                midGogo
+            );
         }
         if (yearsRetired < 15) {
             return ExpenseCalculator._resolvePhase(phases, ['olderRetirement', 'midRetirement', 'earlyRetirement']);
@@ -157,6 +164,17 @@ export class ExpenseCalculator {
         return { cost, drawn };
     }
 
+    static _resolveCollegeGrowthRate(child, assumptions) {
+        if (child.expectedReturn !== undefined && child.expectedReturn !== null) {
+            return Number(child.expectedReturn) / 100;
+        }
+        const defaultRate =
+            assumptions?.collegeReturnRate !== undefined
+                ? assumptions.collegeReturnRate
+                : assumptions?.generalReturnRate || 7;
+        return defaultRate / 100;
+    }
+
     static _processSingleChildCollegeCost({
         child,
         index,
@@ -169,18 +187,11 @@ export class ExpenseCalculator {
         const childAge = year - child.yearOfBirth;
         const childId = child.id || `child_${index}`;
         const childName = child.name || `Child ${index + 1}`;
-        const annualGrowthRate =
-            child.expectedReturn !== undefined && child.expectedReturn !== null
-                ? Number(child.expectedReturn) / 100
-                : (assumptions?.collegeReturnRate !== undefined
-                      ? assumptions.collegeReturnRate
-                      : assumptions?.generalReturnRate || 7) / 100;
+        const annualGrowthRate = this._resolveCollegeGrowthRate(child, assumptions);
 
         const startBal = child.currentCollegeSavingsBalance || 0;
-        let interest = 0;
-
-        if (startBal > 0) {
-            interest = startBal * annualGrowthRate;
+        const interest = startBal > 0 ? startBal * annualGrowthRate : 0;
+        if (interest > 0) {
             child.currentCollegeSavingsBalance += interest;
         }
 
@@ -192,7 +203,6 @@ export class ExpenseCalculator {
             annualGrowthRate,
             startBal
         });
-
         if (contribution > 0) {
             child.currentCollegeSavingsBalance += contribution;
         }
@@ -259,11 +269,59 @@ export class ExpenseCalculator {
         };
     }
 
+    static _sumPersonIncomeField(inc, field) {
+        return Number(inc?.s1?.[field] || 0) + Number(inc?.s2?.[field] || 0);
+    }
+
+    static _estimateBaselineAcaMagi(snapshot, strategies, assumptions) {
+        const customMagi = strategies?.estimatedMagi ?? assumptions?.estimatedMagi;
+        if (customMagi !== undefined && customMagi !== null) {
+            return Number(customMagi) || 0;
+        }
+        const inc = snapshot.income;
+        const fullSsn = this._sumPersonIncomeField(inc, 'ssn');
+        const w2Taxable = this._sumPersonIncomeField(inc, 'w2TaxableGross');
+        return Math.max(Number(snapshot.taxDetails?.magi || 0), w2Taxable + fullSsn);
+    }
+
+    static _processAcaHealthcare({
+        year,
+        s1,
+        s2,
+        dependents,
+        strategies,
+        assumptions,
+        inflationMultiplier,
+        monthFraction,
+        snapshot
+    }) {
+        const isAcaEnabled = Boolean(strategies?.acaHealthcareEnabled || assumptions?.acaHealthcareEnabled);
+        if (!isAcaEnabled) return;
+
+        const estimatedMagi = this._estimateBaselineAcaMagi(snapshot, strategies, assumptions);
+        const acaResult = AcaHealthcareCalculator.calculate({
+            year,
+            s1,
+            s2,
+            dependents,
+            estimatedMagi,
+            inflationMultiplier,
+            monthFraction,
+            options: { acaCliffEnabled: Boolean(strategies?.acaCliffEnabled || assumptions?.acaCliffEnabled) }
+        });
+        snapshot.acaHealthcare = acaResult;
+        if (acaResult.netPremium > 0) {
+            snapshot.expenses += acaResult.netPremium;
+            snapshot.expenseBreakdown.healthcare = (snapshot.expenseBreakdown.healthcare || 0) + acaResult.netPremium;
+        }
+    }
+
     static calculate({
         year,
         currentYear,
         firstActiveMonth = 1,
         s1,
+        s2 = null,
         dependents,
         phases,
         assumptions,
@@ -301,5 +359,18 @@ export class ExpenseCalculator {
 
         // College 529 & Tuition
         this.processCollegeCosts({ dependents, year, currentYear, inflationMultiplier, assumptions, snapshot, events });
+
+        // Pre-65 ACA Healthcare Bridge (when enabled)
+        this._processAcaHealthcare({
+            year,
+            s1,
+            s2,
+            dependents,
+            strategies,
+            assumptions,
+            inflationMultiplier,
+            monthFraction,
+            snapshot
+        });
     }
 }

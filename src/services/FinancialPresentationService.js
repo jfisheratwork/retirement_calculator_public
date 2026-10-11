@@ -8,12 +8,64 @@
 
 import { escapeHtml } from '../utils/sanitize.js';
 
+const DEFAULT_MATCH_ESTIMATE_RATE = 0.03;
+
+function computeSpouseTakeHome(spouseIncome, totalW2Net, totalW2Tax) {
+    if (spouseIncome?.takeHome !== undefined) {
+        return spouseIncome.takeHome;
+    }
+    const net = spouseIncome?.w2Net || 0;
+    const share = totalW2Net > 0 ? net / totalW2Net : 0;
+    return Math.max(0, net - totalW2Tax * share);
+}
+
+function buildDrawdownRows(drawdownMap) {
+    const pairs = [
+        { label: 'Brokerage', amount: (drawdownMap.s1Brokerage || 0) + (drawdownMap.s2Brokerage || 0) },
+        { label: 'Cash Cushion', amount: drawdownMap.cashCushion || 0 },
+        { label: 'Traditional IRA', amount: (drawdownMap.s1StandardIra || 0) + (drawdownMap.s2StandardIra || 0) },
+        { label: '401(k)', amount: (drawdownMap.s1Trad401k || 0) + (drawdownMap.s2Trad401k || 0) },
+        { label: '403(b)', amount: (drawdownMap.s1Trad403b || 0) + (drawdownMap.s2Trad403b || 0) },
+        { label: 'Roth IRA', amount: (drawdownMap.s1RothIra || 0) + (drawdownMap.s2RothIra || 0) }
+    ];
+    return pairs.filter((row) => row.amount > 0);
+}
+
+function sumDrawdownAmounts(drawdownMap) {
+    const excludeKeys = new Set(['penalizedPreTax', 's1PenalizedPreTax', 's2PenalizedPreTax']);
+    return Object.entries(drawdownMap).reduce((acc, [key, val]) => {
+        if (excludeKeys.has(key)) return acc;
+        return acc + (Number(val) || 0);
+    }, 0);
+}
+
+function hasEmployerMatchConfigured(accList) {
+    return (accList || []).some(
+        (a) => Number(a?.employerMatchConfig?.employer100PercentMatchOnTheFirstXPercent || 0) > 0
+    );
+}
+
+function extractTaxLiabilities(td, eb, snap) {
+    const fedTax = td.federalTax ?? td.fedTax ?? 0;
+    const ficaTax = td.ficaTax || 0;
+    const ltcgTax = td.capitalGainsTax ?? td.ltcgTax ?? 0;
+    const niitTax = td.niitTax || 0;
+    const stateTax = td.stateTax || 0;
+    const earlyWithdrawalPenalty = td.earlyWithdrawalPenalty ?? snap.earlyWithdrawalPenalty ?? 0;
+    const irmaa = eb.irmaa || 0;
+    return {
+        fedTax,
+        ficaTax,
+        ltcgTax,
+        niitTax,
+        stateTax,
+        earlyWithdrawalPenalty,
+        irmaa,
+        totalTaxLiabilities: fedTax + ficaTax + ltcgTax + niitTax + stateTax + earlyWithdrawalPenalty + irmaa
+    };
+}
+
 export class FinancialPresentationService {
-    /**
-     * Formats a numeric value as standard USD currency without cents.
-     * @param {number|string} val
-     * @returns {string}
-     */
     static formatCurrency(val) {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -22,61 +74,39 @@ export class FinancialPresentationService {
         }).format(Number(val) || 0);
     }
 
-    /**
-     * Calculates itemized cash inflows (W2 take-home, SSN, 72t, reverse mortgage, drawdowns).
-     * @param {object} snap YearlySnapshot
-     * @param {object} state Global State
-     */
     static computeCashInflows(snap, state) {
         if (!snap) return null;
 
+        const numVal = (v) => Number(v) || 0;
+        const inc = snap.income || {};
+        const s1Inc = inc.s1 || {};
+        const s2Inc = inc.s2 || {};
         const s1Name = escapeHtml(state?.primarySpouse?.name || 'Spouse 1');
         const s2Name = escapeHtml(state?.secondarySpouse?.name || 'Spouse 2');
 
-        const totalW2Net = (snap.income?.s1?.w2Net || 0) + (snap.income?.s2?.w2Net || 0);
-        const s1Share = totalW2Net > 0 ? snap.income.s1.w2Net / totalW2Net : 0;
-        const s2Share = totalW2Net > 0 ? snap.income.s2.w2Net / totalW2Net : 0;
-        const s1TakeHome =
-            snap.income?.s1?.takeHome !== undefined
-                ? snap.income.s1.takeHome
-                : Math.max(0, (snap.income?.s1?.w2Net || 0) - (snap.taxDetails?.w2Tax || 0) * s1Share);
-        const s2TakeHome =
-            snap.income?.s2?.takeHome !== undefined
-                ? snap.income.s2.takeHome
-                : Math.max(0, (snap.income?.s2?.w2Net || 0) - (snap.taxDetails?.w2Tax || 0) * s2Share);
+        const w2Tax = numVal(snap.taxDetails?.w2Tax);
+        const totalW2Net = numVal(s1Inc.w2Net) + numVal(s2Inc.w2Net);
+        const s1TakeHome = computeSpouseTakeHome(s1Inc, totalW2Net, w2Tax);
+        const s2TakeHome = computeSpouseTakeHome(s2Inc, totalW2Net, w2Tax);
 
-        const totalSsn = (snap.income?.s1?.ssn || 0) + (snap.income?.s2?.ssn || 0);
-        const s1Rule72t = snap.income?.s1?.rule72t || 0;
-        const s2Rule72t = snap.income?.s2?.rule72t || 0;
+        const totalSsn = numVal(s1Inc.ssn) + numVal(s2Inc.ssn);
+        const s1Rule72t = numVal(s1Inc.rule72t);
+        const s2Rule72t = numVal(s2Inc.rule72t);
         const total72t = s1Rule72t + s2Rule72t;
-        const reverseMortgage = snap.income?.reverseMortgage || 0;
+        const reverseMortgage = numVal(inc.reverseMortgage);
 
-        const drawdownMap = snap.income?.drawdowns || {};
-        const totalDrawdowns = Object.values(drawdownMap).reduce((acc, val) => acc + (Number(val) || 0), 0);
-
-        const drawdownRows = [];
-        const brokerageDraw = (drawdownMap.s1Brokerage || 0) + (drawdownMap.s2Brokerage || 0);
-        if (brokerageDraw > 0) drawdownRows.push({ label: 'Brokerage', amount: brokerageDraw });
-        if (drawdownMap.cashCushion > 0) drawdownRows.push({ label: 'Cash Cushion', amount: drawdownMap.cashCushion });
-        const iraDraw = (drawdownMap.s1StandardIra || 0) + (drawdownMap.s2StandardIra || 0);
-        if (iraDraw > 0) drawdownRows.push({ label: 'Traditional IRA', amount: iraDraw });
-        const k401Draw = (drawdownMap.s1Trad401k || 0) + (drawdownMap.s2Trad401k || 0);
-        if (k401Draw > 0) drawdownRows.push({ label: '401(k)', amount: k401Draw });
-        const b403Draw = (drawdownMap.s1Trad403b || 0) + (drawdownMap.s2Trad403b || 0);
-        if (b403Draw > 0) drawdownRows.push({ label: '403(b)', amount: b403Draw });
-        const rothDraw = (drawdownMap.s1RothIra || 0) + (drawdownMap.s2RothIra || 0);
-        if (rothDraw > 0) drawdownRows.push({ label: 'Roth IRA', amount: rothDraw });
-
+        const drawdownMap = inc.drawdowns || {};
+        const totalDrawdowns = sumDrawdownAmounts(drawdownMap);
+        const drawdownRows = buildDrawdownRows(drawdownMap);
         const totalCashInflows = s1TakeHome + s2TakeHome + totalSsn + total72t + reverseMortgage + totalDrawdowns;
-        const hasEarnedIncome = totalCashInflows > 0;
 
         return {
             s1Name,
             s2Name,
             s1TakeHome,
             s2TakeHome,
-            s1Jobs: snap.income?.s1?.jobs || [],
-            s2Jobs: snap.income?.s2?.jobs || [],
+            s1Jobs: s1Inc.jobs || [],
+            s2Jobs: s2Inc.jobs || [],
             totalSsn,
             s1Rule72t,
             s2Rule72t,
@@ -85,23 +115,21 @@ export class FinancialPresentationService {
             drawdownRows,
             totalDrawdowns,
             totalCashInflows,
-            hasEarnedIncome
+            hasEarnedIncome: totalCashInflows > 0
         };
     }
 
-    /**
-     * Calculates itemized expenses & outflows.
-     * @param {object} snap YearlySnapshot
-     */
     static computeExpensesAndOutflows(snap) {
         if (!snap) return null;
 
-        const base = snap.expenseBreakdown?.base || 0;
-        const mortgage = snap.expenseBreakdown?.mortgage || 0;
-        const housing = snap.expenseBreakdown?.housing || 0;
-        const childcare = snap.expenseBreakdown?.childcare || 0;
-        const irmaa = snap.expenseBreakdown?.irmaa || 0;
-        const totalExpenses = snap.expenses || base + mortgage + housing + childcare + irmaa;
+        const eb = snap.expenseBreakdown || {};
+        const base = eb.base || 0;
+        const mortgage = eb.mortgage || 0;
+        const housing = eb.housing || 0;
+        const childcare = eb.childcare || 0;
+        const irmaa = eb.irmaa || 0;
+        const healthcare = eb.healthcare || 0;
+        const totalExpenses = snap.expenses || base + mortgage + housing + childcare + irmaa + healthcare;
 
         return {
             base,
@@ -109,81 +137,55 @@ export class FinancialPresentationService {
             housing,
             childcare,
             irmaa,
+            healthcare,
             totalExpenses
         };
     }
 
-    /**
-     * Calculates net cash surplus / deficit and sweep allocation.
-     * @param {object} inflows Computed inflows
-     * @param {object} outflows Computed outflows
-     * @param {object} state Global State
-     */
     static computeCashFlowSurplus(inflows, outflows, state) {
         if (!inflows || !outflows) return null;
 
         const netFlow = inflows.totalCashInflows - outflows.totalExpenses;
-        const isSurplus = netFlow >= 0;
-        const surplusAmount = Math.max(0, netFlow);
-        const deficitAmount = Math.max(0, -netFlow);
-
-        let sweepAccountName = 'Taxable Brokerage';
         const allAccounts = [...(state?.primarySpouse?.accounts || []), ...(state?.secondarySpouse?.accounts || [])];
         const designated =
             allAccounts.find((a) => a.isSweepAccount) || allAccounts.find((a) => a.type === 'taxableBrokerage');
-        if (designated?.name) {
-            sweepAccountName = escapeHtml(designated.name);
-        }
+        const sweepAccountName = designated?.name ? escapeHtml(designated.name) : 'Taxable Brokerage';
 
         return {
             netFlow,
-            isSurplus,
-            surplusAmount,
-            deficitAmount,
+            isSurplus: netFlow >= 0,
+            surplusAmount: Math.max(0, netFlow),
+            deficitAmount: Math.max(0, -netFlow),
             sweepAccountName
         };
     }
 
-    /**
-     * Calculates portfolio additions and savings.
-     * @param {object} snap YearlySnapshot
-     * @param {object} state Global State
-     * @param {number} surplusAmount Reinvested surplus
-     */
+    static _estimateSpousePayrollAdditions(spouseInc = {}, spouseAccounts = []) {
+        const gross = Number(spouseInc.w2Gross || 0);
+        const net = Number(spouseInc.w2Net || 0);
+        const payroll401k = Math.max(0, gross - net);
+        const match = gross > 0 && hasEmployerMatchConfigured(spouseAccounts) ? gross * DEFAULT_MATCH_ESTIMATE_RATE : 0;
+        return { payroll401k, match };
+    }
+
     static computePortfolioAdditions(snap, state, surplusAmount = 0) {
         if (!snap) return null;
 
-        const s1Gross = snap.income?.s1?.w2Gross || 0;
-        const s2Gross = snap.income?.s2?.w2Gross || 0;
-        const s1Payroll401k = Math.max(0, s1Gross - (snap.income?.s1?.w2Net || 0));
-        const s2Payroll401k = Math.max(0, s2Gross - (snap.income?.s2?.w2Net || 0));
+        const inc = snap.income || {};
+        const s1Add = this._estimateSpousePayrollAdditions(inc.s1, state?.primarySpouse?.accounts);
+        const s2Add = this._estimateSpousePayrollAdditions(inc.s2, state?.secondarySpouse?.accounts);
 
-        let s1Match = 0;
-        let s2Match = 0;
-        const checkMatch = (accList) =>
-            (accList || []).reduce((sum, a) => {
-                const m = a.employerMatchConfig;
-                if (!m) return sum;
-                return sum + (Number(m.employer100PercentMatchOnTheFirstXPercent || 0) > 0 ? 1 : 0);
-            }, 0);
-
-        if (checkMatch(state?.primarySpouse?.accounts) > 0 && s1Gross > 0) {
-            s1Match = s1Gross * 0.03;
-        }
-        if (checkMatch(state?.secondarySpouse?.accounts) > 0 && s2Gross > 0) {
-            s2Match = s2Gross * 0.03;
-        }
-
-        const s1RothConv = snap.rothConverted?.s1 || 0;
-        const s2RothConv = snap.rothConverted?.s2 || 0;
+        const rothConv = snap.rothConverted || {};
+        const s1RothConv = Number(rothConv.s1 || 0);
+        const s2RothConv = Number(rothConv.s2 || 0);
         const totalPortfolioAdditions =
-            s1Payroll401k + s2Payroll401k + s1Match + s2Match + surplusAmount + s1RothConv + s2RothConv;
+            s1Add.payroll401k + s2Add.payroll401k + s1Add.match + s2Add.match + surplusAmount + s1RothConv + s2RothConv;
 
         return {
-            s1Payroll401k,
-            s2Payroll401k,
-            s1Match,
-            s2Match,
+            s1Payroll401k: s1Add.payroll401k,
+            s2Payroll401k: s2Add.payroll401k,
+            s1Match: s1Add.match,
+            s2Match: s2Add.match,
             reinvestedSurplus: surplusAmount,
             s1RothConv,
             s2RothConv,
@@ -191,26 +193,17 @@ export class FinancialPresentationService {
         };
     }
 
-    /**
-     * Calculates tax liabilities and bracket profile.
-     * @param {object} snap YearlySnapshot
-     */
     static computeTaxProfile(snap) {
         if (!snap) return null;
 
-        const filingStatus = (snap.taxDetails?.filingStatus || 'MFJ').toUpperCase();
-        const topBracketRate = snap.taxDetails?.topBracketRate ?? snap.taxDetails?.topBracket ?? 0;
+        const td = snap.taxDetails || {};
+        const eb = snap.expenseBreakdown || {};
+        const filingStatus = (td.filingStatus || 'MFJ').toUpperCase();
+        const topBracketRate = td.topBracketRate ?? td.topBracket ?? 0;
         const topBracketPct = (topBracketRate * 100).toFixed(1);
-        const bracketRoom = snap.taxDetails?.remainingRoomInBracket ?? snap.taxDetails?.bracketRoom ?? 0;
-        const effectiveRate = ((snap.taxDetails?.effectiveRate || 0) * 100).toFixed(1);
-
-        const fedTax = snap.taxDetails?.federalTax ?? snap.taxDetails?.fedTax ?? 0;
-        const ficaTax = snap.taxDetails?.ficaTax || 0;
-        const ltcgTax = snap.taxDetails?.capitalGainsTax ?? snap.taxDetails?.ltcgTax ?? 0;
-        const niitTax = snap.taxDetails?.niitTax || 0;
-        const stateTax = snap.taxDetails?.stateTax || 0;
-        const irmaa = snap.expenseBreakdown?.irmaa || 0;
-        const totalTaxLiabilities = fedTax + ficaTax + ltcgTax + niitTax + stateTax + irmaa;
+        const bracketRoom = td.remainingRoomInBracket ?? td.bracketRoom ?? 0;
+        const effectiveRate = ((td.effectiveRate || 0) * 100).toFixed(1);
+        const liabilities = extractTaxLiabilities(td, eb, snap);
 
         return {
             filingStatus,
@@ -218,22 +211,30 @@ export class FinancialPresentationService {
             topBracketRate,
             bracketRoom,
             effectiveRate,
-            fedTax,
-            ficaTax,
-            ltcgTax,
-            niitTax,
-            stateTax,
-            irmaa,
-            magi: snap.taxDetails?.magi ?? 0,
-            hsaDeduction: snap.taxDetails?.hsaDeduction ?? 0,
-            totalTaxLiabilities
+            ...liabilities,
+            magi: td.magi ?? 0,
+            hsaDeduction: td.hsaDeduction ?? 0
         };
     }
 
-    /**
-     * Calculates net portfolio activity (growth, interest, net inflows/outflows).
-     * @param {object} snap YearlySnapshot
-     */
+    static _buildGrowthRows(accounts) {
+        const growthRows = [];
+        for (const [key, acc] of Object.entries(accounts || {})) {
+            if (!acc) continue;
+            const accInterest = acc.yearInterest || acc.interestEarned || 0;
+            const balance = acc.balance || 0;
+            if (accInterest !== 0 || balance > 0) {
+                growthRows.push({
+                    key,
+                    name: escapeHtml(acc.name || key),
+                    interest: accInterest,
+                    balance
+                });
+            }
+        }
+        return growthRows;
+    }
+
     static computePortfolioActivity(snap) {
         if (!snap) return null;
 
@@ -248,21 +249,6 @@ export class FinancialPresentationService {
         const netActivity =
             interest + contributions + conversionsIn + rolloverIn - conversionsOut - rolloverOut - netWithdrawals;
 
-        const growthRows = [];
-        const accounts = snap.accounts || {};
-        for (const [key, acc] of Object.entries(accounts)) {
-            if (!acc) continue;
-            const accInterest = acc.yearInterest || acc.interestEarned || 0;
-            if (accInterest !== 0 || acc.balance > 0) {
-                growthRows.push({
-                    key,
-                    name: escapeHtml(acc.name || key),
-                    interest: accInterest,
-                    balance: acc.balance || 0
-                });
-            }
-        }
-
         return {
             interest,
             contributions,
@@ -272,7 +258,7 @@ export class FinancialPresentationService {
             rolloverOut,
             netWithdrawals,
             netActivity,
-            growthRows
+            growthRows: this._buildGrowthRows(snap.accounts)
         };
     }
 }

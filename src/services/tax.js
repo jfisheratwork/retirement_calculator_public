@@ -197,43 +197,18 @@ export function precalculateTaxTables(years, inflationRate, startYear = 2026, as
     return tables;
 }
 
-/**
- * Calculates Federal income tax (ordinary + LTCG + NIIT) and flat state tax.
- * Supports dynamic filing status ('mfj' or 'single').
- * @param {number} grossTaxableIncome Total ordinary gross income subject to income tax
- * @param {number} stateTaxRate Flat state tax rate (e.g. 5 for 5%)
- * @param {object} taxYearData The precalculated tax data for this year
- * @param {string} [filingStatus='mfj'] 'mfj' or 'single'
- * @param {number} [ltcgGains=0] Realized Long-Term Capital Gains
- * @returns {object} Full tax breakdown
- */
-export function calculateTax(grossTaxableIncome, stateTaxRate, taxYearData, filingStatus = 'mfj', ltcgGains = 0) {
+function resolveTaxStatusData(taxYearData, filingStatus) {
     const statusData = taxYearData && taxYearData[filingStatus] ? taxYearData[filingStatus] : taxYearData || {};
-    const brackets = statusData.brackets || TAX_BRACKETS_2024_MFJ;
-    const standardDeduction =
-        statusData.standardDeduction !== undefined ? statusData.standardDeduction : STANDARD_DEDUCTION_2024_MFJ;
-    const ltcgBrackets = statusData.ltcgBrackets || LTCG_BRACKETS_2024_MFJ;
-    const niitThreshold = statusData.niitThreshold !== undefined ? statusData.niitThreshold : NIIT_THRESHOLD_2024_MFJ;
+    return {
+        brackets: statusData.brackets || TAX_BRACKETS_2024_MFJ,
+        standardDeduction:
+            statusData.standardDeduction !== undefined ? statusData.standardDeduction : STANDARD_DEDUCTION_2024_MFJ,
+        ltcgBrackets: statusData.ltcgBrackets || LTCG_BRACKETS_2024_MFJ,
+        niitThreshold: statusData.niitThreshold !== undefined ? statusData.niitThreshold : NIIT_THRESHOLD_2024_MFJ
+    };
+}
 
-    if (grossTaxableIncome <= 0 && ltcgGains <= 0) {
-        return {
-            federalTax: 0,
-            stateTax: 0,
-            totalTax: 0,
-            effectiveRate: 0,
-            topBracketRate: 0,
-            remainingRoomInBracket: standardDeduction,
-            grossTaxableIncome: 0,
-            standardDeduction: standardDeduction,
-            agi: 0,
-            capitalGainsTax: 0,
-            niitTax: 0,
-            filingStatus
-        };
-    }
-
-    // Federal Ordinary Income Tax Calculation
-    const agi = Math.max(0, grossTaxableIncome - standardDeduction);
+function calculateOrdinaryFederalTax(agi, brackets, standardDeduction, grossTaxableIncome) {
     let ordinaryFederalTax = 0;
     let previousLimit = 0;
     let topBracketRate = 0;
@@ -256,45 +231,78 @@ export function calculateTax(grossTaxableIncome, stateTaxRate, taxYearData, fili
         topBracketRate = 0;
         remainingRoomInBracket = standardDeduction - grossTaxableIncome;
     }
+    return { ordinaryFederalTax, topBracketRate, remainingRoomInBracket };
+}
 
-    // Long-Term Capital Gains (LTCG) Calculation - Stacks on top of ordinary taxable income
+function calculateStackedLtcgTax(agi, ltcgGains, ltcgBrackets) {
+    if (ltcgGains <= 0) return 0;
+    const startCapitalIncome = agi;
+    const endCapitalIncome = agi + ltcgGains;
     let capitalGainsTax = 0;
-    if (ltcgGains > 0) {
-        const startCapitalIncome = agi;
-        const endCapitalIncome = agi + ltcgGains;
-        let prevLtcgLimit = 0;
+    let prevLtcgLimit = 0;
 
-        for (const b of ltcgBrackets) {
-            const bracketFloor = prevLtcgLimit;
-            const bracketCeiling = b.upTo;
-
-            // Determine overlap of [startCapitalIncome, endCapitalIncome] with [bracketFloor, bracketCeiling]
-            const overlapStart = Math.max(startCapitalIncome, bracketFloor);
-            const overlapEnd = Math.min(endCapitalIncome, bracketCeiling);
-
-            if (overlapEnd > overlapStart) {
-                const taxableGainsInBracket = overlapEnd - overlapStart;
-                capitalGainsTax += taxableGainsInBracket * b.rate;
-            }
-            prevLtcgLimit = b.upTo;
+    for (const b of ltcgBrackets) {
+        const overlapStart = Math.max(startCapitalIncome, prevLtcgLimit);
+        const overlapEnd = Math.min(endCapitalIncome, b.upTo);
+        if (overlapEnd > overlapStart) {
+            capitalGainsTax += (overlapEnd - overlapStart) * b.rate;
         }
+        prevLtcgLimit = b.upTo;
+    }
+    return capitalGainsTax;
+}
+
+/**
+ * Calculates Federal income tax (ordinary + LTCG + NIIT) and flat state tax.
+ * Supports dynamic filing status ('mfj' or 'single').
+ * @param {number} grossTaxableIncome Total ordinary gross income subject to income tax
+ * @param {number} stateTaxRate Flat state tax rate (e.g. 5 for 5%)
+ * @param {object} taxYearData The precalculated tax data for this year
+ * @param {string} [filingStatus='mfj'] 'mfj' or 'single'
+ * @param {number} [ltcgGains=0] Realized Long-Term Capital Gains
+ * @returns {object} Full tax breakdown
+ */
+export function calculateTax(grossTaxableIncome, stateTaxRate, taxYearData, filingStatus = 'mfj', ltcgGains = 0) {
+    const { brackets, standardDeduction, ltcgBrackets, niitThreshold } = resolveTaxStatusData(
+        taxYearData,
+        filingStatus
+    );
+
+    if (grossTaxableIncome <= 0 && ltcgGains <= 0) {
+        return {
+            federalTax: 0,
+            stateTax: 0,
+            totalTax: 0,
+            effectiveRate: 0,
+            topBracketRate: 0,
+            remainingRoomInBracket: standardDeduction,
+            grossTaxableIncome: 0,
+            standardDeduction,
+            agi: 0,
+            capitalGainsTax: 0,
+            niitTax: 0,
+            filingStatus
+        };
     }
 
-    // Net Investment Income Tax (NIIT) - 3.8% on lesser of capital gains or MAGI over threshold
+    const agi = Math.max(0, grossTaxableIncome - standardDeduction);
+    const { ordinaryFederalTax, topBracketRate, remainingRoomInBracket } = calculateOrdinaryFederalTax(
+        agi,
+        brackets,
+        standardDeduction,
+        grossTaxableIncome
+    );
+    const capitalGainsTax = calculateStackedLtcgTax(agi, ltcgGains, ltcgBrackets);
+
     let niitTax = 0;
     if (ltcgGains > 0) {
-        const totalInvestmentAgi = grossTaxableIncome + ltcgGains;
-        const excessOverThreshold = Math.max(0, totalInvestmentAgi - niitThreshold);
-        const subjectToNiit = Math.min(ltcgGains, excessOverThreshold);
-        niitTax = subjectToNiit * NIIT_RATE;
+        const excessOverThreshold = Math.max(0, grossTaxableIncome + ltcgGains - niitThreshold);
+        niitTax = Math.min(ltcgGains, excessOverThreshold) * NIIT_RATE;
     }
 
     const federalTax = ordinaryFederalTax + capitalGainsTax + niitTax;
-
-    // State Tax Calculation (applied to gross income + capital gains)
     const totalStateTaxable = Math.max(0, grossTaxableIncome + ltcgGains);
     const stateTax = totalStateTaxable * ((stateTaxRate || 0) / 100);
-
     const totalTax = federalTax + stateTax;
     const effectiveRate = totalStateTaxable > 0 ? totalTax / totalStateTaxable : 0;
 
@@ -569,44 +577,32 @@ export function getRmdPercentage(age, yearOfBirth = 1955) {
     return 1 / divisor;
 }
 
+function resolveIrmaaBrackets(taxYearData, filingStatus) {
+    const statusData = taxYearData && taxYearData[filingStatus] ? taxYearData[filingStatus] : taxYearData || {};
+    if (statusData.irmaaBrackets) return statusData.irmaaBrackets;
+    return filingStatus === 'single' ? IRMAA_BRACKETS_2024_SINGLE : IRMAA_BRACKETS_2024_MFJ;
+}
+
 /**
  * Calculates annual Medicare IRMAA Part B & D surcharges for individuals aged 65+.
  * @param {number} magi Modified Adjusted Gross Income
  * @param {string} filingStatus 'mfj' or 'single'
  * @param {object} taxYearData Tax table data containing IRMAA brackets
- * @param {number} s1Age Age of Primary Spouse
- * @param {number} s2Age Age of Secondary Spouse
- * @param {boolean} s1Alive
- * @param {boolean} s2Alive
+ * @param {...any} rest [s1Age, s2Age, s1Alive, s2Alive]
  * @returns {number} Total annual household IRMAA surcharge
  */
-export function getIrmaaAnnualSurcharge(magi, filingStatus, taxYearData, s1Age, s2Age, s1Alive, s2Alive) {
-    const s1Eligible = s1Alive && s1Age >= 65;
-    const s2Eligible = s2Alive && s2Age >= 65;
+export function getIrmaaAnnualSurcharge(magi, filingStatus, taxYearData, ...rest) {
+    const [s1Age = 0, s2Age = 0, s1Alive = false, s2Alive = false] = rest;
+    const s1Eligible = Boolean(s1Alive && s1Age >= 65);
+    const s2Eligible = Boolean(s2Alive && s2Age >= 65);
     if (!s1Eligible && !s2Eligible) return 0;
 
-    const statusData = taxYearData && taxYearData[filingStatus] ? taxYearData[filingStatus] : taxYearData || {};
-    const brackets =
-        statusData.irmaaBrackets || (filingStatus === 'single' ? IRMAA_BRACKETS_2024_SINGLE : IRMAA_BRACKETS_2024_MFJ);
+    const brackets = resolveIrmaaBrackets(taxYearData, filingStatus);
+    const matched = brackets.find((b) => magi <= b.upTo);
+    const monthlySurcharge = matched?.surcharge || 0;
 
-    let monthlySurcharge = 0;
-    for (const b of brackets) {
-        if (magi <= b.upTo) {
-            monthlySurcharge = b.surcharge || 0;
-            break;
-        }
+    if (filingStatus === 'mfj' && !(s1Eligible && s2Eligible)) {
+        return (monthlySurcharge / 2) * 12;
     }
-
-    if (filingStatus === 'mfj') {
-        // In MFJ, brackets provide total surcharge for 2 Medicare recipients (e.g. 69.90 * 2 = 139.80).
-        // If only 1 spouse is >= 65, halve the surcharge.
-        if (s1Eligible && s2Eligible) {
-            return monthlySurcharge * 12;
-        } else {
-            return (monthlySurcharge / 2) * 12;
-        }
-    } else {
-        // Single filer (or surviving spouse)
-        return monthlySurcharge * 12;
-    }
+    return monthlySurcharge * 12;
 }

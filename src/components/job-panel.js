@@ -73,18 +73,40 @@ export class JobPanel extends BaseComponent {
         return options;
     }
 
+    _renderLinked401kSection(jobPrefix, job) {
+        const hasLinkedAcc = Boolean(job.linked401kAccountId);
+        let out = `<div class="linked-contributions-container" style="grid-column: 1 / -1; display: ${hasLinkedAcc ? 'block' : 'none'}; padding: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 0.25rem; margin-bottom: 0.5rem;">`;
+        out += `<div class="pane-section-header" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">💼 Workplace 401(k) / 403(b) Contributions & Match</div>`;
+        out += `<div class="tab-stop-grid-2">`;
+        out += `<div>${this._input('Contribution (%)', `${jobPrefix}.contributionPercentage`, 'number', job.contributionPercentage || 0, 'Percentage of annual gross salary deferred into this account (subject to IRS elective deferral limits).')}</div>`;
+        out += `<div>${this._input('Employer 100% Match on First X%', `${jobPrefix}.employer100PercentMatchOnTheFirstXPercent`, 'number', job.employer100PercentMatchOnTheFirstXPercent || 0, 'Employer matches 100% of employee salary deferrals up to this percentage of salary.')}</div>`;
+        out += `<div>${this._input('Employer 50% Match on Next X%', `${jobPrefix}.employer50PercentMatchOnTheNextXPercent`, 'number', job.employer50PercentMatchOnTheNextXPercent || 0, 'Employer matches 50% of employee salary deferrals for the subsequent percentage band of salary.')}</div>`;
+        out += `<div>${this._input('Employer Bonus Match (%)', `${jobPrefix}.employerMatchBonusPercentage`, 'number', job.employerMatchBonusPercentage || 0, 'Employer matching percentage applied directly to annual employee cash bonuses.')}</div>`;
+        out += `</div></div>`;
+        return out;
+    }
+
+    _renderLinkedHsaSection(jobPrefix, job) {
+        const hasLinkedHsa = Boolean(job.linkedHsaAccountId);
+        const hsaVal = job.hsaAnnualContribution !== undefined ? job.hsaAnnualContribution : '';
+        let out = `<div class="linked-hsa-container" style="grid-column: 1 / -1; display: ${hasLinkedHsa ? 'block' : 'none'}; padding: 0.75rem; background: rgba(0, 206, 201, 0.05); border: 1px solid rgba(0, 206, 201, 0.3); border-radius: 4px; margin-top: 0.25rem; margin-bottom: 0.5rem;">`;
+        out += `<div class="pane-section-header" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: #00cec9;">🏥 Workplace HSA Payroll Deductions (Triple Tax-Free)</div>`;
+        out += `<div class="tab-stop-grid-3">`;
+        out += `<div>${this._input('Annual HSA Contribution ($)', `${jobPrefix}.hsaAnnualContribution`, 'number', hsaVal, 'Annual payroll contribution (defaults to statutory cap $4,300 single / $8,550 family + $1,000 if 55+). Pre-tax deduction saves Federal, State, and FICA 7.65% taxes.')}</div>`;
+        out += `<div>${this._input('HSA Start Year', `${jobPrefix}.hsaStartYear`, 'number', job.hsaStartYear || '', 'Calendar year to begin HSA contributions at this job (e.g. start next year or 3 years from now). Leave blank to start immediately with job.')}</div>`;
+        out += `<div>${this._input('HSA Stop Year', `${jobPrefix}.hsaEndYear`, 'number', job.hsaEndYear || '', 'Optional final calendar year to contribute (e.g. contribute for 5 years). Contributions end when job ends or at Medicare Age 65.')}</div>`;
+        out += `</div></div>`;
+        return out;
+    }
+
     _renderJobInputs(jobPrefix, job, spouseObj) {
         const monthOptions = this._getMonthOptions();
         const bonusMonthVal = job.bonusMonth ? String(parseInt(job.bonusMonth, 10)) : '';
         const ltiMonthVal = job.ltiMonth ? String(parseInt(job.ltiMonth, 10)) : '';
         const currentJobIndex = parseInt(this.itemIndex, 10);
         const linkedOptions = this._getLinkedAccountOptions(spouseObj, currentJobIndex);
-
-        const hasBonusData = Boolean(
-            (job.bonusAmount && Number(job.bonusAmount) > 0) ||
-                (job.ltiAmount && Number(job.ltiAmount) > 0) ||
-                job.hasBonus === true
-        );
+        const hsaOptions = this._getLinkedHsaOptions(spouseObj);
+        const hasBonusData = Boolean(Number(job.bonusAmount) > 0 || Number(job.ltiAmount) > 0 || job.hasBonus === true);
 
         let out = `<div class="tab-stop-grid-2" style="margin-top: 0.5rem;">`;
         out += this._input(`Base Salary ($)`, `${jobPrefix}.baseSalary`, 'number', job.baseSalary || 0);
@@ -95,7 +117,6 @@ export class JobPanel extends BaseComponent {
             job.startDate || `${new Date().getFullYear()}-01`,
             'The month and year this job position starts.'
         );
-
         out += `<div style="grid-column: 1 / -1; margin-top: 0.25rem;">`;
         out += this._checkbox(
             `Include Annual Bonus & Equity / LTI`,
@@ -136,115 +157,29 @@ export class JobPanel extends BaseComponent {
         );
         out += `</div>`;
 
-        const hsaOptions = this._getLinkedHsaOptions(spouseObj);
         out += `<div class="tab-stop-grid-2" style="grid-column: 1 / -1;">`;
-        out +=
-            `<div>` +
-            this._select(
-                `Linked 401k/403b`,
-                `${jobPrefix}.linked401kAccountId`,
-                linkedOptions,
-                job.linked401kAccountId || '',
-                "Select a 401k/403b account to receive this job's contributions."
-            ) +
-            `</div>`;
-        out +=
-            `<div>` +
-            this._select(
-                `Linked HSA`,
-                `${jobPrefix}.linkedHsaAccountId`,
-                hsaOptions,
-                job.linkedHsaAccountId || '',
-                'Select a Health Savings Account (HSA) to receive workplace payroll contributions.'
-            ) +
-            `</div>`;
+        out += `<div>${this._select('Linked 401k/403b', `${jobPrefix}.linked401kAccountId`, linkedOptions, job.linked401kAccountId || '', "Select a 401k/403b account to receive this job's contributions.")}</div>`;
+        out += `<div>${this._select('Linked HSA', `${jobPrefix}.linkedHsaAccountId`, hsaOptions, job.linkedHsaAccountId || '', 'Select a Health Savings Account (HSA) to receive workplace payroll contributions.')}</div>`;
         out += `</div>`;
 
-        const hasLinkedAcc = Boolean(job.linked401kAccountId);
-        out += `<div class="linked-contributions-container" style="grid-column: 1 / -1; display: ${hasLinkedAcc ? 'block' : 'none'}; padding: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 0.25rem; margin-bottom: 0.5rem;">`;
-        out += `<div class="pane-section-header" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">💼 Workplace 401(k) / 403(b) Contributions & Match</div>`;
-        out += `<div class="tab-stop-grid-2">`;
-        out +=
-            `<div>` +
-            this._input(
-                `Contribution (%)`,
-                `${jobPrefix}.contributionPercentage`,
-                'number',
-                job.contributionPercentage || 0,
-                'Percentage of annual gross salary deferred into this account (subject to IRS elective deferral limits).'
-            ) +
-            `</div>`;
-        out +=
-            `<div>` +
-            this._input(
-                `Employer 100% Match on First X%`,
-                `${jobPrefix}.employer100PercentMatchOnTheFirstXPercent`,
-                'number',
-                job.employer100PercentMatchOnTheFirstXPercent || 0,
-                'Employer matches 100% of employee salary deferrals up to this percentage of salary.'
-            ) +
-            `</div>`;
-        out +=
-            `<div>` +
-            this._input(
-                `Employer 50% Match on Next X%`,
-                `${jobPrefix}.employer50PercentMatchOnTheNextXPercent`,
-                'number',
-                job.employer50PercentMatchOnTheNextXPercent || 0,
-                'Employer matches 50% of employee salary deferrals for the subsequent percentage band of salary.'
-            ) +
-            `</div>`;
-        out +=
-            `<div>` +
-            this._input(
-                `Employer Bonus Match (%)`,
-                `${jobPrefix}.employerMatchBonusPercentage`,
-                'number',
-                job.employerMatchBonusPercentage || 0,
-                'Employer matching percentage applied directly to annual employee cash bonuses.'
-            ) +
-            `</div>`;
-        out += `</div>`;
-        out += `</div>`;
-
-        const hasLinkedHsa = Boolean(job.linkedHsaAccountId);
-        out += `<div class="linked-hsa-container" style="grid-column: 1 / -1; display: ${hasLinkedHsa ? 'block' : 'none'}; padding: 0.75rem; background: rgba(0, 206, 201, 0.05); border: 1px solid rgba(0, 206, 201, 0.3); border-radius: 4px; margin-top: 0.25rem; margin-bottom: 0.5rem;">`;
-        out += `<div class="pane-section-header" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: #00cec9;">🏥 Workplace HSA Payroll Deductions (Triple Tax-Free)</div>`;
-        out += `<div class="tab-stop-grid-3">`;
-        out +=
-            `<div>` +
-            this._input(
-                `Annual HSA Contribution ($)`,
-                `${jobPrefix}.hsaAnnualContribution`,
-                'number',
-                job.hsaAnnualContribution !== undefined ? job.hsaAnnualContribution : '',
-                'Annual payroll contribution (defaults to statutory cap $4,300 single / $8,550 family + $1,000 if 55+). Pre-tax deduction saves Federal, State, and FICA 7.65% taxes.'
-            ) +
-            `</div>`;
-        out +=
-            `<div>` +
-            this._input(
-                `HSA Start Year`,
-                `${jobPrefix}.hsaStartYear`,
-                'number',
-                job.hsaStartYear || '',
-                'Calendar year to begin HSA contributions at this job (e.g. start next year or 3 years from now). Leave blank to start immediately with job.'
-            ) +
-            `</div>`;
-        out +=
-            `<div>` +
-            this._input(
-                `HSA Stop Year`,
-                `${jobPrefix}.hsaEndYear`,
-                'number',
-                job.hsaEndYear || '',
-                'Optional final calendar year to contribute (e.g. contribute for 5 years). Contributions end when job ends or at Medicare Age 65.'
-            ) +
-            `</div>`;
-        out += `</div></div>`;
-
+        out += this._renderLinked401kSection(jobPrefix, job);
+        out += this._renderLinkedHsaSection(jobPrefix, job);
         out += `</div>`;
         return out;
+    }
+
+    _resolveSpouseObject() {
+        const keys = this.spousePrefix.split('.');
+        let spouseObj = this.state;
+        for (const keyPart of keys) {
+            spouseObj = spouseObj?.[keyPart];
+        }
+        return spouseObj;
+    }
+
+    _isJobCardOpenByDefault(job) {
+        if (job.isOpen === false) return false;
+        return Boolean(job.isOpen || !job.baseSalary || Number(job.baseSalary) === 0 || job.title === 'New Job');
     }
 
     getTemplate() {
@@ -252,22 +187,15 @@ export class JobPanel extends BaseComponent {
         if (!this.state || Object.keys(this.state).length === 0) {
             this.state = this.getEffectiveState();
         }
-        const keys = this.spousePrefix.split('.');
-        let spouseObj = this.state;
-        for (const k of keys) {
-            spouseObj = spouseObj[k];
-        }
-
-        const job = spouseObj.jobs[this.itemIndex];
+        const spouseObj = this._resolveSpouseObject();
+        const job = spouseObj?.jobs?.[this.itemIndex];
         if (!job) return '';
 
         const jobPrefix = `${this.spousePrefix}.jobs.${this.itemIndex}`;
         const startBadge = job.startDate
             ? `<span style="font-weight: normal; color: var(--text-muted); font-size: 0.8rem; margin-left: 6px;">(Starts: ${escapeHtml(job.startDate)})</span>`
             : '';
-        const isOpenByDefault =
-            job.isOpen !== false &&
-            (job.isOpen || !job.baseSalary || Number(job.baseSalary) === 0 || job.title === 'New Job');
+        const isOpenByDefault = this._isJobCardOpenByDefault(job);
 
         let out = `<details class="job-card" ${isOpenByDefault ? 'open' : ''} style="padding: 0.5rem; background: var(--bg-darker); margin-bottom: 0.5rem; border-left: 3px solid var(--accent); border-radius: 4px; cursor: pointer;">`;
         out += `<summary style="font-weight: bold; outline: none; display: flex; justify-content: space-between; align-items: center;">
@@ -281,69 +209,62 @@ export class JobPanel extends BaseComponent {
         return out;
     }
 
+    _updateJobCardSummaryText(jobPrefix) {
+        const summarySpan = document.getElementById(`${jobPrefix}-summary-text`);
+        if (!summarySpan) return;
+        const titleInput = this.querySelector(`input[data-path="${jobPrefix}.title"]`);
+        const salaryInput = this.querySelector(`input[data-path="${jobPrefix}.baseSalary"]`);
+        const dateInput = this.querySelector(`input[data-path="${jobPrefix}.startDate"]`);
+        const title = titleInput?.value || 'Job';
+        const salary = Number(salaryInput?.value || 0).toLocaleString();
+        const startBadge = dateInput?.value
+            ? `<span style="font-weight: normal; color: var(--text-muted); font-size: 0.8rem; margin-left: 6px;">(Starts: ${escapeHtml(dateInput.value)})</span>`
+            : '';
+        summarySpan.innerHTML = `${escapeHtml(title)} - $${salary} ${startBadge}`;
+    }
+
+    _handleJobInputEvent(targetEl) {
+        const path = targetEl.getAttribute('data-path');
+        if (!path) return;
+        const jobPrefix = `${this.spousePrefix}.jobs.${this.itemIndex}`;
+        if (path.endsWith('.title') || path.endsWith('.baseSalary') || path.endsWith('.startDate')) {
+            this._updateJobCardSummaryText(jobPrefix);
+        }
+        const isBonusOrLti = path.endsWith('.bonusAmount') || path.endsWith('.ltiAmount');
+        if (isBonusOrLti && Number(targetEl.value) > 0) {
+            const chk = this.querySelector(`input[data-path="${jobPrefix}.hasBonus"]`);
+            const container = this.querySelector('.job-bonus-container');
+            if (chk) chk.checked = true;
+            if (container) container.style.display = 'grid';
+        }
+    }
+
     afterRender() {
         const details = this.querySelector('details.job-card');
         if (details) {
             details.addEventListener('toggle', () => {
-                const keys = this.spousePrefix.split('.');
-                let spouseObj = this.state;
-                for (const k of keys) {
-                    spouseObj = spouseObj[k];
-                }
-                if (spouseObj?.jobs && spouseObj.jobs[this.itemIndex]) {
+                const spouseObj = this._resolveSpouseObject();
+                if (spouseObj?.jobs?.[this.itemIndex]) {
                     spouseObj.jobs[this.itemIndex].isOpen = details.open;
                 }
             });
         }
 
         this.addEvent('input', 'input', (e) => {
-            const path = e.target.getAttribute('data-path');
-            if (!path) return;
-            if (path.endsWith('.title') || path.endsWith('.baseSalary') || path.endsWith('.startDate')) {
-                const jobPrefix = `${this.spousePrefix}.jobs.${this.itemIndex}`;
-                const titleInput = this.querySelector(`input[data-path="${jobPrefix}.title"]`);
-                const salaryInput = this.querySelector(`input[data-path="${jobPrefix}.baseSalary"]`);
-                const dateInput = this.querySelector(`input[data-path="${jobPrefix}.startDate"]`);
-                const summarySpan = document.getElementById(`${jobPrefix}-summary-text`);
-                if (summarySpan) {
-                    const title = titleInput?.value || 'Job';
-                    const salary = Number(salaryInput?.value || 0).toLocaleString();
-                    const startBadge = dateInput?.value
-                        ? `<span style="font-weight: normal; color: var(--text-muted); font-size: 0.8rem; margin-left: 6px;">(Starts: ${escapeHtml(dateInput.value)})</span>`
-                        : '';
-                    summarySpan.innerHTML = `${escapeHtml(title)} - $${salary} ${startBadge}`;
-                }
-            }
-            const isBonusOrLti = path && (path.endsWith('.bonusAmount') || path.endsWith('.ltiAmount'));
-            if (isBonusOrLti && Number(e.target.value) > 0) {
-                const chk = this.querySelector(
-                    `input[data-path="${this.spousePrefix}.jobs.${this.itemIndex}.hasBonus"]`
-                );
-                const container = this.querySelector('.job-bonus-container');
-                if (chk) chk.checked = true;
-                if (container) container.style.display = 'grid';
-            }
+            this._handleJobInputEvent(e.target);
         });
 
         this.addEvent('input, select', 'change', (e) => {
-            const path = e.target.getAttribute('data-path');
-            if (path && path.endsWith('.hasBonus')) {
+            const path = e.target.getAttribute('data-path') || '';
+            if (path.endsWith('.hasBonus')) {
                 const bonusContainer = this.querySelector('.job-bonus-container');
-                if (bonusContainer) {
-                    bonusContainer.style.display = e.target.checked ? 'grid' : 'none';
-                }
-            }
-            if (path && path.endsWith('.linked401kAccountId')) {
+                if (bonusContainer) bonusContainer.style.display = e.target.checked ? 'grid' : 'none';
+            } else if (path.endsWith('.linked401kAccountId')) {
                 const contContainer = this.querySelector('.linked-contributions-container');
-                if (contContainer) {
-                    contContainer.style.display = e.target.value ? 'block' : 'none';
-                }
-            }
-            if (path && path.endsWith('.linkedHsaAccountId')) {
+                if (contContainer) contContainer.style.display = e.target.value ? 'block' : 'none';
+            } else if (path.endsWith('.linkedHsaAccountId')) {
                 const hsaContainer = this.querySelector('.linked-hsa-container');
-                if (hsaContainer) {
-                    hsaContainer.style.display = e.target.value ? 'block' : 'none';
-                }
+                if (hsaContainer) hsaContainer.style.display = e.target.value ? 'block' : 'none';
             }
             this.dispatchEvent(
                 new CustomEvent('stateChange', {

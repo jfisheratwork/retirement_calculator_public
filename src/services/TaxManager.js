@@ -1,10 +1,174 @@
 import { calculateTax } from './tax.js';
 import { calculateSorrRate } from './PortfolioManager.js';
 
+const EARLY_WITHDRAWAL_PENALTY_RATE = 0.1;
+const MONTHS_PER_YEAR = 12;
+const MAX_GROSS_UP_PASSES = 3;
+const DEFAULT_RETURN_RATE_PCT = 7;
+
+function createZeroTaxDetails(snapshot, filingStatus, earlyPenalty = 0) {
+    const existing = snapshot.taxDetails || {};
+    return {
+        federalTax: 0,
+        fedTax: 0,
+        stateTax: 0,
+        totalTax: earlyPenalty,
+        earlyWithdrawalPenalty: earlyPenalty,
+        effectiveRate: 0,
+        topBracketRate: 0,
+        topBracket: 0,
+        remainingRoomInBracket: 0,
+        bracketRoom: 0,
+        w2Tax: 0,
+        nonW2Tax: earlyPenalty,
+        capitalGainsTax: 0,
+        ltcgTax: 0,
+        niitTax: 0,
+        ficaTax: existing.ficaTax || 0,
+        magi: existing.magi ?? 0,
+        hsaDeduction: existing.hsaDeduction ?? 0,
+        s1HsaDeduction: existing.s1HsaDeduction ?? 0,
+        s2HsaDeduction: existing.s2HsaDeduction ?? 0,
+        filingStatus
+    };
+}
+
+function getEarlyWithdrawalPenalty(snapshot) {
+    const penalizedPreTax = Number(snapshot.income?.drawdowns?.penalizedPreTax) || 0;
+    return penalizedPreTax * EARLY_WITHDRAWAL_PENALTY_RATE;
+}
+
+function getW2TaxableBase(snapshot) {
+    const s1 = snapshot.income?.s1 || {};
+    const s2 = snapshot.income?.s2 || {};
+    if (s1.w2TaxableGross !== undefined && s2.w2TaxableGross !== undefined) {
+        return s1.w2TaxableGross + s2.w2TaxableGross;
+    }
+    return (s1.w2Net || 0) + (s2.w2Net || 0);
+}
+
+function copyCarryoverTaxFields(taxResults, existing) {
+    taxResults.ficaTax = existing.ficaTax || 0;
+    taxResults.s1Fica = existing.s1Fica || null;
+    taxResults.s2Fica = existing.s2Fica || null;
+    taxResults.s1W2Tax = existing.s1W2Tax || 0;
+    taxResults.s2W2Tax = existing.s2W2Tax || 0;
+    taxResults.totalW2Tax = existing.totalW2Tax || 0;
+    taxResults.magi = existing.magi ?? 0;
+    taxResults.hsaDeduction = existing.hsaDeduction ?? 0;
+    taxResults.s1HsaDeduction = existing.s1HsaDeduction ?? 0;
+    taxResults.s2HsaDeduction = existing.s2HsaDeduction ?? 0;
+}
+
+function populateTaxResults(taxResults, { prorata, calculatedTax, w2Tax, earlyPenalty, snapshot, filingStatus }) {
+    taxResults.federalTax = (taxResults.federalTax || 0) * prorata;
+    taxResults.stateTax = (taxResults.stateTax || 0) * prorata;
+    taxResults.capitalGainsTax = (taxResults.capitalGainsTax || 0) * prorata;
+    taxResults.niitTax = (taxResults.niitTax || 0) * prorata;
+    taxResults.earlyWithdrawalPenalty = earlyPenalty;
+    taxResults.totalTax = calculatedTax;
+    taxResults.w2Tax = w2Tax;
+    taxResults.nonW2Tax = Math.max(0, calculatedTax - w2Tax);
+    copyCarryoverTaxFields(taxResults, snapshot.taxDetails || {});
+    taxResults.filingStatus = filingStatus;
+    taxResults.topBracketRate = taxResults.topBracketRate || 0;
+    taxResults.topBracket = taxResults.topBracketRate;
+    taxResults.bracketRoom = taxResults.remainingRoomInBracket || 0;
+    taxResults.fedTax = taxResults.federalTax;
+    taxResults.ltcgTax = taxResults.capitalGainsTax;
+}
+
+function depositIntoAccount(account, amount, rate) {
+    const growth = amount * rate;
+    account.balance += amount + growth;
+    account.yearContributions += amount;
+    account.yearInterest = (account.yearInterest || 0) + growth;
+    account.yearGrowth = (account.yearGrowth || 0) + growth;
+    if (account.costBasis !== undefined) {
+        account.costBasis += amount;
+    }
+}
+
 /**
  * Handles tax computations, tax payments from surplus/cushion/portfolio, and surplus reinvestment
  */
 export class TaxManager {
+    static _payTaxFromSurplusAndCushion(remainingTax, snapshot, cashCushion) {
+        let unpaid = remainingTax;
+        if (snapshot.surplus > 0 && unpaid > 0) {
+            const payFromSurplus = Math.min(snapshot.surplus, unpaid);
+            snapshot.surplus -= payFromSurplus;
+            unpaid -= payFromSurplus;
+        }
+
+        if (unpaid > 0 && cashCushion?.value > 0) {
+            const payFromCushion = Math.min(cashCushion.value, unpaid);
+            cashCushion.value -= payFromCushion;
+            unpaid -= payFromCushion;
+            if (snapshot.income?.drawdowns) {
+                snapshot.income.drawdowns.cashCushion += payFromCushion;
+            }
+        }
+        return unpaid;
+    }
+
+    static _executeIterativeTaxGrossUp(remainingTax, ctx) {
+        const {
+            withdrawPortfoliosFn,
+            getTaxableIncomeFn,
+            taxableIncome,
+            annualization,
+            prorata,
+            stateTaxRate,
+            currentTaxYearData,
+            filingStatus,
+            ltcgGains,
+            snapshot,
+            taxResults
+        } = ctx;
+
+        let unpaid = remainingTax;
+        let pass = 0;
+
+        while (unpaid > 0 && pass < MAX_GROSS_UP_PASSES) {
+            pass += 1;
+            const prevTaxable = typeof getTaxableIncomeFn === 'function' ? getTaxableIncomeFn() : taxableIncome;
+            const unfunded = withdrawPortfoliosFn(unpaid);
+            if (unfunded > 0) {
+                snapshot.unfundedShortfall = (snapshot.unfundedShortfall || 0) + unfunded;
+                break;
+            }
+
+            const newTaxable = typeof getTaxableIncomeFn === 'function' ? getTaxableIncomeFn() : prevTaxable;
+            const addedTaxable = Math.max(0, newTaxable - prevTaxable);
+            if (addedTaxable <= 0) break;
+
+            const updatedResults = calculateTax(
+                newTaxable * annualization,
+                stateTaxRate,
+                currentTaxYearData,
+                filingStatus,
+                ltcgGains * annualization
+            );
+            const updatedPenalty = getEarlyWithdrawalPenalty(snapshot);
+            const updatedTotalTax = updatedResults.totalTax * prorata + updatedPenalty;
+            const extraTax = Math.max(0, updatedTotalTax - snapshot.taxes);
+            if (extraTax <= 1) break;
+
+            snapshot.taxes = updatedTotalTax;
+            snapshot.earlyWithdrawalPenalty = updatedPenalty;
+            taxResults.earlyWithdrawalPenalty = updatedPenalty;
+            taxResults.totalTax = updatedTotalTax;
+            taxResults.federalTax = (updatedResults.federalTax || 0) * prorata;
+            taxResults.stateTax = (updatedResults.stateTax || 0) * prorata;
+            taxResults.capitalGainsTax = (updatedResults.capitalGainsTax || 0) * prorata;
+            taxResults.niitTax = (updatedResults.niitTax || 0) * prorata;
+            taxResults.fedTax = taxResults.federalTax;
+            taxResults.ltcgTax = taxResults.capitalGainsTax;
+            unpaid = extraTax;
+        }
+    }
+
     static calculate({
         year,
         currentYear,
@@ -19,47 +183,24 @@ export class TaxManager {
         ltcgGains = 0,
         getTaxableIncomeFn
     }) {
-        if (taxableIncome <= 0 && ltcgGains <= 0) {
+        const initialPenalty = getEarlyWithdrawalPenalty(snapshot);
+        if (taxableIncome <= 0 && ltcgGains <= 0 && initialPenalty <= 0) {
             snapshot.taxes = 0;
-            snapshot.taxDetails = {
-                federalTax: 0,
-                fedTax: 0,
-                stateTax: 0,
-                totalTax: 0,
-                effectiveRate: 0,
-                topBracketRate: 0,
-                topBracket: 0,
-                remainingRoomInBracket: 0,
-                bracketRoom: 0,
-                w2Tax: 0,
-                nonW2Tax: 0,
-                capitalGainsTax: 0,
-                ltcgTax: 0,
-                niitTax: 0,
-                ficaTax: snapshot.taxDetails?.ficaTax || 0,
-                magi: snapshot.taxDetails?.magi ?? 0,
-                hsaDeduction: snapshot.taxDetails?.hsaDeduction ?? 0,
-                s1HsaDeduction: snapshot.taxDetails?.s1HsaDeduction ?? 0,
-                s2HsaDeduction: snapshot.taxDetails?.s2HsaDeduction ?? 0,
-                filingStatus
-            };
+            snapshot.earlyWithdrawalPenalty = 0;
+            snapshot.taxDetails = createZeroTaxDetails(snapshot, filingStatus, 0);
             return;
         }
 
         const yearsFromStart = year - currentYear;
         const currentTaxYearData = taxTables[yearsFromStart] || taxTables[taxTables.length - 1];
-        const activeMonths = year === currentYear ? Math.max(1, 12 - firstActiveMonth + 1) : 12;
-        const annualization = activeMonths < 12 ? 12 / activeMonths : 1;
-        const prorata = activeMonths < 12 ? activeMonths / 12 : 1;
+        const activeMonths =
+            year === currentYear ? Math.max(1, MONTHS_PER_YEAR - firstActiveMonth + 1) : MONTHS_PER_YEAR;
+        const annualization = activeMonths < MONTHS_PER_YEAR ? MONTHS_PER_YEAR / activeMonths : 1;
+        const prorata = activeMonths < MONTHS_PER_YEAR ? activeMonths / MONTHS_PER_YEAR : 1;
 
-        // 1. Calculate Baseline W2 Tax
-        const w2Taxable =
-            snapshot.income?.s1?.w2TaxableGross !== undefined && snapshot.income?.s2?.w2TaxableGross !== undefined
-                ? snapshot.income.s1.w2TaxableGross + snapshot.income.s2.w2TaxableGross
-                : snapshot.income.s1.w2Net + snapshot.income.s2.w2Net;
+        const w2Taxable = getW2TaxableBase(snapshot);
         const w2TaxResults = calculateTax(w2Taxable * annualization, stateTaxRate, currentTaxYearData, filingStatus, 0);
 
-        // 2. Calculate Total Tax (Ordinary + Capital Gains + NIIT)
         const taxResults = calculateTax(
             taxableIncome * annualization,
             stateTaxRate,
@@ -67,97 +208,52 @@ export class TaxManager {
             filingStatus,
             ltcgGains * annualization
         );
-        const calculatedTax = taxResults.totalTax * prorata;
+        const calculatedTax = taxResults.totalTax * prorata + initialPenalty;
         const w2Tax = w2TaxResults.totalTax * prorata;
-        const nonW2Tax = Math.max(0, calculatedTax - w2Tax);
 
         snapshot.taxes = calculatedTax;
-        taxResults.federalTax = (taxResults.federalTax || 0) * prorata;
-        taxResults.stateTax = (taxResults.stateTax || 0) * prorata;
-        taxResults.capitalGainsTax = (taxResults.capitalGainsTax || 0) * prorata;
-        taxResults.niitTax = (taxResults.niitTax || 0) * prorata;
-        taxResults.totalTax = calculatedTax;
-        taxResults.w2Tax = w2Tax;
-        taxResults.nonW2Tax = nonW2Tax;
-        taxResults.ficaTax = snapshot.taxDetails?.ficaTax || 0;
-        taxResults.s1Fica = snapshot.taxDetails?.s1Fica || null;
-        taxResults.s2Fica = snapshot.taxDetails?.s2Fica || null;
-        taxResults.s1W2Tax = snapshot.taxDetails?.s1W2Tax || 0;
-        taxResults.s2W2Tax = snapshot.taxDetails?.s2W2Tax || 0;
-        taxResults.totalW2Tax = snapshot.taxDetails?.totalW2Tax || 0;
-        taxResults.magi = snapshot.taxDetails?.magi ?? 0;
-        taxResults.hsaDeduction = snapshot.taxDetails?.hsaDeduction ?? 0;
-        taxResults.s1HsaDeduction = snapshot.taxDetails?.s1HsaDeduction ?? 0;
-        taxResults.s2HsaDeduction = snapshot.taxDetails?.s2HsaDeduction ?? 0;
-        taxResults.filingStatus = filingStatus;
-        taxResults.topBracketRate = taxResults.topBracketRate || 0;
-        taxResults.topBracket = taxResults.topBracketRate;
-        taxResults.bracketRoom = taxResults.remainingRoomInBracket || 0;
-        taxResults.fedTax = taxResults.federalTax;
-        taxResults.ltcgTax = taxResults.capitalGainsTax;
+        snapshot.earlyWithdrawalPenalty = initialPenalty;
+        populateTaxResults(taxResults, {
+            prorata,
+            calculatedTax,
+            w2Tax,
+            earlyPenalty: initialPenalty,
+            snapshot,
+            filingStatus
+        });
         snapshot.taxDetails = taxResults;
 
-        let remainingTax = calculatedTax;
-
-        // Pay tax from surplus first
-        if (snapshot.surplus > 0 && remainingTax > 0) {
-            const payFromSurplus = Math.min(snapshot.surplus, remainingTax);
-            snapshot.surplus -= payFromSurplus;
-            remainingTax -= payFromSurplus;
-        }
-
-        // Pay tax from cushion
-        if (remainingTax > 0 && cashCushion && cashCushion.value >= remainingTax) {
-            cashCushion.value -= remainingTax;
-            if (snapshot.income?.drawdowns) snapshot.income.drawdowns.cashCushion += remainingTax;
-            remainingTax = 0;
-        } else if (remainingTax > 0 && cashCushion && cashCushion.value > 0) {
-            remainingTax -= cashCushion.value;
-            if (snapshot.income?.drawdowns) snapshot.income.drawdowns.cashCushion += cashCushion.value;
-            cashCushion.value = 0;
-        }
-
-        // Pay tax by drawing down from portfolios (with iterative gross-up if pre-tax withdrawals add taxable income)
+        const remainingTax = this._payTaxFromSurplusAndCushion(calculatedTax, snapshot, cashCushion);
         if (remainingTax > 0 && withdrawPortfoliosFn) {
-            let pass = 0;
-            const maxPasses = 3;
-            while (remainingTax > 0 && pass < maxPasses) {
-                pass++;
-                const prevTaxable = typeof getTaxableIncomeFn === 'function' ? getTaxableIncomeFn() : taxableIncome;
-                const unfunded = withdrawPortfoliosFn(remainingTax);
-                if (unfunded > 0) {
-                    snapshot.unfundedShortfall = (snapshot.unfundedShortfall || 0) + unfunded;
-                    remainingTax = 0;
-                    break;
-                }
-                const newTaxable = typeof getTaxableIncomeFn === 'function' ? getTaxableIncomeFn() : prevTaxable;
-                const addedTaxable = Math.max(0, newTaxable - prevTaxable);
-                if (addedTaxable > 0) {
-                    const updatedResults = calculateTax(
-                        newTaxable * annualization,
-                        stateTaxRate,
-                        currentTaxYearData,
-                        filingStatus,
-                        ltcgGains * annualization
-                    );
-                    const updatedTotalTax = updatedResults.totalTax * prorata;
-                    const extraTax = Math.max(0, updatedTotalTax - snapshot.taxes);
-                    if (extraTax > 1) {
-                        snapshot.taxes = updatedTotalTax;
-                        taxResults.totalTax = updatedTotalTax;
-                        taxResults.federalTax = (updatedResults.federalTax || 0) * prorata;
-                        taxResults.stateTax = (updatedResults.stateTax || 0) * prorata;
-                        taxResults.capitalGainsTax = (updatedResults.capitalGainsTax || 0) * prorata;
-                        taxResults.niitTax = (updatedResults.niitTax || 0) * prorata;
-                        taxResults.fedTax = taxResults.federalTax;
-                        taxResults.ltcgTax = taxResults.capitalGainsTax;
-                        remainingTax = extraTax;
-                        continue;
-                    }
-                }
-                remainingTax = 0;
-            }
+            this._executeIterativeTaxGrossUp(remainingTax, {
+                withdrawPortfoliosFn,
+                getTaxableIncomeFn,
+                taxableIncome,
+                annualization,
+                prorata,
+                stateTaxRate,
+                currentTaxYearData,
+                filingStatus,
+                ltcgGains,
+                snapshot,
+                taxResults
+            });
         }
+    }
+
+    static _resolveAccountReturnRate(acc, isSorrActive, sorrRate, assumptions, strategies) {
+        if (isSorrActive && !['cd', 'hysa'].includes(acc.type)) {
+            return sorrRate;
+        }
+        if (acc.expectedReturn !== undefined && acc.expectedReturn !== null) {
+            return Number(acc.expectedReturn) / 100;
+        }
+        const fallbackRate =
+            assumptions?.generalReturnRate ??
+            assumptions?.portfolioReturnRate ??
+            strategies?.generalReturnRate ??
+            DEFAULT_RETURN_RATE_PCT;
+        return Number(fallbackRate) / 100;
     }
 
     static reinvestSurplus({ snapshot, strategies, assumptions, sorrOverride, year, cashCushion, s1, s2 }) {
@@ -167,48 +263,21 @@ export class TaxManager {
         const allAccounts = [...(s1.accounts || []), ...(s2.accounts || [])];
         const sweepAccount = allAccounts.find((a) => a.isSweepAccount === true && a.enabled !== false);
         const { isSorrActive, sorrRate } = calculateSorrRate({ year, s1, assumptions, sorrOverride });
+        const getRate = (acc) => this._resolveAccountReturnRate(acc, isSorrActive, sorrRate, assumptions, strategies);
 
-        const getRate = (acc) => {
-            if (isSorrActive && !['cd', 'hysa'].includes(acc.type)) {
-                return sorrRate;
-            }
-            if (acc.expectedReturn !== undefined && acc.expectedReturn !== null) {
-                return Number(acc.expectedReturn) / 100;
-            }
-            return (
-                Number(
-                    assumptions?.generalReturnRate ??
-                        assumptions?.portfolioReturnRate ??
-                        strategies?.generalReturnRate ??
-                        7
-                ) / 100
-            );
-        };
-
-        // 1. If user designated a Sweep Account, sweep 100% of household surplus cash directly into it
         if (sweepAccount) {
-            const rate = getRate(sweepAccount);
-            const surplusGrowth = surplus * rate;
-            sweepAccount.balance += surplus + surplusGrowth;
-            sweepAccount.yearContributions += surplus;
-            sweepAccount.yearInterest = (sweepAccount.yearInterest || 0) + surplusGrowth;
-            sweepAccount.yearGrowth = (sweepAccount.yearGrowth || 0) + surplusGrowth;
-            if (sweepAccount.costBasis !== undefined) {
-                sweepAccount.costBasis += surplus;
-            }
+            depositIntoAccount(sweepAccount, surplus, getRate(sweepAccount));
             snapshot.reinvestedToSweep = surplus;
             snapshot.sweepAccountName = sweepAccount.name;
             snapshot.reinvestedToBrokerage = surplus;
             return;
         }
 
-        // 2. Fallback to enabled Brokerage if exists
         if (TaxManager.hasEnabledBrokerage(s1, s2)) {
             TaxManager.sweepToBrokerageFallback(s1, s2, surplus, snapshot, getRate);
             return;
         }
 
-        // 3. Fallback: Cash Cushion (if no brokerage/sweep accounts exist)
         cashCushion.value += surplus;
         snapshot.reinvestedToCushion = (snapshot.reinvestedToCushion || 0) + surplus;
     }
@@ -216,7 +285,7 @@ export class TaxManager {
     static hasEnabledBrokerage(s1, s2) {
         const b1 = (s1.accounts || []).find((a) => a.type === 'taxableBrokerage' && a.enabled !== false);
         const b2 = (s2.accounts || []).find((a) => a.type === 'taxableBrokerage' && a.enabled !== false);
-        return !!(b1 || b2);
+        return Boolean(b1 || b2);
     }
 
     static sweepToBrokerageFallback(s1, s2, surplus, snapshot, getRate = () => 0.07) {
@@ -225,34 +294,14 @@ export class TaxManager {
 
         if (b1 && b2) {
             const each = surplus / 2;
-            const r1 = getRate(b1);
-            const r2 = getRate(b2);
-            b1.balance += each * (1 + r1);
-            b1.yearContributions += each;
-            b1.yearInterest = (b1.yearInterest || 0) + each * r1;
-            b1.yearGrowth = (b1.yearGrowth || 0) + each * r1;
-            if (b1.costBasis !== undefined) b1.costBasis += each;
-            b2.balance += each * (1 + r2);
-            b2.yearContributions += each;
-            b2.yearInterest = (b2.yearInterest || 0) + each * r2;
-            b2.yearGrowth = (b2.yearGrowth || 0) + each * r2;
-            if (b2.costBasis !== undefined) b2.costBasis += each;
+            depositIntoAccount(b1, each, getRate(b1));
+            depositIntoAccount(b2, each, getRate(b2));
             snapshot.sweepAccountName = `${b1.name} & ${b2.name}`;
         } else if (b1) {
-            const r1 = getRate(b1);
-            b1.balance += surplus * (1 + r1);
-            b1.yearContributions += surplus;
-            b1.yearInterest = (b1.yearInterest || 0) + surplus * r1;
-            b1.yearGrowth = (b1.yearGrowth || 0) + surplus * r1;
-            if (b1.costBasis !== undefined) b1.costBasis += surplus;
+            depositIntoAccount(b1, surplus, getRate(b1));
             snapshot.sweepAccountName = b1.name;
         } else if (b2) {
-            const r2 = getRate(b2);
-            b2.balance += surplus * (1 + r2);
-            b2.yearContributions += surplus;
-            b2.yearInterest = (b2.yearInterest || 0) + surplus * r2;
-            b2.yearGrowth = (b2.yearGrowth || 0) + surplus * r2;
-            if (b2.costBasis !== undefined) b2.costBasis += surplus;
+            depositIntoAccount(b2, surplus, getRate(b2));
             snapshot.sweepAccountName = b2.name;
         }
         snapshot.reinvestedToBrokerage = surplus;

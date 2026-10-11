@@ -13,14 +13,8 @@ export class RothConversionManager {
         return { first: s2, second: s1 };
     }
 
-    /**
-     * Calculate taxable room left under bracket ceiling
-     */
-    static calculateBracketRoom({ taxableIncome, currentTaxYearData, advRoth, inflationMultiplier }) {
-        const currentAgi = Math.max(0, taxableIncome - currentTaxYearData.standardDeduction);
-        const currentMagi = taxableIncome; // Approximation for MAGI (Gross Income)
+    static _resolveTargetAgi(currentAgi, currentTaxYearData, advRoth) {
         let targetAgi = 0;
-
         if (!advRoth.targetBracket) {
             for (const b of currentTaxYearData.brackets) {
                 targetAgi = b.upTo;
@@ -31,44 +25,44 @@ export class RothConversionManager {
             const b = currentTaxYearData.brackets.find((br) => Math.abs(br.rate - targetBracketVal) < 0.01);
             targetAgi = b ? b.upTo : Infinity;
         }
-        if (targetAgi === Infinity) targetAgi = 999999999;
+        return targetAgi === Infinity ? 999999999 : targetAgi;
+    }
+
+    static _applyIrmaaCap(maxAllowed, currentAgi, currentMagi, currentTaxYearData, advRoth) {
+        const avoidIrmaa = advRoth.avoidIrmaaCliffs !== false;
+        if (!avoidIrmaa || !currentTaxYearData.irmaaBrackets) return maxAllowed;
+
+        const nextBracket = currentTaxYearData.irmaaBrackets.find((irmaa) => irmaa.upTo > currentMagi);
+        if (!nextBracket || nextBracket.upTo === Infinity) return maxAllowed;
+
+        const irmaaMaxAgi = Math.max(0, nextBracket.upTo - currentTaxYearData.standardDeduction);
+        const irmaaAllowed = Math.max(0, irmaaMaxAgi - currentAgi);
+        return Math.min(maxAllowed, Math.max(0, irmaaAllowed - 1));
+    }
+
+    /**
+     * Calculate taxable room left under bracket ceiling
+     */
+    static calculateBracketRoom({ taxableIncome, currentTaxYearData, advRoth, inflationMultiplier }) {
+        const currentAgi = Math.max(0, taxableIncome - currentTaxYearData.standardDeduction);
+        const targetAgi = this._resolveTargetAgi(currentAgi, currentTaxYearData, advRoth);
 
         const marginVal = advRoth.safetyMargin !== undefined ? Number(advRoth.safetyMargin) : 10000;
         const safetyMargin = marginVal * inflationMultiplier;
-        let room = Math.max(0, targetAgi - currentAgi - safetyMargin);
         const minConversion = (Number(advRoth.minConversion) || 0) * inflationMultiplier;
-        if (room < minConversion) room = minConversion;
+        const room = Math.max(minConversion, Math.max(0, targetAgi - currentAgi - safetyMargin));
 
-        const maxBracketStr = advRoth.maxBracket || '24';
-        const maxBracketVal = Number(maxBracketStr) / 100;
-        let maxAgi = 999999999;
+        const maxBracketVal = Number(advRoth.maxBracket || '24') / 100;
         const maxB = currentTaxYearData.brackets.find((br) => Math.abs(br.rate - maxBracketVal) < 0.01);
-        if (maxB) maxAgi = maxB.upTo;
+        const maxAgi = maxB ? maxB.upTo : 999999999;
 
-        let maxAllowed = Math.max(0, maxAgi - currentAgi);
-
-        // IRMAA Cliff Detection
-        // Treat IRMAA cliffs as hard ceilings unless explicitly disabled (defaults to avoiding cliffs)
-        const avoidIrmaa = advRoth.avoidIrmaaCliffs !== false;
-        if (avoidIrmaa && currentTaxYearData.irmaaBrackets) {
-            let nextIrmaaCliff = Infinity;
-            for (const irmaa of currentTaxYearData.irmaaBrackets) {
-                if (irmaa.upTo > currentMagi) {
-                    nextIrmaaCliff = irmaa.upTo;
-                    break;
-                }
-            }
-            if (nextIrmaaCliff !== Infinity) {
-                // Convert the IRMAA MAGI room to AGI equivalent so we can compare it
-                // Since MAGI = AGI + Standard Deduction (in our model),
-                // the max AGI before hitting IRMAA is (IRMAA Cliff - Standard Deduction)
-                const irmaaMaxAgi = Math.max(0, nextIrmaaCliff - currentTaxYearData.standardDeduction);
-                const irmaaAllowed = Math.max(0, irmaaMaxAgi - currentAgi);
-
-                // Cap the maxAllowed by the IRMAA limit, minus a small $1 safety buffer just to be sure
-                maxAllowed = Math.min(maxAllowed, Math.max(0, irmaaAllowed - 1));
-            }
-        }
+        const maxAllowed = this._applyIrmaaCap(
+            Math.max(0, maxAgi - currentAgi),
+            currentAgi,
+            taxableIncome,
+            currentTaxYearData,
+            advRoth
+        );
 
         return Math.min(room, maxAllowed);
     }
@@ -137,6 +131,16 @@ export class RothConversionManager {
         return pulledFirst + pulledSecond;
     }
 
+    static _findStandardConversionSource(spouse, sourceKey) {
+        const accounts = spouse.accounts || [];
+        return (
+            spouse.getAccount?.(sourceKey) ||
+            accounts.find((a) => a.id === sourceKey || a.name === sourceKey || a.type === sourceKey) ||
+            accounts.find((a) => a.type === 'standardIra') ||
+            spouse.accounts.standardIra
+        );
+    }
+
     /**
      * Standard fixed Roth conversion process
      */
@@ -146,13 +150,7 @@ export class RothConversionManager {
         const currentYear = year - yearsFromStart;
         if (!conv.isActiveInYear(year, currentYear)) return 0;
 
-        const sourceAcc =
-            spouse.getAccount?.(conv.sourceAccount) ||
-            (spouse.accounts || []).find(
-                (a) => a.id === conv.sourceAccount || a.name === conv.sourceAccount || a.type === conv.sourceAccount
-            ) ||
-            (spouse.accounts || []).find((a) => a.type === 'standardIra') ||
-            spouse.accounts.standardIra;
+        const sourceAcc = this._findStandardConversionSource(spouse, conv.sourceAccount);
         if (!sourceAcc || sourceAcc.balance <= 0) return 0;
 
         const inflatedAmount = Number(conv.amountPerYear) * inflationMultiplier;

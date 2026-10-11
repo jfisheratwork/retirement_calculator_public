@@ -1,5 +1,4 @@
 import { BaseComponent } from './base-component.js';
-import { getState } from '../services/state.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import './account-panel.js';
 

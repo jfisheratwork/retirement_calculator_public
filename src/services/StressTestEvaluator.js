@@ -76,6 +76,57 @@ function calculateLiquidTotal(balances = {}) {
 }
 
 export class StressTestEvaluator {
+    static _recordFailureState(metrics, snap, totalLiquid, shortfall, penalizedDraw) {
+        if (metrics.status === 'passed') {
+            const isPre59Age = snap.age1 < 59.5 || snap.age2 < 59.5;
+            const isPre59Lockout = (penalizedDraw > 1000 || totalLiquid > 10000) && isPre59Age;
+            metrics.status = isPre59Lockout ? 'pre59_lockout' : 'depleted';
+            metrics.failureYear = snap.year;
+            metrics.failureAge = snap.age1;
+            metrics.portfolioAtFailure = totalLiquid;
+            return;
+        }
+
+        if (metrics.status === 'pre59_lockout' && totalLiquid <= 10000 && shortfall > 1000) {
+            metrics.status = 'depleted';
+            metrics.failureYear = snap.year;
+            metrics.failureAge = snap.age1;
+            metrics.portfolioAtFailure = totalLiquid;
+        }
+    }
+
+    static _evaluateSnapshots(snapshots) {
+        const metrics = {
+            status: 'passed',
+            failureYear: null,
+            failureAge: null,
+            portfolioAtFailure: 0,
+            totalShortfall: 0,
+            minPortfolio: Infinity,
+            peakPortfolio: 0,
+            maxDrawdownPct: 0
+        };
+
+        snapshots.forEach((snap) => {
+            const totalLiquid = calculateLiquidTotal(snap.balances);
+            if (totalLiquid > metrics.peakPortfolio) metrics.peakPortfolio = totalLiquid;
+            if (totalLiquid < metrics.minPortfolio) metrics.minPortfolio = totalLiquid;
+            if (metrics.peakPortfolio > 0) {
+                const dd = ((metrics.peakPortfolio - totalLiquid) / metrics.peakPortfolio) * 100;
+                if (dd > metrics.maxDrawdownPct) metrics.maxDrawdownPct = dd;
+            }
+
+            const shortfall = snap.unfundedShortfall || 0;
+            const penalizedDraw = snap.income?.drawdowns?.penalizedPreTax || 0;
+            if (shortfall > 1000 || penalizedDraw > 1000) {
+                metrics.totalShortfall += shortfall;
+                this._recordFailureState(metrics, snap, totalLiquid, shortfall, penalizedDraw);
+            }
+        });
+
+        return metrics;
+    }
+
     /**
      * Evaluates all historical stress-test scenarios against the current state.
      * @param {Object} state - The current financial state profile.
@@ -103,69 +154,21 @@ export class StressTestEvaluator {
                 scenarioKey
             });
             const simResult = engine.run();
-            const snapshots = simResult.data || [];
-
-            let status = 'passed'; // 'passed' | 'depleted' | 'pre59_lockout'
-            let failureYear = null;
-            let failureAge = null;
-            let portfolioAtFailure = 0;
-            let totalShortfall = 0;
-            let minPortfolio = Infinity;
-            let peakPortfolio = 0;
-            let maxDrawdownPct = 0;
-
-            snapshots.forEach((s) => {
-                const totalLiquid = calculateLiquidTotal(s.balances);
-
-                if (totalLiquid > peakPortfolio) {
-                    peakPortfolio = totalLiquid;
-                }
-                if (totalLiquid < minPortfolio) {
-                    minPortfolio = totalLiquid;
-                }
-                if (peakPortfolio > 0) {
-                    const dd = ((peakPortfolio - totalLiquid) / peakPortfolio) * 100;
-                    if (dd > maxDrawdownPct) maxDrawdownPct = dd;
-                }
-
-                const shortfall = s.unfundedShortfall || 0;
-                if (shortfall > 1000) {
-                    totalShortfall += shortfall;
-                    if (status === 'passed') {
-                        const isPre59Lockout = totalLiquid > 10000 && (s.age1 < 59.5 || s.age2 < 59.5);
-                        if (isPre59Lockout) {
-                            status = 'pre59_lockout';
-                        } else {
-                            status = 'depleted';
-                        }
-                        failureYear = s.year;
-                        failureAge = s.age1;
-                        portfolioAtFailure = totalLiquid;
-                    } else if (status === 'pre59_lockout') {
-                        // If total liquid assets later truly deplete to 0, escalate to depleted
-                        if (totalLiquid <= 10000) {
-                            status = 'depleted';
-                            failureYear = s.year;
-                            failureAge = s.age1;
-                            portfolioAtFailure = totalLiquid;
-                        }
-                    }
-                }
-            });
+            const metrics = this._evaluateSnapshots(simResult.data || []);
 
             results.push({
                 id: scenarioKey,
                 name: meta.name,
                 shortName: meta.shortName,
                 description: meta.description,
-                status,
-                passed: status === 'passed',
-                failureYear,
-                failureAge,
-                portfolioAtFailure: Math.round(portfolioAtFailure),
-                totalShortfall: Math.round(totalShortfall),
-                minPortfolio: Math.round(minPortfolio === Infinity ? 0 : minPortfolio),
-                maxDrawdownPct: Math.round(maxDrawdownPct * 10) / 10
+                status: metrics.status,
+                passed: metrics.status === 'passed',
+                failureYear: metrics.failureYear,
+                failureAge: metrics.failureAge,
+                portfolioAtFailure: Math.round(metrics.portfolioAtFailure),
+                totalShortfall: Math.round(metrics.totalShortfall),
+                minPortfolio: Math.round(metrics.minPortfolio === Infinity ? 0 : metrics.minPortfolio),
+                maxDrawdownPct: Math.round(metrics.maxDrawdownPct * 10) / 10
             });
         });
 

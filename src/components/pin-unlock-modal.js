@@ -120,7 +120,7 @@ export class PinUnlockModal extends BaseComponent {
             this._isSubmitting = false;
             this.close();
             this.dispatchEvent(new CustomEvent('plan-unlocked', { bubbles: true, composed: true }));
-        } catch (_err) {
+        } catch {
             this._isSubmitting = false;
             this._errorMsg = 'Incorrect PIN. Decryption failed. Please try again.';
             this.render();

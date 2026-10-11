@@ -678,6 +678,23 @@ export class GuidedPlannerWizard extends BaseComponent {
         `;
     }
 
+    _renderAssetBucketCard(cardConfig) {
+        const { title, colorHex, badgeText, badgeClass, desc, inputId, stepAmt, currentAmount } = cardConfig;
+        return `
+            <div class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <h4 style="margin: 0; font-size: 0.95rem; color: ${colorHex}; font-weight: 600;">${title}</h4>
+                    <span class="badge-subtle ${badgeClass}">${badgeText}</span>
+                </div>
+                <p style="margin: 0 0 0.75rem 0; font-size: 0.78rem; color: var(--text-muted);">${desc}</p>
+                <div class="input-group" style="display: flex; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; padding: 0 0.75rem;">
+                    <span style="color: var(--text-muted);">$</span>
+                    <input type="number" id="${inputId}" step="${stepAmt}" min="0" value="${currentAmount}" style="width: 100%; border: none; background: transparent; padding: 0.5rem; color: var(--text-main);" />
+                </div>
+            </div>
+        `;
+    }
+
     _renderStep3() {
         const totalLiquid = this._calculateTotalLiquid();
         const isHomeowner = this._data.housingStatus === HOUSING_OWN;
@@ -713,53 +730,10 @@ export class GuidedPlannerWizard extends BaseComponent {
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;">
-                    <div class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <h4 style="margin: 0; font-size: 0.95rem; color: #60a5fa; font-weight: 600;">📈 Pre-Tax Retirement</h4>
-                            <span class="badge-subtle badge-subtle-blue">401(k) / IRA</span>
-                        </div>
-                        <p style="margin: 0 0 0.75rem 0; font-size: 0.78rem; color: var(--text-muted);">Traditional 401(k), 403(b), Traditional IRA. Taxed upon withdrawal.</p>
-                        <div class="input-group" style="display: flex; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; padding: 0 0.75rem;">
-                            <span style="color: var(--text-muted);">$</span>
-                            <input type="number" id="input-pretax-assets" step="5000" min="0" value="${this._data.preTax}" style="width: 100%; border: none; background: transparent; padding: 0.5rem; color: var(--text-main);" />
-                        </div>
-                    </div>
-
-                    <div class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <h4 style="margin: 0; font-size: 0.95rem; color: #c084fc; font-weight: 600;">💎 Tax-Free Growth (Roth)</h4>
-                            <span class="badge-subtle badge-subtle-purple">Roth IRA / 401(k)</span>
-                        </div>
-                        <p style="margin: 0 0 0.75rem 0; font-size: 0.78rem; color: var(--text-muted);">Roth IRAs &amp; Roth 401(k)s. Qualified withdrawals are 100% tax-free.</p>
-                        <div class="input-group" style="display: flex; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; padding: 0 0.75rem;">
-                            <span style="color: var(--text-muted);">$</span>
-                            <input type="number" id="input-roth-assets" step="5000" min="0" value="${this._data.roth}" style="width: 100%; border: none; background: transparent; padding: 0.5rem; color: var(--text-main);" />
-                        </div>
-                    </div>
-
-                    <div class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <h4 style="margin: 0; font-size: 0.95rem; color: #34d399; font-weight: 600;">📊 Taxable Brokerage</h4>
-                            <span class="badge-subtle badge-subtle-emerald">Brokerage</span>
-                        </div>
-                        <p style="margin: 0 0 0.75rem 0; font-size: 0.78rem; color: var(--text-muted);">Index funds, equities, ETFs. Taxed at preferential capital gains rates.</p>
-                        <div class="input-group" style="display: flex; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; padding: 0 0.75rem;">
-                            <span style="color: var(--text-muted);">$</span>
-                            <input type="number" id="input-taxable-assets" step="5000" min="0" value="${this._data.taxable}" style="width: 100%; border: none; background: transparent; padding: 0.5rem; color: var(--text-main);" />
-                        </div>
-                    </div>
-
-                    <div class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <h4 style="margin: 0; font-size: 0.95rem; color: #fbbf24; font-weight: 600;">🛡️ Cash Cushion</h4>
-                            <span class="badge-subtle badge-subtle-amber">HYSA / CDs</span>
-                        </div>
-                        <p style="margin: 0 0 0.75rem 0; font-size: 0.78rem; color: var(--text-muted);">High-yield savings, CDs, checking. First line of sequence-of-returns defense.</p>
-                        <div class="input-group" style="display: flex; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; padding: 0 0.75rem;">
-                            <span style="color: var(--text-muted);">$</span>
-                            <input type="number" id="input-cash-assets" step="1000" min="0" value="${this._data.cash}" style="width: 100%; border: none; background: transparent; padding: 0.5rem; color: var(--text-main);" />
-                        </div>
-                    </div>
+                    ${this._renderAssetBucketCard({ title: '📈 Pre-Tax Retirement', colorHex: '#60a5fa', badgeText: '401(k) / IRA', badgeClass: 'badge-subtle-blue', desc: 'Traditional 401(k), 403(b), Traditional IRA. Taxed upon withdrawal.', inputId: 'input-pretax-assets', stepAmt: 5000, currentAmount: this._data.preTax })}
+                    ${this._renderAssetBucketCard({ title: '💎 Tax-Free Growth (Roth)', colorHex: '#c084fc', badgeText: 'Roth IRA / 401(k)', badgeClass: 'badge-subtle-purple', desc: 'Roth IRAs &amp; Roth 401(k)s. Qualified withdrawals are 100% tax-free.', inputId: 'input-roth-assets', stepAmt: 5000, currentAmount: this._data.roth })}
+                    ${this._renderAssetBucketCard({ title: '📊 Taxable Brokerage', colorHex: '#34d399', badgeText: 'Brokerage', badgeClass: 'badge-subtle-emerald', desc: 'Index funds, equities, ETFs. Taxed at preferential capital gains rates.', inputId: 'input-taxable-assets', stepAmt: 5000, currentAmount: this._data.taxable })}
+                    ${this._renderAssetBucketCard({ title: '🛡️ Cash Cushion', colorHex: '#fbbf24', badgeText: 'HYSA / CDs', badgeClass: 'badge-subtle-amber', desc: 'High-yield savings, CDs, checking. First line of sequence-of-returns defense.', inputId: 'input-cash-assets', stepAmt: 1000, currentAmount: this._data.cash })}
                 </div>
             </div>
         `;
