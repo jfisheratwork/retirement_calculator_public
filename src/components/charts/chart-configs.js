@@ -4,6 +4,12 @@
  * dataset construction and keep function complexity and length within limits.
  */
 
+import {
+    applyPortfolioVisibilityToConfig,
+    buildMacroIncomeDatasets,
+    buildMacroPortfolioBucketDatasets
+} from './chart-stage-header.js';
+
 let defaultTooltipHandler = null;
 
 /**
@@ -31,6 +37,8 @@ const LIQUID_BALANCE_KEYS = [
     's2Trad403b',
     's1StandardIra',
     's2StandardIra',
+    's1SeppIra',
+    's2SeppIra',
     'cashCushion'
 ];
 
@@ -143,8 +151,23 @@ function createLineDataset(label, data, color, isHidden = false) {
     return datasetObj;
 }
 
+function buildSeppIraDatasetIfActive(yearlyData, state, spouseKey, balKey, fallbackName, color) {
+    const hasBalance = (yearlyData || []).some((snap) => (snap?.balances?.[balKey] || 0) > 0);
+    const r72t = state?.[spouseKey]?.rule72t;
+    const isConfiguredNew = Boolean(r72t?.enabled && (r72t?.targetIraMode === 'new' || Number(r72t?.splitAmount) > 0));
+    if (!hasBalance && !isConfiguredNew) return null;
+    const label = r72t?.newIraName || fallbackName;
+    const ds = createLineDataset(
+        label,
+        mapData(yearlyData, state, (snap) => snap.balances?.[balKey] || 0),
+        color
+    );
+    ds.isRetirementAccount = true;
+    return ds;
+}
+
 function buildRetirementAccountDatasets(yearlyData, state, s1Name, s2Name) {
-    return [
+    const datasets = [
         createLineDataset(
             `${s1Name} Roth IRA`,
             mapData(yearlyData, state, (snap) => snap.balances.s1RothIra),
@@ -186,6 +209,25 @@ function buildRetirementAccountDatasets(yearlyData, state, s1Name, s2Name) {
             '#e056fd'
         )
     ];
+    const s1SeppDs = buildSeppIraDatasetIfActive(
+        yearlyData,
+        state,
+        'primarySpouse',
+        's1SeppIra',
+        `${s1Name} 72(t) IRA`,
+        '#f39c12'
+    );
+    if (s1SeppDs) datasets.push(s1SeppDs);
+    const s2SeppDs = buildSeppIraDatasetIfActive(
+        yearlyData,
+        state,
+        'secondarySpouse',
+        's2SeppIra',
+        `${s2Name} 72(t) IRA`,
+        '#f1c40f'
+    );
+    if (s2SeppDs) datasets.push(s2SeppDs);
+    return datasets;
 }
 
 function buildPortfolioDatasets(yearlyData, state, s1Name, s2Name) {
@@ -303,9 +345,12 @@ function buildPortfolioScales() {
  */
 export function buildPortfolioConfig(yearlyData, state, labels, annotations, ...spouseNames) {
     const [s1Name = 'Spouse 1', s2Name = 'Spouse 2'] = spouseNames;
-    const datasets = buildPortfolioDatasets(yearlyData, state, s1Name, s2Name);
+    const isBucketsMode = state?.uiState?.portfolioViewMode === 'buckets';
+    const datasets = isBucketsMode
+        ? buildMacroPortfolioBucketDatasets(yearlyData, state, mapData)
+        : buildPortfolioDatasets(yearlyData, state, s1Name, s2Name);
 
-    return {
+    const config = {
         type: 'line',
         data: { labels, datasets },
         options: {
@@ -314,7 +359,7 @@ export function buildPortfolioConfig(yearlyData, state, labels, annotations, ...
             interaction: { mode: 'index', intersect: false },
             onClick: handleChartClick,
             plugins: {
-                legend: { labels: { color: '#e0e0e0' } },
+                legend: { display: false, labels: { color: '#e0e0e0' } },
                 tooltip: {
                     enabled: false,
                     position: 'nearest',
@@ -325,6 +370,8 @@ export function buildPortfolioConfig(yearlyData, state, labels, annotations, ...
             scales: buildPortfolioScales()
         }
     };
+    applyPortfolioVisibilityToConfig(config, state);
+    return config;
 }
 
 function extractSpouseTakeHome(snapshotItem, spouseKey, clampNonNegative = false) {
@@ -371,13 +418,13 @@ function buildEarnedIncomeBars(yearlyData, state, s1Name, s2Name, stackName) {
             stackName
         ),
         createStackedBarDataset(
-            `${s1Name} Rule 72(t)`,
+            `${s1Name} Early IRA Payout (72t)`,
             mapData(yearlyData, state, (snap) => snap.income.s1.rule72t),
             '#f39c12',
             stackName
         ),
         createStackedBarDataset(
-            `${s2Name} Rule 72(t)`,
+            `${s2Name} Early IRA Payout (72t)`,
             mapData(yearlyData, state, (snap) => snap.income.s2.rule72t),
             '#f1c40f',
             stackName
@@ -463,11 +510,14 @@ function buildIncomeOverlayLines(yearlyData, state) {
  */
 export function buildIncomeConfig(yearlyData, state, labels, annotations, ...spouseNames) {
     const [s1Name = 'Spouse 1', s2Name = 'Spouse 2'] = spouseNames;
-    const datasets = [
-        ...buildEarnedIncomeBars(yearlyData, state, s1Name, s2Name, 'Income'),
-        ...buildDrawdownBars(yearlyData, state, s1Name, s2Name, 'Income'),
-        ...buildIncomeOverlayLines(yearlyData, state)
-    ];
+    const isDetailView = Boolean(state?.uiState?.incomeDetailView);
+    const datasets = isDetailView
+        ? [
+              ...buildEarnedIncomeBars(yearlyData, state, s1Name, s2Name, 'Income'),
+              ...buildDrawdownBars(yearlyData, state, s1Name, s2Name, 'Income'),
+              ...buildIncomeOverlayLines(yearlyData, state)
+          ]
+        : buildMacroIncomeDatasets(yearlyData, state, mapData);
 
     return {
         type: 'bar',
@@ -478,7 +528,7 @@ export function buildIncomeConfig(yearlyData, state, labels, annotations, ...spo
             interaction: { mode: 'index', intersect: false },
             onClick: handleChartClick,
             plugins: {
-                legend: { labels: { color: '#e0e0e0' } },
+                legend: { display: isDetailView, labels: { color: '#e0e0e0' } },
                 tooltip: {
                     enabled: false,
                     position: 'nearest',
@@ -548,7 +598,7 @@ function buildCashflowOutflowBars(yearlyData, state) {
             stack: 'Outflows'
         },
         {
-            label: 'Reinvested to Sweep / Brokerage',
+            label: 'Excess Savings Reinvested (Brokerage / Savings)',
             data: mapData(yearlyData, state, (snap) => snap.reinvestedToSweep || snap.reinvestedToBrokerage),
             backgroundColor: '#3498db',
             stack: 'Outflows'
@@ -689,6 +739,11 @@ export function buildNetWorthConfig(yearlyData, state, labels, annotations) {
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: { labels: { color: '#e0e0e0' } },
+                tooltip: {
+                    enabled: false,
+                    position: 'nearest',
+                    external: defaultTooltipHandler
+                },
                 annotation: { annotations }
             },
             scales: buildStandardXYScales()
@@ -708,11 +763,25 @@ export function buildTaxConfig(yearlyData, state, labels, annotations) {
     const datasets = [
         {
             label: 'Estimated Taxes Paid',
-            data: mapData(yearlyData, state, (snap) => snap.taxes),
+            data: mapData(yearlyData, state, (snap) =>
+                Math.max(0, (snap.taxes || 0) - (snap.earlyWithdrawalPenalty || 0))
+            ),
             backgroundColor: '#d63031',
-            borderRadius: 4
+            borderRadius: 4,
+            stack: 'Taxes'
+        },
+        {
+            label: '10% Early Withdrawal Penalty (Pre-59.5)',
+            data: mapData(yearlyData, state, (snap) => snap.earlyWithdrawalPenalty || 0),
+            backgroundColor: '#f39c12',
+            borderRadius: 4,
+            stack: 'Taxes'
         }
     ];
+
+    const scales = buildStandardXYScales();
+    scales.x.stacked = true;
+    scales.y.stacked = true;
 
     return {
         type: 'bar',
@@ -720,11 +789,17 @@ export function buildTaxConfig(yearlyData, state, labels, annotations) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: { labels: { color: '#e0e0e0' } },
+                tooltip: {
+                    enabled: false,
+                    position: 'nearest',
+                    external: defaultTooltipHandler
+                },
                 annotation: { annotations }
             },
-            scales: buildStandardXYScales()
+            scales
         }
     };
 }
@@ -802,6 +877,11 @@ export function buildSorrConfig(sorrData, labels, annotations) {
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: { labels: { color: '#e0e0e0' } },
+                tooltip: {
+                    enabled: false,
+                    position: 'nearest',
+                    external: defaultTooltipHandler
+                },
                 annotation: { annotations }
             },
             scales: buildStandardXYScales()

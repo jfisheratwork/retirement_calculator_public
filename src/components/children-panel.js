@@ -1,4 +1,4 @@
-import { BaseComponent } from './base-component.js';
+import { BaseComponent, escapeHtml } from './base-component.js';
 
 export class ChildrenPanel extends BaseComponent {
     constructor() {
@@ -86,8 +86,8 @@ export class ChildrenPanel extends BaseComponent {
             html += `
             <details class="child-card" data-index="${index}" ${isOpenByDefault ? 'open' : ''}>
                 <summary style="font-weight: bold; outline: none; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
-                    <span>${childName} - Born ${birthYear} (529: $${collegeBal.toLocaleString()})</span>
-                    <button type="button" class="btn btn-secondary remove-child-btn" data-index="${index}" style="padding: 0.1rem 0.4rem; font-size: 0.7rem; background: #e74c3c; color: white; border: none; margin-left: 10px;" title="Remove ${childName}">✕ Remove</button>
+                    <span class="child-card-summary-text">${escapeHtml(childName)} - Born ${escapeHtml(String(birthYear))} (529: $${collegeBal.toLocaleString()})</span>
+                    <button type="button" class="btn btn-secondary remove-child-btn" data-index="${index}" style="padding: 0.1rem 0.4rem; font-size: 0.7rem; background: #e74c3c; color: white; border: none; margin-left: 10px;" title="Remove ${escapeHtml(childName)}">✕ Remove</button>
                 </summary>
                 <div style="margin-top: 0.5rem;">`;
 
@@ -116,40 +116,59 @@ export class ChildrenPanel extends BaseComponent {
         return html;
     }
 
+    _updateSingleChildCardLive(card, index) {
+        const nameEl = card.querySelector(`input[data-path="dependents.${index}.name"]`);
+        const birthYearEl = card.querySelector(`input[data-path="dependents.${index}.yearOfBirth"]`);
+        const balEl = card.querySelector(`input[data-path="dependents.${index}.currentCollegeSavingsBalance"]`);
+        const returnEl = card.querySelector(`input[data-path="dependents.${index}.expectedReturn"]`);
+        const targetEl = card.querySelector(`input[data-path="dependents.${index}.targetCollegeSavingsBalance"]`);
+
+        const childName = nameEl?.value || this.state.dependents?.[index]?.name || `Child ${index + 1}`;
+        const birthYear = birthYearEl?.value || this.state.dependents?.[index]?.yearOfBirth || 'N/A';
+        const curBal = balEl
+            ? Number(balEl.value) || 0
+            : Number(this.state.dependents?.[index]?.currentCollegeSavingsBalance) || 0;
+
+        const headerSpan = card.querySelector('.child-card-summary-text');
+        if (headerSpan) {
+            headerSpan.innerHTML = `${escapeHtml(childName)} - Born ${escapeHtml(String(birthYear))} (529: $${curBal.toLocaleString()})`;
+        }
+
+        const targetSummaryEl = card.querySelector('.target-529-summary');
+        if (targetSummaryEl) {
+            const tempChild = {
+                yearOfBirth: Number(birthYear) || new Date().getFullYear(),
+                currentCollegeSavingsBalance: curBal,
+                expectedReturn: returnEl ? Number(returnEl.value) : this.state.dependents?.[index]?.expectedReturn,
+                targetCollegeSavingsBalance: targetEl
+                    ? Number(targetEl.value)
+                    : this.state.dependents?.[index]?.targetCollegeSavingsBalance
+            };
+            targetSummaryEl.innerHTML = this._calculateTargetFundingSummary(tempChild);
+        }
+    }
+
     _bindCardLiveUpdates() {
         this.querySelectorAll('.child-card').forEach((card) => {
             const index = parseInt(card.getAttribute('data-index'), 10);
-            const targetSummaryEl = card.querySelector('.target-529-summary');
-            if (!targetSummaryEl) return;
-
-            const updateSummary = () => {
-                const birthYearEl = card.querySelector(`input[data-path="dependents.${index}.yearOfBirth"]`);
-                const balEl = card.querySelector(`input[data-path="dependents.${index}.currentCollegeSavingsBalance"]`);
-                const returnEl = card.querySelector(`input[data-path="dependents.${index}.expectedReturn"]`);
-                const targetEl = card.querySelector(
-                    `input[data-path="dependents.${index}.targetCollegeSavingsBalance"]`
-                );
-
-                const tempChild = {
-                    yearOfBirth: birthYearEl ? Number(birthYearEl.value) : this.state.dependents[index]?.yearOfBirth,
-                    currentCollegeSavingsBalance: balEl
-                        ? Number(balEl.value)
-                        : this.state.dependents[index]?.currentCollegeSavingsBalance,
-                    expectedReturn: returnEl ? Number(returnEl.value) : this.state.dependents[index]?.expectedReturn,
-                    targetCollegeSavingsBalance: targetEl
-                        ? Number(targetEl.value)
-                        : this.state.dependents[index]?.targetCollegeSavingsBalance
-                };
-                targetSummaryEl.innerHTML = this._calculateTargetFundingSummary(tempChild);
-            };
-
+            const updateSummary = () => this._updateSingleChildCardLive(card, index);
             card.querySelectorAll('input').forEach((input) => {
                 input.addEventListener('input', updateSummary);
+                input.addEventListener('change', updateSummary);
             });
         });
     }
 
     afterRender() {
+        this.addEvent('input', 'input', (e) => {
+            this.dispatchEvent(
+                new CustomEvent('stateChange', {
+                    detail: { element: e.target },
+                    bubbles: true
+                })
+            );
+        });
+
         this.addEvent('input, select', 'change', (e) => {
             this.dispatchEvent(
                 new CustomEvent('stateChange', {

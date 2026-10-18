@@ -17,6 +17,8 @@ const LIQUID_BALANCE_KEYS = [
     's2Trad403b',
     's1StandardIra',
     's2StandardIra',
+    's1SeppIra',
+    's2SeppIra',
     's1Hysa',
     's2Hysa',
     's1Cd',

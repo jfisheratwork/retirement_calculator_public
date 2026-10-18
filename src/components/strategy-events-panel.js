@@ -88,7 +88,7 @@ export class StrategyEventsPanel extends BaseComponent {
         const advStartDate = normalizeDateStr(advRoth.startDate, advStartYear, 1) || `${advStartYear}-01-01`;
 
         let html = `<div class="card" style="padding: 1rem; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 1.5rem;">
-            <div class="pane-section-header" style="margin-bottom: 0.5rem;">Advanced Dynamic Roth Conversion Ladder (Household Bracket Filling)</div>
+            <div class="pane-section-header" style="margin-bottom: 0.5rem;">Smart Tax-Bracket Filling Roth Conversions (Household Auto-Ladder)</div>
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.4;">
                 Automatically calculates remaining headroom under your target tax bracket each year and converts Traditional IRA funds dynamically. When enabled, this replaces static per-spouse conversions.
             </div>`;
@@ -115,8 +115,8 @@ export class StrategyEventsPanel extends BaseComponent {
     _renderSpouseStrategyColumn(prefix, spouseObj) {
         const title =
             prefix === 'primarySpouse'
-                ? `${spouseObj.name || 'Primary'} - Conversion & SEPP Events`
-                : `${spouseObj.name || 'Spouse'} - Conversion & SEPP Events`;
+                ? `${spouseObj.name || 'Primary'} - Tax & Early Access (Roth / 72t)`
+                : `${spouseObj.name || 'Spouse'} - Tax & Early Access (Roth / 72t)`;
 
         let out = this._startSection(title);
         out += this._render72tSection(prefix, spouseObj);
@@ -129,6 +129,7 @@ export class StrategyEventsPanel extends BaseComponent {
         const spouseCode = prefix === 'primarySpouse' ? 's1' : 's2';
         if (type === 'standardIra') return b[`${spouseCode}StandardIra`] ?? null;
         if (type === 'traditional401k') return b[`${spouseCode}Trad401k`] ?? null;
+        if (type === 'trad403b') return b[`${spouseCode}Trad403b`] ?? null;
         return null;
     }
 
@@ -139,6 +140,9 @@ export class StrategyEventsPanel extends BaseComponent {
         if (!b) return null;
 
         const id = account.id || account.name;
+        if (b.pre72tByAccount && b.pre72tByAccount[id] !== undefined) {
+            return b.pre72tByAccount[id];
+        }
         if (b.byAccount && b.byAccount[id] !== undefined) {
             return b.byAccount[id];
         }
@@ -190,7 +194,7 @@ export class StrategyEventsPanel extends BaseComponent {
 
     _resolveActive72tAccount(spouseObj, r72t) {
         const accounts = spouseObj.accounts || [];
-        const matchKey = (key) => accounts.find((a) => a.id === key || a.name === key || a.type === key);
+        const matchKey = (key) => (key ? accounts.find((a) => a.id === key || a.name === key || a.type === key) : null);
         const targetAcc = matchKey(r72t.targetAccount) || accounts.find((a) => a.type === 'standardIra');
         const sourceAcc = matchKey(r72t.sourceAccount) || targetAcc;
         return targetAcc || sourceAcc;
@@ -207,7 +211,11 @@ export class StrategyEventsPanel extends BaseComponent {
         const { targetYear, targetMonth, r72tDate, calculatedR72tAge } = timing;
         const activeAcc = this._resolveActive72tAccount(spouseObj, r72t);
         const projectedBal = this._getProjectedAccountBalance(prefix, activeAcc, targetYear, targetMonth);
-        const hasCustomSplit = r72t.splitAmount !== undefined && r72t.splitAmount !== null && r72t.splitAmount !== '';
+        const hasCustomSplit =
+            r72t.splitAmount !== undefined &&
+            r72t.splitAmount !== null &&
+            r72t.splitAmount !== '' &&
+            Number(r72t.splitAmount) > 0;
         const effective72tBal = hasCustomSplit ? Math.min(projectedBal, Number(r72t.splitAmount)) : projectedBal;
         const rate72t = this._get72tInterestRate();
         const method = spouseObj.rule72tMethod || 'amortization';
@@ -296,7 +304,10 @@ export class StrategyEventsPanel extends BaseComponent {
         let out = `<div class="tab-stop-grid-2">`;
         out += this._render72tAccountSelectors(prefix, spouseObj, r72t, targetYear, targetMonth);
 
-        const splitVal = r72t.splitAmount !== undefined && r72t.splitAmount !== null ? r72t.splitAmount : '';
+        const splitVal =
+            r72t.splitAmount !== undefined && r72t.splitAmount !== null && Number(r72t.splitAmount) > 0
+                ? r72t.splitAmount
+                : '';
         out +=
             `<div>` +
             this._input(
@@ -322,7 +333,7 @@ export class StrategyEventsPanel extends BaseComponent {
                 `${prefix}.rule72tMethod`,
                 [
                     { value: 'amortization', label: 'Amortization (Fixed - Highest Payout)' },
-                    { value: 'rmd', label: 'RMD (Variable - Lowest Payout)' }
+                    { value: 'rmd', label: 'Required Minimum Distribution / RMD Method (Variable Payout)' }
                 ],
                 spouseObj.rule72tMethod || 'amortization',
                 'Amortization produces steady fixed payout over life expectancy. RMD produces variable distribution.'
@@ -346,7 +357,7 @@ export class StrategyEventsPanel extends BaseComponent {
         const isEnabled = Boolean(r72t.enabled);
 
         let out = `<div style="padding: 0.75rem; background: var(--bg-darker); margin-top: 0.5rem; border-left: 3px solid var(--primary); border-radius: 4px;">
-            <div class="pane-section-header">Rule 72(t) Early Withdrawals (SEPP)</div>`;
+            <div class="pane-section-header">IRS Penalty-Free Early IRA Payout Schedule (Rule 72t)</div>`;
         out += this._checkbox(
             'Enable 72(t)',
             `${prefix}.rule72t.enabled`,
@@ -463,6 +474,17 @@ export class StrategyEventsPanel extends BaseComponent {
         return projectedBal;
     }
 
+    _readLive72tConfig(prefix, spouseObj) {
+        const r72t = spouseObj.rule72t || {};
+        const srcVal = this.querySelector(`select[data-path="${prefix}.rule72t.sourceAccount"]`)?.value;
+        const tgtVal = this.querySelector(`select[data-path="${prefix}.rule72t.targetAccount"]`)?.value;
+        return {
+            ...r72t,
+            sourceAccount: srcVal || r72t.sourceAccount,
+            targetAccount: tgtVal || r72t.targetAccount
+        };
+    }
+
     _update72tLivePreview(prefix) {
         const spouseObj = this.state[prefix] || {};
         const birthYear = Number(spouseObj.yearOfBirth) || 1980;
@@ -475,7 +497,8 @@ export class StrategyEventsPanel extends BaseComponent {
         const calcAge = Math.max(18, rYear - birthYear);
 
         const method = methodSelect?.value || spouseObj.rule72tMethod || 'amortization';
-        const activeAcc = this._resolveActive72tAccount(spouseObj, spouseObj.rule72t || {});
+        const liveR72t = this._readLive72tConfig(prefix, spouseObj);
+        const activeAcc = this._resolveActive72tAccount(spouseObj, liveR72t);
         const projectedBal = this._getProjectedAccountBalance(prefix, activeAcc, rYear, rMonth);
         const effectiveBal = this._capBalanceBySplitInput(projectedBal, splitInput?.value);
 
@@ -561,10 +584,23 @@ export class StrategyEventsPanel extends BaseComponent {
             if (path.includes('.rothConversion.')) {
                 this._updateRothDurationBadge(prefix);
             }
+
+            this.dispatchEvent(
+                new CustomEvent('stateChange', {
+                    detail: { element: e.target },
+                    bubbles: true
+                })
+            );
         });
 
         this.addEvent('input, select', 'change', (e) => {
             const path = e.target.getAttribute('data-path');
+            this.dispatchEvent(
+                new CustomEvent('stateChange', {
+                    detail: { element: e.target },
+                    bubbles: true
+                })
+            );
             if (path) {
                 const prefix = path.startsWith('secondarySpouse') ? 'secondarySpouse' : 'primarySpouse';
                 if (path.includes('.rule72t.') || path.includes('rule72tMethod')) {
@@ -575,13 +611,6 @@ export class StrategyEventsPanel extends BaseComponent {
                 }
                 this._handleFieldChangeVisibility(path, prefix, e.target);
             }
-
-            this.dispatchEvent(
-                new CustomEvent('stateChange', {
-                    detail: { element: e.target },
-                    bubbles: true
-                })
-            );
         });
     }
 }

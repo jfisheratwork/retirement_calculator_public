@@ -89,6 +89,25 @@ function depositIntoAccount(account, amount, rate) {
     }
 }
 
+function applyGrossUpTaxUpdate(snapshot, taxResults, updatedResults, { updatedPenalty, updatedTotalTax, prorata }) {
+    snapshot.taxes = updatedTotalTax;
+    snapshot.earlyWithdrawalPenalty = updatedPenalty;
+    taxResults.earlyWithdrawalPenalty = updatedPenalty;
+    taxResults.totalTax = updatedTotalTax;
+    taxResults.nonW2Tax = Math.max(0, updatedTotalTax - (taxResults.w2Tax || 0));
+    taxResults.federalTax = (updatedResults.federalTax || 0) * prorata;
+    taxResults.stateTax = (updatedResults.stateTax || 0) * prorata;
+    taxResults.capitalGainsTax = (updatedResults.capitalGainsTax || 0) * prorata;
+    taxResults.niitTax = (updatedResults.niitTax || 0) * prorata;
+    taxResults.fedTax = taxResults.federalTax;
+    taxResults.ltcgTax = taxResults.capitalGainsTax;
+    taxResults.effectiveRate = updatedResults.effectiveRate || 0;
+    taxResults.topBracketRate = updatedResults.topBracketRate || 0;
+    taxResults.topBracket = taxResults.topBracketRate;
+    taxResults.remainingRoomInBracket = updatedResults.remainingRoomInBracket || 0;
+    taxResults.bracketRoom = taxResults.remainingRoomInBracket;
+}
+
 /**
  * Handles tax computations, tax payments from surplus/cushion/portfolio, and surplus reinvestment
  */
@@ -155,16 +174,11 @@ export class TaxManager {
             const extraTax = Math.max(0, updatedTotalTax - snapshot.taxes);
             if (extraTax <= 1) break;
 
-            snapshot.taxes = updatedTotalTax;
-            snapshot.earlyWithdrawalPenalty = updatedPenalty;
-            taxResults.earlyWithdrawalPenalty = updatedPenalty;
-            taxResults.totalTax = updatedTotalTax;
-            taxResults.federalTax = (updatedResults.federalTax || 0) * prorata;
-            taxResults.stateTax = (updatedResults.stateTax || 0) * prorata;
-            taxResults.capitalGainsTax = (updatedResults.capitalGainsTax || 0) * prorata;
-            taxResults.niitTax = (updatedResults.niitTax || 0) * prorata;
-            taxResults.fedTax = taxResults.federalTax;
-            taxResults.ltcgTax = taxResults.capitalGainsTax;
+            applyGrossUpTaxUpdate(snapshot, taxResults, updatedResults, {
+                updatedPenalty,
+                updatedTotalTax,
+                prorata
+            });
             unpaid = extraTax;
         }
     }

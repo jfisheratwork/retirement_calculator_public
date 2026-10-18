@@ -20,6 +20,7 @@
  */
 
 import { BaseComponent } from './base-component.js';
+import { escapeHtml } from '../utils/sanitize.js';
 
 const MODE_EXPRESS = 'express';
 const MODE_GUIDED = 'guided';
@@ -33,6 +34,7 @@ export class SetupPickerModal extends BaseComponent {
     constructor() {
         super();
         this._isOpen = false;
+        this._scenarioName = 'My Retirement Plan';
 
         this._onKeyDown = (eventParam) => {
             if (eventParam.key === KEY_ESCAPE && this._isOpen) {
@@ -74,6 +76,12 @@ export class SetupPickerModal extends BaseComponent {
     _handleRootClick(eventParam) {
         const clickedTarget = eventParam.target;
         if (!clickedTarget) return;
+
+        const nameInput = this.querySelector('#setup-scenario-name-input');
+        if (nameInput) {
+            const trimmed = nameInput.value.trim();
+            if (trimmed) this._scenarioName = trimmed;
+        }
 
         if (this._isCloseOrBackdropTrigger(clickedTarget)) {
             eventParam.preventDefault();
@@ -118,13 +126,13 @@ export class SetupPickerModal extends BaseComponent {
     }
 
     /**
-     * Dispatches custom event with chosen planning mode.
+     * Dispatches custom event with chosen planning mode and scenario name.
      * @param {string} modeIdentifier - Chosen mode name.
      */
     _dispatchModeSelection(modeIdentifier) {
         this.dispatchEvent(
             new CustomEvent('select-mode', {
-                detail: { mode: modeIdentifier },
+                detail: { mode: modeIdentifier, scenarioName: this._scenarioName },
                 bubbles: true,
                 composed: true
             })
@@ -133,7 +141,7 @@ export class SetupPickerModal extends BaseComponent {
     }
 
     /**
-     * Dispatches custom event requesting demo sample profile load.
+     * Dispatches custom event requesting demo sample scenario load.
      */
     _dispatchSampleLoad() {
         this.dispatchEvent(
@@ -147,8 +155,14 @@ export class SetupPickerModal extends BaseComponent {
 
     /**
      * Opens the modal.
+     * @param {string} [initialScenarioName=''] - Optional initial scenario name.
      */
-    open() {
+    open(initialScenarioName = '') {
+        if (initialScenarioName) {
+            this._scenarioName = initialScenarioName;
+        } else if (!this._scenarioName) {
+            this._scenarioName = 'My Retirement Plan';
+        }
         this._isOpen = true;
         this.render();
     }
@@ -174,8 +188,36 @@ export class SetupPickerModal extends BaseComponent {
                 <div class="setup-picker-card"
                     style="width: 1040px; max-width: 95vw; max-height: 92vh; overflow-y: auto; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 1.25rem; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85); padding: 2.25rem;">
                     ${this._renderHeader()}
+                    ${this._renderScenarioNamePrompt()}
                     ${this._renderTierCards()}
                     ${this._renderFooter()}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Renders Scenario Name prompt input card.
+     * @returns {string} Scenario name prompt HTML.
+     */
+    _renderScenarioNamePrompt() {
+        return `
+            <div class="setup-scenario-name-container"
+                style="margin-bottom: 1.75rem; background: rgba(30, 41, 59, 0.65); border: 1px solid rgba(129, 140, 248, 0.3); border-radius: 0.875rem; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 240px;">
+                    <label for="setup-scenario-name-input"
+                        style="display: block; font-size: 0.78rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">
+                        Scenario Name
+                    </label>
+                    <span style="font-size: 0.85rem; color: #94a3b8;">
+                        Name this scenario plan or customize it anytime in the editor.
+                    </span>
+                </div>
+                <div style="flex: 1; min-width: 260px;">
+                    <input type="text" id="setup-scenario-name-input" class="setup-scenario-name-input"
+                        value="${escapeHtml(this._scenarioName || 'My Retirement Plan')}"
+                        placeholder="e.g., Baseline Retirement"
+                        style="width: 100%; box-sizing: border-box; padding: 0.65rem 0.85rem; background: #0f172a; border: 1px solid rgba(99, 102, 241, 0.5); border-radius: 0.5rem; color: #f8fafc; font-size: 0.95rem; font-weight: 600;">
                 </div>
             </div>
         `;
@@ -355,7 +397,7 @@ export class SetupPickerModal extends BaseComponent {
                     <span style="color: #94a3b8; font-size: 0.88rem;">Not ready to type numbers?</span>
                     <button type="button" class="btn btn-secondary btn-load-sample"
                         style="padding: 0.5rem 1rem; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(148, 163, 184, 0.3); color: #cbd5e1; font-size: 0.85rem; border-radius: 0.5rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600;">
-                        <span>📊</span> Try a Sample Profile (Couple 45 & 41, 2 Kids, $180k Income)
+                        <span>📊</span> Try a Sample Scenario (Couple 45 & 41, 2 Kids, $180k Income)
                     </button>
                 </div>
                 <div>

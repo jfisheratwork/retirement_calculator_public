@@ -125,24 +125,49 @@ export class SpousePanel extends BaseComponent {
         return out;
     }
 
-    _handleLiveInput(e) {
-        const path = e.target.getAttribute('data-path');
-        const birthYear = Number(this.state[this.spousePrefix]?.yearOfBirth) || 1980;
+    _getLiveBirthYear() {
+        const birthInput = this.querySelector(`input[data-path="${this.spousePrefix}.yearOfBirth"]`);
+        return Number(birthInput?.value) || Number(this.state[this.spousePrefix]?.yearOfBirth) || 1980;
+    }
 
-        if (path && path.endsWith('.socialSecurityStartDate')) {
-            const { ssnAge, ssnPct, colorClass } = this._calculateSsnBadge(e.target.value, birthYear);
-            const badge = this.querySelector(`#${this.spousePrefix}-ssn-badge`);
-            if (badge) {
-                badge.innerText = `Age ${ssnAge}, ${ssnPct}% FRA`;
-                badge.className = `badge-subtle ${colorClass}`;
+    _updateRetAgeBadge(birthYear) {
+        const retBadge = this.querySelector(`#${this.spousePrefix}-ret-age-badge`);
+        if (!retBadge) return;
+        const retInput = this.querySelector(`input[data-path="${this.spousePrefix}.targetRetirementDate"]`);
+        const rawDate =
+            retInput?.value || this.state[this.spousePrefix]?.targetRetirementDate || `${birthYear + 65}-01`;
+        const retYear = parseInt(String(rawDate).split('-')[0], 10) || birthYear + 65;
+        retBadge.innerText = `Age ${retYear - birthYear}`;
+    }
+
+    _updateSsnBadge(birthYear) {
+        const badge = this.querySelector(`#${this.spousePrefix}-ssn-badge`);
+        if (!badge) return;
+        const ssnInput = this.querySelector(`input[data-path="${this.spousePrefix}.socialSecurityStartDate"]`);
+        const rawDate =
+            ssnInput?.value || this.state[this.spousePrefix]?.socialSecurityStartDate || `${birthYear + 67}-01`;
+        const { ssnAge, ssnPct, colorClass } = this._calculateSsnBadge(rawDate, birthYear);
+        badge.innerText = `Age ${ssnAge}, ${ssnPct}% FRA`;
+        badge.className = `badge-subtle ${colorClass}`;
+    }
+
+    _handleLiveInput(e) {
+        const path = e.target.getAttribute('data-path') || '';
+        const birthYear = this._getLiveBirthYear();
+
+        if (path.endsWith('.name')) {
+            const titleEl = this.querySelector('.surface-card-title');
+            if (titleEl) {
+                titleEl.textContent = `${e.target.value || 'Spouse'} Personal Details`;
             }
-        } else if (path && path.endsWith('.targetRetirementDate')) {
-            const retBadge = this.querySelector(`#${this.spousePrefix}-ret-age-badge`);
-            if (retBadge) {
-                const retYear = parseInt(String(e.target.value).split('-')[0], 10) || birthYear + 65;
-                retBadge.innerText = `Age ${retYear - birthYear}`;
-            }
-        } else if (path && path.endsWith('.socialSecurityMonthlyBenefit')) {
+        } else if (path.endsWith('.yearOfBirth')) {
+            this._updateRetAgeBadge(birthYear);
+            this._updateSsnBadge(birthYear);
+        } else if (path.endsWith('.socialSecurityStartDate')) {
+            this._updateSsnBadge(birthYear);
+        } else if (path.endsWith('.targetRetirementDate')) {
+            this._updateRetAgeBadge(birthYear);
+        } else if (path.endsWith('.socialSecurityMonthlyBenefit')) {
             const monthly = Number(e.target.value) || 0;
             const annual = Math.round(monthly * 12);
             const badge = this.querySelector(`#${this.spousePrefix}-ssn-annual-badge`);
@@ -153,8 +178,17 @@ export class SpousePanel extends BaseComponent {
     }
 
     afterRender() {
-        this.addEvent('input, select', 'input', (e) => this._handleLiveInput(e));
+        this.addEvent('input, select', 'input', (e) => {
+            this._handleLiveInput(e);
+            this.dispatchEvent(
+                new CustomEvent('stateChange', {
+                    detail: { element: e.target },
+                    bubbles: true
+                })
+            );
+        });
         this.addEvent('input, select', 'change', (e) => {
+            this._handleLiveInput(e);
             this.dispatchEvent(
                 new CustomEvent('stateChange', {
                     detail: { element: e.target },

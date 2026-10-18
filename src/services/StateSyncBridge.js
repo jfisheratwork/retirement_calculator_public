@@ -547,26 +547,41 @@ function _computeExpressAssumptionsSummary(state) {
     };
 }
 
+function _extractExpressHouseholdMeta(state = {}) {
+    const primary = state.primarySpouse || {};
+    const secondary = state.secondarySpouse || {};
+    const resEq = state.primaryResidenceEquity || {};
+    const resMort = state.primaryResidenceMortgage || {};
+    return {
+        pBirthYear: primary.yearOfBirth,
+        targetRetirementAge: primary.targetRetirementAge || null,
+        filingStatus: secondary.name || secondary.yearOfBirth ? 'married' : 'single',
+        housingStatus: resEq.enabled || resMort.enabled ? 'own' : 'rent',
+        homeValue: Number(resEq.currentValue) || 0,
+        mortgageBalance: Number(resMort.currentBalance) || 0
+    };
+}
+
 export function toExpressViewModel(state) {
     const curYear = _getCurrentYear(state);
-    const pBirthYear = state?.primarySpouse?.yearOfBirth;
-    const currentAge = pBirthYear && curYear ? curYear - pBirthYear : null;
-    const targetRetirementAge = state?.primarySpouse?.targetRetirementAge || null;
-
+    const meta = _extractExpressHouseholdMeta(state);
+    const currentAge = meta.pBirthYear && curYear ? curYear - meta.pBirthYear : null;
     const { totalInvestedAssets, accountCount } = _computeExpressAssets(state);
     const { householdIncome, hasComplexJobs } = _computeExpressIncome(state);
-    const annualLivingSpend = _computeExpressLivingSpend(state);
-    const assumptionsSummary = _computeExpressAssumptionsSummary(state);
 
     return {
         currentAge,
-        targetRetirementAge,
+        targetRetirementAge: meta.targetRetirementAge,
         totalInvestedAssets,
         householdIncome,
-        annualLivingSpend,
+        annualLivingSpend: _computeExpressLivingSpend(state),
         hasComplexJobs,
         accountCount,
-        assumptionsSummary
+        filingStatus: meta.filingStatus,
+        housingStatus: meta.housingStatus,
+        homeValue: meta.homeValue,
+        mortgageBalance: meta.mortgageBalance,
+        assumptionsSummary: _computeExpressAssumptionsSummary(state)
     };
 }
 
@@ -652,39 +667,48 @@ function _applyJobUpdate(state, targetIncome, curYear, options) {
     state.primarySpouse.socialSecurityAnnualBenefit = ssa.annual;
 }
 
-export function applyExpressUpdate(state, expressData, options = {}) {
-    const curYear = _getCurrentYear(state);
-
+function _applyExpressTimelineFields(state, expressData, curYear) {
     if (expressData.currentAge !== undefined) {
         state.primarySpouse.yearOfBirth = curYear - Number(expressData.currentAge);
     }
-    if (expressData.targetRetirementAge !== undefined) {
-        state.primarySpouse.targetRetirementAge = Number(expressData.targetRetirementAge);
+    const retAge = expressData.targetRetirementAge ?? expressData.retirementAge;
+    if (retAge !== undefined) {
+        state.primarySpouse.targetRetirementAge = Number(retAge);
         const birthYear = state.primarySpouse.yearOfBirth || curYear - DEFAULT_CURRENT_AGE;
         state.primarySpouse.targetRetirementDate = `${birthYear + state.primarySpouse.targetRetirementAge}-01`;
     }
+}
 
-    if (expressData.totalInvestedAssets !== undefined) {
-        _applyAccountUpdate(state, Number(expressData.totalInvestedAssets), options);
+function _applyExpressHousingFields(state, expressData) {
+    if (!expressData.housingStatus && !expressData.homeValue && expressData.mortgageBalance === undefined) return;
+    _populateHousingDefaults(state, {
+        housingStatus: expressData.housingStatus,
+        homeValue: expressData.homeValue,
+        mortgage: expressData.mortgageBalance !== undefined ? { currentBalance: expressData.mortgageBalance } : null
+    });
+}
+
+export function applyExpressUpdate(state, expressData, options = {}) {
+    const curYear = _getCurrentYear(state);
+    _applyExpressTimelineFields(state, expressData, curYear);
+
+    const assetsVal = expressData.totalInvestedAssets ?? expressData.portfolio;
+    if (assetsVal !== undefined) {
+        _applyAccountUpdate(state, Number(assetsVal), options);
     }
 
-    if (expressData.householdIncome !== undefined) {
-        _applyJobUpdate(state, Number(expressData.householdIncome), curYear, options);
+    const incomeVal = expressData.householdIncome ?? expressData.income;
+    if (incomeVal !== undefined) {
+        _applyJobUpdate(state, Number(incomeVal), curYear, options);
     }
 
-    if (expressData.annualLivingSpend !== undefined) {
-        const monthly = Math.round(Number(expressData.annualLivingSpend) / MONTHS_PER_YEAR);
+    const spendVal = expressData.annualLivingSpend ?? expressData.expenses;
+    if (spendVal !== undefined) {
+        const monthly = Math.round(Number(spendVal) / MONTHS_PER_YEAR);
         state.phaseBasedExpensesPerMonth = _inferExpensePhases(monthly);
     }
 
-    if (expressData.housingStatus || expressData.homeValue || expressData.mortgageBalance !== undefined) {
-        _populateHousingDefaults(state, {
-            housingStatus: expressData.housingStatus,
-            homeValue: expressData.homeValue,
-            mortgage: expressData.mortgageBalance !== undefined ? { currentBalance: expressData.mortgageBalance } : null
-        });
-    }
-
+    _applyExpressHousingFields(state, expressData);
     return state;
 }
 
@@ -937,38 +961,67 @@ export function toGuidedViewModel(state) {
 
 // Decomposition of Guided updates
 
-function _applyGuidedStep1(state, stepData, curYear) {
-    if (stepData.primary) {
-        if (stepData.primary.birthYear) state.primarySpouse.yearOfBirth = Number(stepData.primary.birthYear);
-        if (stepData.primary.currentAge)
-            state.primarySpouse.yearOfBirth = curYear - Number(stepData.primary.currentAge);
-        if (stepData.primary.targetRetirementAge) {
-            state.primarySpouse.targetRetirementAge = Number(stepData.primary.targetRetirementAge);
-            state.primarySpouse.targetRetirementDate = `${state.primarySpouse.yearOfBirth + state.primarySpouse.targetRetirementAge}-01`;
-        }
-        if (stepData.primary.lifeExpectancy)
-            state.primarySpouse.estimatedLifeExpectancy = Number(stepData.primary.lifeExpectancy);
-    }
-    if (stepData.spouse) {
-        if (stepData.spouse.hasSpouse) {
-            state.secondarySpouse.name = stepData.spouse.name || state.secondarySpouse.name || 'Partner';
-            if (stepData.spouse.birthYear) state.secondarySpouse.yearOfBirth = Number(stepData.spouse.birthYear);
-            if (stepData.spouse.currentAge)
-                state.secondarySpouse.yearOfBirth = curYear - Number(stepData.spouse.currentAge);
-            if (stepData.spouse.targetRetirementAge) {
-                state.secondarySpouse.targetRetirementAge = Number(stepData.spouse.targetRetirementAge);
-                state.secondarySpouse.targetRetirementDate = `${state.secondarySpouse.yearOfBirth + state.secondarySpouse.targetRetirementAge}-01`;
-            }
-            if (stepData.spouse.lifeExpectancy)
-                state.secondarySpouse.estimatedLifeExpectancy = Number(stepData.spouse.lifeExpectancy);
-        } else {
-            state.secondarySpouse.name = '';
-            state.secondarySpouse.yearOfBirth = null;
-        }
-    }
-    if (Array.isArray(stepData.dependents)) {
+function _reconcileGuidedDependents(state, stepData, curYear) {
+    if (Array.isArray(stepData.dependents) && stepData.dependentsCount === undefined) {
         state.dependents = structuredClone(stepData.dependents);
+        return;
     }
+    if (stepData.dependentsCount === undefined) return;
+
+    const targetCount = Math.max(0, Number(stepData.dependentsCount) || 0);
+    const existing = Array.isArray(state.dependents) ? structuredClone(state.dependents) : [];
+    if (targetCount === existing.length) return;
+    if (targetCount < existing.length) {
+        state.dependents = existing.slice(0, targetCount);
+        return;
+    }
+    const nextList = [...existing];
+    while (nextList.length < targetCount) {
+        const idx = nextList.length + 1;
+        nextList.push({
+            id: `dep-${idx}`,
+            name: `Child ${idx}`,
+            yearOfBirth: curYear - 8,
+            annualCollegeCost: 25000,
+            currentCollegeSavingsBalance: 0
+        });
+    }
+    state.dependents = nextList;
+}
+
+function _applyGuidedStep1Primary(state, pData, curYear) {
+    if (!pData) return;
+    if (pData.name) state.primarySpouse.name = pData.name;
+    if (pData.birthYear) state.primarySpouse.yearOfBirth = Number(pData.birthYear);
+    if (pData.currentAge) state.primarySpouse.yearOfBirth = curYear - Number(pData.currentAge);
+    if (pData.targetRetirementAge) {
+        state.primarySpouse.targetRetirementAge = Number(pData.targetRetirementAge);
+        state.primarySpouse.targetRetirementDate = `${state.primarySpouse.yearOfBirth + state.primarySpouse.targetRetirementAge}-01`;
+    }
+    if (pData.lifeExpectancy) state.primarySpouse.estimatedLifeExpectancy = Number(pData.lifeExpectancy);
+}
+
+function _applyGuidedStep1Spouse(state, sData, curYear) {
+    if (!sData) return;
+    if (!sData.hasSpouse) {
+        state.secondarySpouse.name = '';
+        state.secondarySpouse.yearOfBirth = null;
+        return;
+    }
+    state.secondarySpouse.name = sData.name || state.secondarySpouse.name || 'Partner';
+    if (sData.birthYear) state.secondarySpouse.yearOfBirth = Number(sData.birthYear);
+    if (sData.currentAge) state.secondarySpouse.yearOfBirth = curYear - Number(sData.currentAge);
+    if (sData.targetRetirementAge) {
+        state.secondarySpouse.targetRetirementAge = Number(sData.targetRetirementAge);
+        state.secondarySpouse.targetRetirementDate = `${state.secondarySpouse.yearOfBirth + state.secondarySpouse.targetRetirementAge}-01`;
+    }
+    if (sData.lifeExpectancy) state.secondarySpouse.estimatedLifeExpectancy = Number(sData.lifeExpectancy);
+}
+
+function _applyGuidedStep1(state, stepData, curYear) {
+    _applyGuidedStep1Primary(state, stepData.primary, curYear);
+    _applyGuidedStep1Spouse(state, stepData.spouse, curYear);
+    _reconcileGuidedDependents(state, stepData, curYear);
 }
 
 function _applyGuidedStep2(state, stepData, curYear) {

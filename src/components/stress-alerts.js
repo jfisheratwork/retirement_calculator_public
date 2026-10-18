@@ -95,7 +95,7 @@ function computeStressSummary(depleted, bridgeGap, passed) {
     if (totalRisks === 0) {
         return {
             icon: '🛡️',
-            title: 'Historical Stress Tests: All Passed',
+            title: 'Early Market Crash Stress Tests: All Passed',
             subtitle: `All ${passed.length} historical crash scenarios fully funded`,
             tagText: '0 Risks',
             tagClass: 'tag-success',
@@ -108,7 +108,7 @@ function computeStressSummary(depleted, bridgeGap, passed) {
         const bgStr = bridgeGap.length > 0 ? `, ${bridgeGap.length} bridge gap${bridgeGap.length > 1 ? 's' : ''}` : '';
         return {
             icon: '⚠️',
-            title: 'Historical Stress Risks Found',
+            title: 'Early Market Crash Risks Found',
             subtitle: `${depStr}${bgStr}`,
             tagText: `${totalRisks} Risks Found`,
             tagClass: 'tag-danger',
@@ -119,7 +119,7 @@ function computeStressSummary(depleted, bridgeGap, passed) {
     const gapStr = `${bridgeGap.length} scenario${bridgeGap.length > 1 ? 's' : ''} with pre-59½ bridge liquidity gaps`;
     return {
         icon: '⚠️',
-        title: 'Historical Stress Risks Found',
+        title: 'Early Market Crash Risks Found',
         subtitle: gapStr,
         tagText: `${bridgeGap.length} Risks Found`,
         tagClass: 'tag-warning',

@@ -316,6 +316,53 @@ export class ExpenseCalculator {
         }
     }
 
+    static _processMortgageCosts({
+        mortgage,
+        year,
+        activeMonths,
+        firstActiveMonth,
+        onRecastLumpSum,
+        snapshot,
+        events
+    }) {
+        if (!mortgage.enabled || mortgage.currentBalance <= 0) return;
+
+        const amortResult = mortgage.amortize(activeMonths, {
+            year,
+            firstActiveMonth,
+            onRecastLumpSum
+        });
+        const mortgagePayment =
+            amortResult && typeof amortResult.totalPayment === 'number'
+                ? amortResult.totalPayment
+                : mortgage.getAnnualMortgagePayment() * (activeMonths / 12);
+
+        snapshot.expenses += mortgagePayment;
+        snapshot.expenseBreakdown.mortgage += mortgagePayment;
+
+        if (Array.isArray(amortResult?.recastEvents)) {
+            for (const rec of amortResult.recastEvents) {
+                events.push({
+                    year: rec.year,
+                    month: rec.month,
+                    label: `Mortgage Recast (-$${Math.round(rec.paymentReduction).toLocaleString()}/mo)`,
+                    type: 'mortgage_recast',
+                    color: '#0984e3'
+                });
+            }
+        }
+
+        if (amortResult?.paidOffMonth !== null || mortgage.currentBalance <= 0) {
+            events.push({
+                year,
+                month: amortResult?.paidOffMonth || 12,
+                label: 'Mortgage Paid Off',
+                type: 'mortgage_payoff',
+                color: '#00b894'
+            });
+        }
+    }
+
     static calculate({
         year,
         currentYear,
@@ -328,7 +375,8 @@ export class ExpenseCalculator {
         strategies,
         mortgage,
         snapshot,
-        events
+        events,
+        onRecastLumpSum = null
     }) {
         const yearsFromStart = year - currentYear;
         const inflationMultiplier = Math.pow(1 + (assumptions?.inflationRate || 0) / 100, yearsFromStart);
@@ -346,16 +394,15 @@ export class ExpenseCalculator {
         snapshot.expenses += housingCosts;
         snapshot.expenseBreakdown.housing += housingCosts;
 
-        const mortgagePayment = mortgage.getAnnualMortgagePayment() * monthFraction;
-        snapshot.expenses += mortgagePayment;
-        snapshot.expenseBreakdown.mortgage += mortgagePayment;
-
-        if (mortgage.enabled && mortgage.currentBalance > 0) {
-            mortgage.amortize(activeMonths);
-            if (mortgage.currentBalance <= 0) {
-                events.push({ year, label: 'Mortgage Paid Off', type: 'mortgage_payoff', color: '#00b894' });
-            }
-        }
+        this._processMortgageCosts({
+            mortgage,
+            year,
+            activeMonths,
+            firstActiveMonth,
+            onRecastLumpSum,
+            snapshot,
+            events
+        });
 
         // College 529 & Tuition
         this.processCollegeCosts({ dependents, year, currentYear, inflationMultiplier, assumptions, snapshot, events });

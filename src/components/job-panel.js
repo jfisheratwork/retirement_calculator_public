@@ -252,9 +252,16 @@ export class JobPanel extends BaseComponent {
 
         this.addEvent('input', 'input', (e) => {
             this._handleJobInputEvent(e.target);
+            this.dispatchEvent(
+                new CustomEvent('stateChange', {
+                    detail: { element: e.target },
+                    bubbles: true
+                })
+            );
         });
 
         this.addEvent('input, select', 'change', (e) => {
+            this._handleJobInputEvent(e.target);
             const path = e.target.getAttribute('data-path') || '';
             if (path.endsWith('.hasBonus')) {
                 const bonusContainer = this.querySelector('.job-bonus-container');

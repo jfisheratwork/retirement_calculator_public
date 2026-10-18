@@ -71,6 +71,7 @@ export class ExpressOnboardingModal extends BaseComponent {
         this._isOpen = false;
         this._isAssumptionsOpen = false;
         this._isDeeperOpen = false;
+        this._scenarioName = 'My Retirement Plan';
 
         this._formData = {
             currentAge: DEFAULT_CURRENT_AGE,
@@ -210,6 +211,10 @@ export class ExpressOnboardingModal extends BaseComponent {
     setViewModel(inputViewModel) {
         if (!inputViewModel || typeof inputViewModel !== 'object') return;
 
+        if (inputViewModel.scenarioName) {
+            this._scenarioName = String(inputViewModel.scenarioName).trim() || this._scenarioName;
+        }
+
         this._hydrateCoreFields(inputViewModel);
         this._hydrateDeeperFields(inputViewModel);
         this._metrics = this._calculateMetrics();
@@ -276,6 +281,12 @@ export class ExpressOnboardingModal extends BaseComponent {
      */
     _readInputsToFormData() {
         const queryElem = (selectorStr) => this.querySelector(selectorStr);
+
+        const nameInput = queryElem('#expr-scenario-name');
+        if (nameInput) {
+            const trimmed = nameInput.value.trim();
+            if (trimmed) this._scenarioName = trimmed;
+        }
 
         const ageInput = queryElem('#expr-current-age');
         const retInput = queryElem('#expr-retire-age');
@@ -432,7 +443,14 @@ export class ExpressOnboardingModal extends BaseComponent {
      * Dispatches express-complete event with full form configuration.
      */
     _dispatchCompleteEvent() {
+        const nameInput = this.querySelector('#expr-scenario-name');
+        if (nameInput) {
+            const trimmed = nameInput.value.trim();
+            if (trimmed) this._scenarioName = trimmed;
+        }
+
         const payloadObj = {
+            scenarioName: this._scenarioName,
             formData: {
                 ...this._formData,
                 targetRetirementAge: this._formData.retirementAge,
@@ -488,6 +506,7 @@ export class ExpressOnboardingModal extends BaseComponent {
                 <div class="express-modal-card"
                     style="width: 860px; max-width: 95vw; max-height: 94vh; overflow-y: auto; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 1.25rem; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85); padding: 2rem;">
                     ${this._renderHeader()}
+                    ${this._renderScenarioNameInput()}
                     ${this._renderHeroCard()}
                     ${this._renderCoreInputs()}
                     ${this._renderAssumptionsDrawer()}
@@ -517,6 +536,31 @@ export class ExpressOnboardingModal extends BaseComponent {
                     style="background: transparent; border: none; color: #94a3b8; font-size: 1.75rem; cursor: pointer; padding: 0.25rem 0.5rem; line-height: 1; border-radius: 0.375rem;">
                     &times;
                 </button>
+            </div>
+        `;
+    }
+
+    /**
+     * Renders Scenario Name input for Express mode.
+     * @returns {string} Scenario name input HTML.
+     */
+    _renderScenarioNameInput() {
+        return `
+            <div class="express-scenario-name-group"
+                style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(129, 140, 248, 0.25); border-radius: 0.75rem; padding: 0.85rem 1.25rem;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label for="expr-scenario-name"
+                        style="font-size: 0.78rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.2rem;">
+                        Scenario Name
+                    </label>
+                    <span style="font-size: 0.82rem; color: #94a3b8;">Active plan scenario name</span>
+                </div>
+                <div style="flex: 1; min-width: 240px;">
+                    <input type="text" id="expr-scenario-name" class="expr-scenario-name-input"
+                        value="${escapeHtml(this._scenarioName || 'My Retirement Plan')}"
+                        placeholder="e.g., Baseline Retirement"
+                        style="width: 100%; box-sizing: border-box; padding: 0.55rem 0.75rem; background: #0f172a; border: 1px solid rgba(99, 102, 241, 0.45); border-radius: 0.5rem; color: #f8fafc; font-size: 0.95rem; font-weight: 600;">
+                </div>
             </div>
         `;
     }

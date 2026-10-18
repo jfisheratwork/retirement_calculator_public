@@ -27,18 +27,15 @@
             crossorigin="anonymous"
         ></script>
 
-        <link rel="stylesheet" href="styles/main.css?v=1791750686676" />
+        <link rel="stylesheet" href="styles/main.css?v=1792296057173" />
+        <meta name="build-commit" content="a8395b7" />
+        <meta name="build-date" content="2026-10-18" />
     </head>
 
     <body>
         <!-- Parked Drawer -->
-        <div id="parked-drawer" title="Open Parameters">
+        <div id="parked-drawer" title="Open Retirement Details & Scenario Parameters">
             <span>Retirement Details</span>
-        </div>
-
-        <!-- Calculation Methodology & Financial Engine Parked Drawer -->
-        <div id="explain-parked-drawer" title="Open Calculation Methodology & Financial Engine">
-            <span>Methodology</span>
         </div>
 
         <!-- Chart Inspector (Custom Tooltip) - Moved to dashboard sidebar -->
@@ -87,36 +84,38 @@
                     </p>
                 </div>
                 <div class="header-actions">
-                    <div class="mode-pill-group" id="header-mode-group" title="Experience Mode">
-                        <button type="button" id="btn-mode-express" class="mode-pill-btn active" data-mode="express">
-                            ⚡ Express
-                        </button>
-                        <button type="button" id="btn-mode-guided" class="mode-pill-btn" data-mode="guided">
-                            🧭 Guided
-                        </button>
-                        <button type="button" id="btn-mode-advanced" class="mode-pill-btn" data-mode="advanced">
-                            ⚙️ Advanced
-                        </button>
-                    </div>
-                    <button type="button" id="btn-open-setup" class="btn btn-header-setup" title="Open Setup Wizard">
+                    <button
+                        type="button"
+                        id="btn-open-setup"
+                        class="btn btn-header-setup"
+                        title="Open Setup Wizard & Sample Scenarios"
+                    >
                         <span>⚡ Setup</span>
                     </button>
                     <button
-                        id="btn-load-sample"
-                        class="btn btn-sample-profile"
-                        title="Load Sample Household Profile (Couple 45 & 41, 2 Kids, $180k Income, $1.5M at 52)"
+                        type="button"
+                        id="btn-open-whatif"
+                        class="btn btn-secondary btn-small btn-whatif-amber"
+                        title="Open What-If Scenario Sandbox"
                     >
-                        <span>📊 Samples</span>
+                        <span>🔮 What If?</span>
                     </button>
                     <div class="scenario-pill-group">
+                        <span class="scenario-pill-label">Choose Scenario:</span>
                         <select id="profile-select" title="Active Plan Scenario"></select>
                         <div class="scenario-pill-divider"></div>
-                        <button id="btn-add-profile" class="scenario-pill-btn" title="Add Profile">➕</button>
-                        <button id="btn-rename-profile" class="scenario-pill-btn" title="Rename Profile">✏️</button>
-                        <button id="btn-delete-profile" class="scenario-pill-btn" title="Delete Profile">🗑️</button>
+                        <button id="btn-add-profile" class="scenario-pill-btn" title="Add Scenario">➕</button>
+                        <button
+                            id="btn-rename-profile"
+                            class="scenario-pill-btn"
+                            title="Edit Scenario in Retirement Details Drawer"
+                        >
+                            ✏️
+                        </button>
+                        <button id="btn-delete-profile" class="scenario-pill-btn" title="Delete Scenario">🗑️</button>
                     </div>
-                    <button id="btn-open-whatif" class="btn btn-whatif-amber" title="Open What-If Scenario Sandbox">
-                        <span>🔮 What If?</span>
+                    <button id="explain-parked-drawer" class="btn-header-icon" title="Calculation Methodology & Help">
+                        ?
                     </button>
                     <button id="btn-lock-data" class="btn-header-icon" title="PIN Lock Security">🔒</button>
                     <button id="btn-edit-params" class="btn-header-icon" title="Settings">⚙️</button>
@@ -125,131 +124,221 @@
 
             <div class="dashboard-layout">
                 <main class="main-content">
-                    <div class="dashboard-status-strip">
-                        <div id="fire-indicator-container"></div>
-                        <div id="stress-test-alerts"></div>
-                    </div>
+                    <details id="insights-box" class="insights-box glass-panel">
+                        <summary class="insights-box-summary">
+                            <div class="insights-box-title-group">
+                                <span class="insights-box-icon">💡</span>
+                                <span class="insights-box-title">Insights</span>
+                                <span id="insights-count-badge" class="insights-count-badge"
+                                    >Milestones, Stress &amp; Pull-Forward</span
+                                >
+                            </div>
+                            <span class="insights-toggle-btn">Show Insights ▾</span>
+                        </summary>
+                        <div class="insights-box-body dashboard-status-strip">
+                            <div id="fire-indicator-container"></div>
+                            <div id="stress-test-alerts"></div>
+                            <div id="pull-forward-banner"></div>
+                        </div>
+                    </details>
 
-                    <section class="top-kpis">
-                        <div class="chart-card glass-panel">
-                            <h3>Portfolio Value Over Time</h3>
-                            <div class="chart-container">
-                                <canvas id="portfolioChart"></canvas>
+                    <!-- Unified Tabbed Chart Stage (SPEC-073) -->
+                    <section id="unified-chart-stage" class="chart-stage-card chart-card glass-panel">
+                        <div class="stage-topbar">
+                            <div class="stage-tab-strip" role="tablist" aria-label="Retirement Chart Views">
+                                <button
+                                    type="button"
+                                    class="stage-tab-pill active"
+                                    data-chart-tab="portfolio"
+                                    role="tab"
+                                    aria-selected="true"
+                                >
+                                    Wealth Trajectory
+                                </button>
+                                <button
+                                    type="button"
+                                    class="stage-tab-pill"
+                                    data-chart-tab="income"
+                                    role="tab"
+                                    aria-selected="false"
+                                >
+                                    Income vs Spending
+                                </button>
+                                <button
+                                    type="button"
+                                    class="stage-tab-pill"
+                                    data-chart-tab="sorr"
+                                    role="tab"
+                                    aria-selected="false"
+                                >
+                                    Market Crash Test
+                                </button>
+                                <button
+                                    type="button"
+                                    class="stage-tab-pill"
+                                    data-chart-tab="taxes-cashflow"
+                                    role="tab"
+                                    aria-selected="false"
+                                >
+                                    Taxes &amp; Withdrawals
+                                </button>
+                            </div>
+
+                            <div class="stage-topbar-controls">
+                                <div class="stage-control-group" id="stage-portfolio-mode-control">
+                                    <span class="stage-control-label">View Mode</span>
+                                    <div class="stage-segmented-mini" id="portfolio-view-mode-group">
+                                        <button type="button" class="stage-mini-btn" data-portfolio-mode="buckets">
+                                            Grouped Buckets
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="stage-mini-btn active"
+                                            data-portfolio-mode="individual"
+                                        >
+                                            Individual Accounts
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="stage-control-group hidden" id="stage-income-mode-control">
+                                    <span class="stage-control-label">Series View</span>
+                                    <div class="stage-segmented-mini" id="income-detail-mode-group">
+                                        <button type="button" class="stage-mini-btn active" data-income-detail="simple">
+                                            Clean Summary
+                                        </button>
+                                        <button type="button" class="stage-mini-btn" data-income-detail="detail">
+                                            Enable Detail View
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="stage-control-group hidden" id="stage-taxes-mode-control">
+                                    <span class="stage-control-label">Sub-View</span>
+                                    <div class="stage-segmented-mini" id="taxes-subview-group">
+                                        <button
+                                            type="button"
+                                            class="stage-mini-btn active"
+                                            data-taxes-subview="cashflow"
+                                        >
+                                            Cash Flow &amp; Drawdown
+                                        </button>
+                                        <button type="button" class="stage-mini-btn" data-taxes-subview="tax">
+                                            Annual Tax Burden
+                                        </button>
+                                        <button type="button" class="stage-mini-btn" data-taxes-subview="networth">
+                                            Liquid vs Net Worth
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="stage-control-group">
+                                    <span class="stage-control-label">Today's Dollars</span>
+                                    <button
+                                        type="button"
+                                        id="btn-stage-real-dollars"
+                                        class="stage-toggle-switch active"
+                                        aria-pressed="true"
+                                        title="Toggle Today's Purchasing Power vs Future Nominal Dollars"
+                                    >
+                                        <span class="toggle-text">ON</span>
+                                        <span class="toggle-knob"></span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div class="chart-card glass-panel">
-                            <h3>Income vs Expenses</h3>
-                            <div class="chart-container">
-                                <canvas id="incomeChart"></canvas>
+
+                        <div class="chart-stage-well">
+                            <!-- Tab 1: Wealth Trajectory (Option 1C) -->
+                            <div id="chart-pane-portfolio" class="chart-stage-pane active" role="tabpanel">
+                                <div id="portfolio-option1c-header" class="portfolio-option1c-header"></div>
+                                <div class="chart-container stage-canvas-wrap">
+                                    <canvas id="portfolioChart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Tab 2: Income vs Spending -->
+                            <div id="chart-pane-income" class="chart-stage-pane hidden" role="tabpanel">
+                                <div id="income-pill-header" class="income-pill-header"></div>
+                                <div class="chart-container stage-canvas-wrap">
+                                    <canvas id="incomeChart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Tab 3: Market Crash Test (SORR) -->
+                            <div id="chart-pane-sorr" class="chart-stage-pane hidden" role="tabpanel">
+                                <div
+                                    class="sorr-controls-bar"
+                                    style="
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                        gap: 0.75rem;
+                                        margin-bottom: 0.75rem;
+                                        flex-wrap: wrap;
+                                    "
+                                >
+                                    <span style="font-size: 0.9rem; font-weight: 600; color: #e2e8f0">
+                                        Early Market Crash Stress Test (Sequence of Returns Risk)
+                                    </span>
+                                    <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap">
+                                        <label
+                                            for="sorr-scenario-select"
+                                            style="
+                                                margin: 0;
+                                                font-size: 0.85rem;
+                                                color: var(--text-muted);
+                                                font-weight: 500;
+                                            "
+                                        >
+                                            Simulate Retiring Into Historical Market Crash:
+                                        </label>
+                                        <select id="sorr-scenario-select" style="margin-bottom: 0; max-width: 340px">
+                                            <option value="average">General Average Returns</option>
+                                            <option value="2000-2009">Lost Decade (2000-2009)</option>
+                                            <option value="2015-2024">Tech Boom (2015-2024)</option>
+                                            <option value="1987-1996">Post-Crash Recovery (1987-1996)</option>
+                                            <option value="1990-1999">The 90s Bull (1990-1999)</option>
+                                            <option value="1973-1982">Stagflation (1973-1982)</option>
+                                            <option value="2008-2017">
+                                                2008 Financial Crisis &amp; Low-Rate Recovery (2008–2017)
+                                            </option>
+                                            <option value="1968-1977">Go-Go 60s &amp; Nifty Fifty (1968-1977)</option>
+                                            <option value="1929-1938">The Great Crash of 1929 (1929-1938)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="chart-container stage-canvas-wrap">
+                                    <canvas id="sorrChart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Tab 4: Taxes & Withdrawals (Cashflow, Tax Burden, Net Worth) -->
+                            <div id="chart-pane-taxes-cashflow" class="chart-stage-pane hidden" role="tabpanel">
+                                <div id="subpane-cashflow" class="chart-container stage-canvas-wrap">
+                                    <canvas id="cashflowChart"></canvas>
+                                </div>
+                                <div id="subpane-tax" class="chart-container stage-canvas-wrap hidden">
+                                    <canvas id="taxChart"></canvas>
+                                </div>
+                                <div id="subpane-networth" class="chart-container stage-canvas-wrap hidden">
+                                    <canvas id="netWorthChart"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="stage-footer-bar">
+                                <label for="focus-year-select" class="stage-footer-label">
+                                    Inspect year-by-year table ▸
+                                </label>
+                                <select id="focus-year-select" class="stage-footer-select">
+                                    <option value="">-- Select Year to Inspect --</option>
+                                </select>
                             </div>
                         </div>
                     </section>
-
-                    <div style="display: flex; justify-content: center; margin-top: 1.5rem">
-                        <div
-                            style="
-                                display: flex;
-                                align-items: center;
-                                gap: 0.5rem;
-                                background: var(--glass-bg);
-                                padding: 0.75rem 1.5rem;
-                                border-radius: 8px;
-                                border: 1px solid var(--accent);
-                                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-                            "
-                        >
-                            <label
-                                for="focus-year-select"
-                                style="font-weight: bold; margin: 0; color: var(--accent); font-size: 1.1rem"
-                                >📊 Financial Details - Focus on Year:</label
-                            >
-                            <select
-                                id="focus-year-select"
-                                style="
-                                    padding: 0.4rem 0.8rem;
-                                    border-radius: 4px;
-                                    border: 1px solid var(--glass-border);
-                                    background: var(--bg-color);
-                                    color: var(--text-color);
-                                    font-size: 1rem;
-                                    font-weight: bold;
-                                "
-                            >
-                                <option value="">-- Select Year --</option>
-                            </select>
-                        </div>
-                    </div>
 
                     <!-- Financial Details Inspector Component -->
                     <financial-details-inspector id="financial-details-container"></financial-details-inspector>
-
-                    <!-- Collapsible Charts Section (SORR, Cashflow, Net Worth, Tax Burden) -->
-                    <section class="dashboard-grid dashboard-collapsible-charts">
-                        <details class="chart-card glass-panel" style="cursor: pointer">
-                            <summary>
-                                <h3 style="display: inline-block; margin: 0">
-                                    Sequence of Returns Risk (SORR) & Stress Testing
-                                </h3>
-                            </summary>
-                            <div
-                                class="sorr-controls-bar"
-                                style="
-                                    display: flex;
-                                    justify-content: flex-end;
-                                    align-items: center;
-                                    gap: 0.75rem;
-                                    margin-top: 1rem;
-                                    margin-bottom: 0.5rem;
-                                    flex-wrap: wrap;
-                                "
-                            >
-                                <label
-                                    for="sorr-scenario-select"
-                                    style="margin: 0; font-size: 0.875rem; color: var(--text-muted); font-weight: 500"
-                                >
-                                    Historical Stress Scenario:
-                                </label>
-                                <select id="sorr-scenario-select" style="margin-bottom: 0; max-width: 340px">
-                                    <option value="average">General Average Returns</option>
-                                    <option value="2000-2009">Lost Decade (2000-2009)</option>
-                                    <option value="2015-2024">Tech Boom (2015-2024)</option>
-                                    <option value="1987-1996">Post-Crash Recovery (1987-1996)</option>
-                                    <option value="1990-1999">The 90s Bull (1990-1999)</option>
-                                    <option value="1973-1982">Stagflation (1973-1982)</option>
-                                    <option value="2008-2017">GFC & ZIRP Bull (2008-2017)</option>
-                                    <option value="1968-1977">Go-Go 60s & Nifty Fifty (1968-1977)</option>
-                                    <option value="1929-1938">The Great Crash of 1929 (1929-1938)</option>
-                                </select>
-                            </div>
-                            <div class="chart-container" style="height: 450px; margin-top: 1rem">
-                                <canvas id="sorrChart"></canvas>
-                            </div>
-                        </details>
-                        <details class="chart-card glass-panel" style="cursor: pointer">
-                            <summary>
-                                <h3 style="display: inline-block; margin: 0">Inflows vs Outflows (Cashflow)</h3>
-                            </summary>
-                            <div class="chart-container" style="margin-top: 1rem">
-                                <canvas id="cashflowChart"></canvas>
-                            </div>
-                        </details>
-                        <details class="chart-card glass-panel" style="cursor: pointer">
-                            <summary>
-                                <h3 style="display: inline-block; margin: 0">Liquid Assets vs Net Worth</h3>
-                            </summary>
-                            <div class="chart-container" style="height: 400px; margin-top: 1rem">
-                                <canvas id="netWorthChart"></canvas>
-                            </div>
-                        </details>
-                        <details class="chart-card glass-panel" style="cursor: pointer">
-                            <summary>
-                                <h3 style="display: inline-block; margin: 0">Tax Burden Over Time</h3>
-                            </summary>
-                            <div class="chart-container" style="height: 400px; margin-top: 1rem">
-                                <canvas id="taxChart"></canvas>
-                            </div>
-                        </details>
-                    </section>
                 </main>
 
                 <aside class="dashboard-sidebar">
@@ -265,9 +354,53 @@
         <!-- Drawer for Parameters -->
         <div id="params-modal" class="drawer-overlay hidden">
             <div class="drawer-content">
-                <div class="drawer-header">
-                    <div style="display: flex; gap: 1rem; align-items: center">
-                        <h2>Settings & Parameters</h2>
+                <div class="drawer-header" style="flex-wrap: wrap; gap: 1rem">
+                    <div style="display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap; flex: 1">
+                        <h2 style="margin: 0">Retirement Details</h2>
+                        <div class="drawer-scenario-name-group" style="display: flex; align-items: center; gap: 0.5rem">
+                            <label
+                                for="drawer-scenario-name-input"
+                                style="
+                                    margin: 0;
+                                    font-size: 0.82rem;
+                                    font-weight: 600;
+                                    color: var(--text-muted);
+                                    white-space: nowrap;
+                                "
+                            >
+                                Scenario Name:
+                            </label>
+                            <input
+                                type="text"
+                                id="drawer-scenario-name-input"
+                                class="drawer-scenario-name-input"
+                                placeholder="e.g., Default Scenario"
+                                title="Edit Active Scenario Name"
+                                style="
+                                    margin: 0;
+                                    padding: 0.35rem 0.65rem;
+                                    font-size: 0.9rem;
+                                    font-weight: 600;
+                                    width: 220px;
+                                    border-radius: 6px;
+                                    border: 1px solid var(--glass-border);
+                                    background: rgba(15, 23, 42, 0.7);
+                                    color: var(--text-main);
+                                "
+                            />
+                        </div>
+                        <div
+                            class="drawer-layout-switcher"
+                            id="drawer-layout-switcher"
+                            title="Switch between Simplified 5-Tab View and Classic 8-Tab View"
+                        >
+                            <button type="button" class="drawer-mode-btn active" data-drawer-mode="simplified">
+                                ✨ Simplified (5 Tabs)
+                            </button>
+                            <button type="button" class="drawer-mode-btn" data-drawer-mode="classic">
+                                🛠️ Classic Advanced (8 Tabs)
+                            </button>
+                        </div>
                     </div>
                     <div class="drawer-header-actions" style="display: flex; align-items: center; gap: 0.75rem">
                         <button
@@ -308,6 +441,6 @@
         <!-- What If Sandbox Drawer Component -->
         <what-if-drawer id="what-if-drawer"></what-if-drawer>
 
-        <script type="module" src="src/app.js?v=1791750686676"></script>
+        <script type="module" src="src/app.js?v=1792296057173"></script>
     </body>
 </html>

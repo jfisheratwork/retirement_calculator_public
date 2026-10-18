@@ -81,6 +81,8 @@ function createInitialBalances(p1, p2, { cushion, equity, homeValue, mortgage })
         s2Trad403b: getAccountBalance(p2, 'trad403b'),
         s1StandardIra: getAccountBalance(p1, 'standardIra'),
         s2StandardIra: getAccountBalance(p2, 'standardIra'),
+        s1SeppIra: 0,
+        s2SeppIra: 0,
         s1Hysa: getAccountBalance(p1, 'hysa'),
         s2Hysa: getAccountBalance(p2, 'hysa'),
         s1Cd: getAccountBalance(p1, 'cd'),
@@ -110,7 +112,7 @@ export class YearlySnapshot {
 
         this.year = year;
         this.age1 = p1 ? p1.getAge(year) : 0;
-        this.age2 = p2 ? p2.getAge(year) : 0;
+        this.age2 = p2 && p2.isConfigured ? p2.getAge(year) : null;
         this.income = createInitialIncome();
 
         this.expenses = 0;

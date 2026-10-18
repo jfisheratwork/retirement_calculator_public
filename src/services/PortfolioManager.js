@@ -325,6 +325,9 @@ export class PortfolioManager {
         cd.isMatured = true;
 
         targetAcc.balance += maturedBalance;
+        if (targetAcc.costBasis !== undefined) {
+            targetAcc.costBasis += maturedBalance;
+        }
         targetAcc.yearRolloverIn = (targetAcc.yearRolloverIn || 0) + maturedBalance;
         if (events && Array.isArray(events)) {
             events.push({
@@ -354,6 +357,7 @@ export class PortfolioManager {
     }
 
     static _findAccountByIdOrName(accounts, targetId) {
+        if (!targetId) return null;
         return (accounts || []).find((a) => a.id === targetId || a.name === targetId) || null;
     }
 

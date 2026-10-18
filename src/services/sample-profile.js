@@ -225,7 +225,25 @@ export const SAMPLE_FAMILY_DATA = {
         termYears: 30,
         yearlyInsurance: 1500,
         yearlyTaxes: 4200,
-        yearlyRepairs: 1500
+        yearlyRepairs: 1500,
+        extraMonthlyPayment: 0,
+        recast: {
+            enabled: false,
+            date: '2028-06',
+            amount: 0,
+            fundingSource: 'taxableBrokerage'
+        },
+        downsizing: {
+            enabled: false,
+            year: 2034,
+            sellingCostPercentage: 6,
+            replacementHomeCostPercentage: 42.5,
+            propertyCostReductionPercentage: 25,
+            financeReplacement: false,
+            downPaymentPercentage: 20,
+            replacementInterestRate: 5.5,
+            replacementTermYears: 30
+        }
     },
     primaryResidenceEquity: {
         enabled: true,

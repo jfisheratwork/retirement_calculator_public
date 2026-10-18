@@ -141,18 +141,18 @@ export class ProfileManagerModal extends BaseComponent {
         return `
             <div id="add-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999; display: none;">
                 <div class="glass-panel" style="padding: 2rem; border-radius: 1rem; width: 400px; max-width: 90vw;">
-                    <h2 style="margin-top: 0;">Add New Profile</h2>
-                    <div class="input-group">
-                        <label>Profile Name</label>
-                        <input type="text" id="add-profile-name" placeholder="E.g. Coast Fire Scenario">
+                    <h2 style="margin-top: 0; margin-bottom: 1.25rem;">Add New Scenario</h2>
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label for="add-profile-name" style="display: block; margin-bottom: 0.45rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Scenario Name</label>
+                        <input type="text" id="add-profile-name" placeholder="E.g. Coast FIRE Scenario" style="width: 100%; box-sizing: border-box;">
                     </div>
                     <div class="checkbox-group" style="margin: 1rem 0;">
                         <input type="checkbox" id="add-profile-clone" checked>
-                        <label>Clone current active profile</label>
+                        <label for="add-profile-clone">Clone current active scenario</label>
                     </div>
                     <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                         <button id="btn-add-profile-cancel" class="btn btn-secondary" style="flex: 1;">Cancel</button>
-                        <button id="btn-add-profile-confirm" class="btn btn-primary" style="flex: 1;">Create</button>
+                        <button id="btn-add-profile-confirm" class="btn btn-primary" style="flex: 1;">Create Scenario</button>
                     </div>
 
                     <hr style="border-color: rgba(255,255,255,0.1); margin: 1.5rem 0 1rem 0;">
@@ -172,20 +172,6 @@ export class ProfileManagerModal extends BaseComponent {
                     </div>
                 </div>
             </div>
-
-            <div id="rename-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999; display: none;">
-                <div class="glass-panel" style="padding: 2rem; border-radius: 1rem; width: 400px; max-width: 90vw;">
-                    <h2 style="margin-top: 0;">Rename Profile</h2>
-                    <div class="input-group">
-                        <label>Profile Name</label>
-                        <input type="text" id="rename-profile-name">
-                    </div>
-                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                        <button id="btn-rename-profile-cancel" class="btn btn-secondary" style="flex: 1;">Cancel</button>
-                        <button id="btn-rename-profile-confirm" class="btn btn-primary" style="flex: 1;">Rename</button>
-                    </div>
-                </div>
-            </div>
         `;
     }
 
@@ -194,7 +180,7 @@ export class ProfileManagerModal extends BaseComponent {
             ${this._renderAddAndRenameModals()}
             <div id="delete-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999; display: none;">
                 <div class="glass-panel" style="padding: 2rem; border-radius: 1rem; width: 400px; max-width: 90vw; border: 1px solid var(--error);">
-                    <h2 style="margin-top: 0; color: var(--error);">Delete Profile</h2>
+                    <h2 style="margin-top: 0; color: var(--error);">Delete Scenario</h2>
                     <p>Are you sure you want to delete <strong id="delete-profile-target-name"></strong>? This cannot be undone.</p>
                     <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                         <button id="btn-delete-profile-cancel" class="btn btn-secondary" style="flex: 1;">Cancel</button>
@@ -205,22 +191,22 @@ export class ProfileManagerModal extends BaseComponent {
 
             <div id="import-profile-modal" class="drawer-overlay hidden" style="align-items: center; justify-content: center; z-index: 9999; display: none;">
                 <div class="glass-panel" style="padding: 2rem; border-radius: 1rem; width: 400px; max-width: 90vw;">
-                    <h2 style="margin-top: 0;">Import Profile</h2>
-                    <p style="color: var(--text-muted); font-size: 0.9rem;">How would you like to import this JSON data?</p>
+                    <h2 style="margin-top: 0;">Import Scenario</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">How would you like to import this scenario data?</p>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem; margin: 1rem 0;">
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                             <input type="radio" name="import-mode" value="new" checked>
-                            <span>Import as New Profile</span>
+                            <span>Import as New Scenario</span>
                         </label>
-                        <div class="input-group" id="import-new-name-group" style="padding-left: 1.5rem;">
-                            <input type="text" id="import-new-name" placeholder="Profile Name">
+                        <div class="form-group" id="import-new-name-group" style="padding-left: 1.5rem; margin-bottom: 0.5rem;">
+                            <input type="text" id="import-new-name" placeholder="Scenario Name" style="width: 100%; box-sizing: border-box;">
                         </div>
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-top: 0.5rem;">
                             <input type="radio" name="import-mode" value="replace">
-                            <span>Replace Existing Profile</span>
+                            <span>Replace Existing Scenario</span>
                         </label>
-                        <div class="input-group" id="import-replace-group" style="padding-left: 1.5rem; display: none;">
-                            <select id="import-replace-select"></select>
+                        <div class="form-group" id="import-replace-group" style="padding-left: 1.5rem; display: none;">
+                            <select id="import-replace-select" style="width: 100%; box-sizing: border-box;"></select>
                         </div>
                     </div>
                     <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
@@ -301,19 +287,24 @@ export class ProfileManagerModal extends BaseComponent {
 
         this._bindSamplePresets();
 
-        this.querySelector('#btn-rename-profile-cancel').addEventListener('click', () => this.closeAll());
-        this.querySelector('#btn-rename-profile-confirm').addEventListener('click', () => {
-            const newName = this.querySelector('#rename-profile-name').value.trim() || 'Unnamed Profile';
-            renameProfile(getActiveProfileId(), newName);
-            this.dispatchUpdate();
-            this.closeAll();
-        });
+        const btnRenameCancel = this.querySelector('#btn-rename-profile-cancel');
+        if (btnRenameCancel) btnRenameCancel.addEventListener('click', () => this.closeAll());
+        const btnRenameConfirm = this.querySelector('#btn-rename-profile-confirm');
+        if (btnRenameConfirm) {
+            btnRenameConfirm.addEventListener('click', () => {
+                const input = this.querySelector('#rename-profile-name');
+                const newName = (input && input.value.trim()) || 'Unnamed Scenario';
+                renameProfile(getActiveProfileId(), newName);
+                this.dispatchUpdate();
+                this.closeAll();
+            });
+        }
 
         this.querySelector('#btn-delete-profile-cancel').addEventListener('click', () => this.closeAll());
         this.querySelector('#btn-delete-profile-confirm').addEventListener('click', () => {
             const profiles = getProfiles();
             if (profiles.length <= 1) {
-                alert('Cannot delete the only remaining profile.');
+                alert('Cannot delete the only remaining scenario.');
                 this.closeAll();
                 return;
             }
@@ -353,24 +344,21 @@ export class ProfileManagerModal extends BaseComponent {
 
     openRename() {
         this.closeAll();
-        const activeId = getActiveProfileId();
-        const activeProfile = getProfiles().find((p) => p.id === activeId);
-        const activeName = activeProfile ? activeProfile.name : 'Current Profile';
-        this.querySelector('#rename-profile-name').value = activeName;
-        const modal = this.querySelector('#rename-profile-modal');
-        modal.classList.remove('hidden');
-        modal.style.display = 'flex';
+        const renameBtn = document.getElementById('btn-rename-profile');
+        if (renameBtn) {
+            renameBtn.click();
+        }
     }
 
     openDelete() {
         if (getProfiles().length <= 1) {
-            alert('Cannot delete the only profile.');
+            alert('Cannot delete the only remaining scenario.');
             return;
         }
         this.closeAll();
         const activeId = getActiveProfileId();
         const activeProfile = getProfiles().find((p) => p.id === activeId);
-        const activeName = activeProfile ? activeProfile.name : 'Current Profile';
+        const activeName = activeProfile ? activeProfile.name : 'Current Scenario';
         this.querySelector('#delete-profile-target-name').textContent = escapeHtml(activeName);
         const modal = this.querySelector('#delete-profile-modal');
         modal.classList.remove('hidden');

@@ -36,10 +36,10 @@ export class CashFlowManager {
         return ctx;
     }
 
-    static _isPenaltyExemptPreTax(age, type, isRuleOf55Eligible) {
+    static _isPenaltyExemptPreTax(age, account, isRuleOf55Eligible) {
         if (age >= STATUTORY_PENALTY_FREE_AGE) return true;
-        const isWorkplacePlan = type === 'traditional401k' || type === 'trad403b';
-        return Boolean(isRuleOf55Eligible && isWorkplacePlan);
+        if (!account || typeof account._isRuleOf55Exempt !== 'function') return false;
+        return Boolean(account._isRuleOf55Exempt(age, isRuleOf55Eligible));
     }
 
     static _recordPenalizedDrawdown(snapshot, spouseKey, amount, isPenaltyExempt, allowEarlyPenalty) {
@@ -58,7 +58,7 @@ export class CashFlowManager {
         const age = spouse.getAge(ctx.year);
         const isRuleOf55Eligible =
             typeof spouse.isRuleOf55Eligible === 'function' ? spouse.isRuleOf55Eligible(ctx.year) : false;
-        const isPenaltyExempt = CashFlowManager._isPenaltyExemptPreTax(age, type, isRuleOf55Eligible);
+        const isPenaltyExempt = CashFlowManager._isPenaltyExemptPreTax(age, account, isRuleOf55Eligible);
         const grossNeeded = Math.min(ctx.amountLeft, maxDraw) / (1 - ctx.stateRate);
 
         const d = account.withdraw(
@@ -212,6 +212,24 @@ export class CashFlowManager {
         }
     }
 
+    static _executeRuleOf55WorkplaceFallback(ctx, s1, s2) {
+        const workplaceTypes = ['traditional401k', 'trad403b'];
+        for (const type of workplaceTypes) {
+            if (ctx.amountLeft <= 0) break;
+            if (s1 && typeof s1.isRuleOf55Eligible === 'function' && s1.isRuleOf55Eligible(ctx.year)) {
+                ctx.tryPullPreTax(s1, type, Infinity, false);
+            }
+            if (
+                ctx.amountLeft > 0 &&
+                s2 &&
+                typeof s2.isRuleOf55Eligible === 'function' &&
+                s2.isRuleOf55Eligible(ctx.year)
+            ) {
+                ctx.tryPullPreTax(s2, type, Infinity, false);
+            }
+        }
+    }
+
     static withdrawFromPortfolios({
         amountNeeded,
         year,
@@ -227,7 +245,8 @@ export class CashFlowManager {
         drawdownTierAge = DEFAULT_TIER_AGE,
         taxYearData = null,
         currentTaxableIncome = 0,
-        filingStatus = 'mfj'
+        filingStatus = 'mfj',
+        allowEarlyPenalizedWithdrawals = false
     }) {
         const ctx = CashFlowManager._createWithdrawalContext({
             amountNeeded,
@@ -248,7 +267,8 @@ export class CashFlowManager {
             });
         }
 
-        if (drawdownStrategy === 'age_tiered_60' || drawdownStrategy === 'age_tiered') {
+        const isAgeTiered = drawdownStrategy === 'age_tiered_60' || drawdownStrategy === 'age_tiered';
+        if (isAgeTiered) {
             CashFlowManager._executeAgeTieredDrawdowns({
                 s1,
                 s2,
@@ -266,6 +286,10 @@ export class CashFlowManager {
         CashFlowManager._pullCushionAndReverseMortgage(ctx, cashCushion, primaryResidenceEquity, snapshot);
 
         if (ctx.amountLeft > 0) {
+            CashFlowManager._executeRuleOf55WorkplaceFallback(ctx, s1, s2);
+        }
+
+        if (ctx.amountLeft > 0 && allowEarlyPenalizedWithdrawals === true) {
             CashFlowManager._executePenalizedPreTaxFallback(ctx, s1, s2);
         }
 

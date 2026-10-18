@@ -63,12 +63,20 @@ export class FireMilestoneCalculator {
      * including an actuarial terminal reserve annuity if the simulation ends prior to life expectancy.
      * @param {Array<Object>} snapshots - Array of YearlySnapshot objects
      * @param {number} startIdx - Index in snapshots to discount back to
-     * @param {number} realRate - Discount rate
+     * @param {number} discountRate - Nominal discount rate (matches nominal cash flows in snapshots)
      * @param {Function} netExpenseFn - Function (snapshot, idx) returning net expense required
      * @param {number} [terminalYears=0] - Additional post-simulation retirement years until life expectancy
+     * @param {number} [realRateForTerminal=null] - Real discount rate for post-simulation terminal reserve annuity
      * @returns {number} Required present value portfolio at startIdx
      */
-    static calculateRequiredPortfolioAt(snapshots, startIdx, realRate, netExpenseFn, terminalYears = 0) {
+    static calculateRequiredPortfolioAt(
+        snapshots,
+        startIdx,
+        discountRate,
+        netExpenseFn,
+        terminalYears = 0,
+        realRateForTerminal = null
+    ) {
         if (!snapshots || startIdx >= snapshots.length || startIdx < 0) return 0;
 
         let required = 0;
@@ -76,8 +84,9 @@ export class FireMilestoneCalculator {
             const lastIdx = snapshots.length - 1;
             const lastNetNeed = netExpenseFn ? netExpenseFn(snapshots[lastIdx], lastIdx) : 0;
             if (lastNetNeed > 0) {
-                if (realRate > 0.0001) {
-                    required = lastNetNeed * ((1 - Math.pow(1 + realRate, -terminalYears)) / realRate);
+                const annuityRate = realRateForTerminal ?? discountRate;
+                if (annuityRate > 0.0001) {
+                    required = lastNetNeed * ((1 - Math.pow(1 + annuityRate, -terminalYears)) / annuityRate);
                 } else {
                     required = lastNetNeed * terminalYears;
                 }
@@ -86,7 +95,7 @@ export class FireMilestoneCalculator {
 
         for (let i = snapshots.length - 1; i >= startIdx; i--) {
             const netNeed = netExpenseFn(snapshots[i], i);
-            required = required / (1 + realRate) + netNeed;
+            required = required / (1 + discountRate) + netNeed;
         }
         return Math.max(0, required);
     }
@@ -109,7 +118,7 @@ export class FireMilestoneCalculator {
      * @private
      */
     static _checkMilestone(currentMilestone, actualPortfolio, target, year, ageInfo) {
-        if (!currentMilestone && actualPortfolio >= target && target > 0) {
+        if (!currentMilestone && isFinite(target) && actualPortfolio >= target && target > 0) {
             return {
                 year,
                 age: ageInfo?.age ?? ageInfo?.age1,
@@ -124,22 +133,16 @@ export class FireMilestoneCalculator {
 
     /**
      * Calculates the discounted Coast FIRE target at a given index.
+     * Coast FIRE is strictly a pre-retirement milestone (i <= coastTargetIdx).
      * @private
      */
     static _computeCoastTarget(i, context) {
-        const {
-            simulationData,
-            coastTargetIdx,
-            requiredNestEggAtRetirement,
-            realRate,
-            retirementNetExpenseFn,
-            terminalYears
-        } = context;
+        const { coastTargetIdx, requiredNestEggAtRetirement, nominalRate } = context;
         if (i <= coastTargetIdx) {
             const yearsToCoast = coastTargetIdx - i;
-            return requiredNestEggAtRetirement / Math.pow(1 + realRate, yearsToCoast);
+            return requiredNestEggAtRetirement / Math.pow(1 + nominalRate, yearsToCoast);
         }
-        return this.calculateRequiredPortfolioAt(simulationData, i, realRate, retirementNetExpenseFn, terminalYears);
+        return Infinity;
     }
 
     /**
@@ -147,8 +150,15 @@ export class FireMilestoneCalculator {
      * @private
      */
     static _computeFullTarget(i, context) {
-        const { simulationData, realRate, retirementNetExpenseFn, terminalYears } = context;
-        return this.calculateRequiredPortfolioAt(simulationData, i, realRate, retirementNetExpenseFn, terminalYears);
+        const { simulationData, nominalRate, realRate, retirementNetExpenseFn, terminalYears } = context;
+        return this.calculateRequiredPortfolioAt(
+            simulationData,
+            i,
+            nominalRate,
+            retirementNetExpenseFn,
+            terminalYears,
+            realRate
+        );
     }
 
     /**
@@ -156,13 +166,20 @@ export class FireMilestoneCalculator {
      * @private
      */
     static _computeLeanTarget(i, context) {
-        const { simulationData, realRate, leanRatio, terminalYears } = context;
+        const { simulationData, nominalRate, realRate, leanRatio, terminalYears } = context;
         const leanExpenseFn = (s) => {
             const expenses = (s.expenses || 0) * leanRatio;
             const inflows = this.getGuaranteedInflows(s);
             return Math.max(0, expenses - inflows);
         };
-        return this.calculateRequiredPortfolioAt(simulationData, i, realRate, leanExpenseFn, terminalYears);
+        return this.calculateRequiredPortfolioAt(
+            simulationData,
+            i,
+            nominalRate,
+            leanExpenseFn,
+            terminalYears,
+            realRate
+        );
     }
 
     /**
@@ -182,6 +199,8 @@ export class FireMilestoneCalculator {
             's2Trad403b',
             's1StandardIra',
             's2StandardIra',
+            's1SeppIra',
+            's2SeppIra',
             's1Hysa',
             's2Hysa',
             's1Cd',
@@ -211,8 +230,9 @@ export class FireMilestoneCalculator {
         for (let i = 0; i < simulationData.length; i++) {
             const snap = simulationData[i];
             const year = snap.year;
-            const age1 = snap.age1 ?? snap.age ?? year - context.primaryBirthYear;
-            const age2 = snap.age2 && snap.age2 > 0 ? snap.age2 : null;
+            const isSingle = context.isSingleFiler;
+            const age1 = snap.age1 ?? snap.age;
+            const age2 = !isSingle && snap.age2 && snap.age2 > 0 ? snap.age2 : null;
             const ageInfo = { age: age1, age1, age2 };
             const actualPortfolio = this.getPortfolioValue(snap);
 
@@ -232,8 +252,8 @@ export class FireMilestoneCalculator {
                 age1,
                 age2,
                 actualPortfolio: Math.round(actualPortfolio),
-                coastTarget: Math.round(coastTarget),
-                baristaTarget: Math.round(baristaTarget),
+                coastTarget: isFinite(coastTarget) ? Math.round(coastTarget) : null,
+                baristaTarget: isFinite(baristaTarget) ? Math.round(baristaTarget) : null,
                 leanTarget: Math.round(leanTarget),
                 fullTarget: Math.round(fullTarget)
             });
@@ -256,8 +276,20 @@ export class FireMilestoneCalculator {
      * @private
      */
     static _resolveEarnerProfiles(state, simulationData) {
+        const isSingle =
+            state?.taxFilingStatus === 'single' ||
+            (!state?.secondarySpouse?.name && !state?.secondarySpouse?.yearOfBirth);
         const s1Name = state?.primarySpouse?.name || 'Primary';
         const s2Name = state?.secondarySpouse?.name || 'Spouse 2';
+
+        if (isSingle) {
+            return {
+                isDualEarner: false,
+                isSingleFiler: true,
+                downshiftingSpouseName: s1Name,
+                continuingSpouseName: null
+            };
+        }
 
         const hasS2Employment = Boolean(
             (state?.secondarySpouse?.jobs && state.secondarySpouse.jobs.length > 0) ||
@@ -266,6 +298,7 @@ export class FireMilestoneCalculator {
 
         return {
             isDualEarner: hasS2Employment,
+            isSingleFiler: false,
             downshiftingSpouseName: s1Name,
             continuingSpouseName: hasS2Employment ? s2Name : null
         };
@@ -298,11 +331,16 @@ export class FireMilestoneCalculator {
      */
     static _resolveParameters(simulationData, state, options) {
         const assumptions = state?.assumptions || {};
+        const nominalRate = (assumptions.generalReturnRate ?? 7.0) / PERCENT_CONVERSION_FACTOR;
         const realRate = this.getRealReturnRate(assumptions);
+        const fireOpts = state?.strategies?.fireOptions || {};
         const primaryRetireAge = state?.primarySpouse?.targetRetirementAge || DEFAULT_COAST_TARGET_AGE;
-        const coastTargetAge = this._resolveNumber(options.coastTargetAge, primaryRetireAge);
-        const baristaAnnualIncome = this._resolveNumber(options.baristaIncome, DEFAULT_BARISTA_ANNUAL_INCOME);
-        const leanRatio = this._resolveNumber(options.leanRatio, DEFAULT_LEAN_EXPENSE_RATIO);
+        const coastTargetAge = this._resolveNumber(options.coastTargetAge ?? fireOpts.coastTargetAge, primaryRetireAge);
+        const baristaAnnualIncome = this._resolveNumber(
+            options.baristaIncome ?? fireOpts.baristaIncome,
+            DEFAULT_BARISTA_ANNUAL_INCOME
+        );
+        const leanRatio = this._resolveNumber(options.leanRatio ?? fireOpts.leanRatio, DEFAULT_LEAN_EXPENSE_RATIO);
 
         const currentYear = simulationData[0].year;
         const firstAge = simulationData[0].age ?? simulationData[0].age1 ?? 45;
@@ -316,6 +354,7 @@ export class FireMilestoneCalculator {
         const earnerProfile = this._resolveEarnerProfiles(state, simulationData);
 
         return {
+            nominalRate,
             realRate,
             coastTargetAge,
             baristaAnnualIncome,
@@ -330,10 +369,14 @@ export class FireMilestoneCalculator {
     /**
      * Calculates the Barista FIRE target at a given index.
      * In a dual-earner household, primary downshifts to barista earnings while continuing spouse earns scheduled salary.
+     * Barista FIRE is strictly a pre-retirement downshift milestone (i <= coastTargetIdx).
      * @private
      */
     static _computeBaristaTarget(i, context) {
-        const { simulationData, realRate, coastTargetIdx, baristaAnnualIncome, terminalYears } = context;
+        const { simulationData, nominalRate, realRate, coastTargetIdx, baristaAnnualIncome, terminalYears } = context;
+        if (i > coastTargetIdx) {
+            return Infinity;
+        }
         const baristaExpenseFn = (s, idx) => {
             const isPreRetirement = idx < coastTargetIdx;
             const baseExpenses = s.expenses || 0;
@@ -342,7 +385,14 @@ export class FireMilestoneCalculator {
             const inflows = this.getGuaranteedInflows(s) + earnedIncome;
             return Math.max(0, baseExpenses - inflows);
         };
-        return this.calculateRequiredPortfolioAt(simulationData, i, realRate, baristaExpenseFn, terminalYears);
+        return this.calculateRequiredPortfolioAt(
+            simulationData,
+            i,
+            nominalRate,
+            baristaExpenseFn,
+            terminalYears,
+            realRate
+        );
     }
 
     /**
@@ -351,24 +401,32 @@ export class FireMilestoneCalculator {
      */
     static _buildCoastMathBreakdown(context, milestone) {
         const targetRetirementAge = context.coastTargetAge;
-        const { idx: crossoverIdx } = this._findCrossoverSnap(context.simulationData, milestone, 0);
-        const currentPortfolio =
-            milestone?.portfolio || (context.simulationData[0] ? this.getPortfolioValue(context.simulationData[0]) : 0);
-        const yearsOfCompounding = Math.max(0, context.coastTargetIdx - Math.max(0, crossoverIdx));
+        const currentPortfolio = context.simulationData[0] ? this.getPortfolioValue(context.simulationData[0]) : 0;
+        const coastTargetToday = Math.round(this._computeCoastTarget(0, context));
+        const coastProgressPct =
+            isFinite(coastTargetToday) && coastTargetToday > 0
+                ? Math.min(100, Math.round((currentPortfolio / coastTargetToday) * PERCENT_CONVERSION_FACTOR))
+                : 0;
+        const yearsOfCompounding = Math.max(0, context.coastTargetIdx);
+        const nominalReturnRatePct = Math.round(context.nominalRate * PERCENT_CONVERSION_FACTOR * 100) / 100;
         const realReturnRatePct = Math.round(context.realRate * PERCENT_CONVERSION_FACTOR * 100) / 100;
         const projectedRetirementNestEgg = Math.round(
-            currentPortfolio * Math.pow(1 + context.realRate, yearsOfCompounding)
+            currentPortfolio * Math.pow(1 + context.nominalRate, yearsOfCompounding)
         );
         const requiredRetirementNestEgg = Math.round(context.requiredNestEggAtRetirement);
 
         return {
             currentPortfolio: Math.round(currentPortfolio),
+            coastTargetToday: isFinite(coastTargetToday) ? coastTargetToday : 0,
+            coastProgressPct,
             targetRetirementAge,
             yearsOfCompounding,
+            nominalReturnRatePct,
             realReturnRatePct,
             projectedRetirementNestEgg,
             requiredRetirementNestEgg,
-            newSavingsNeededAnnual: 0
+            newSavingsNeededAnnual: 0,
+            milestoneYear: milestone?.year ?? null
         };
     }
 
@@ -417,16 +475,24 @@ export class FireMilestoneCalculator {
 
     /**
      * Computes the math breakdown object for Lean FIRE.
+     * Evaluates Full Target at the exact same crossover point as Lean FIRE.
      * @private
      */
     static _buildLeanMathBreakdown(context, leanMilestone, fullMilestone) {
         const { simulationData, leanRatio } = context;
-        const { snap } = this._findCrossoverSnap(simulationData, leanMilestone, 0);
+        const { snap, idx: leanIdx } = this._findCrossoverSnap(simulationData, leanMilestone, 0);
         const baselineBudget = snap ? Math.round(snap.expenses || 0) : 0;
         const leanBudget = Math.round(baselineBudget * leanRatio);
         const leanRatioPct = Math.round(leanRatio * PERCENT_CONVERSION_FACTOR);
         const leanTarget = Math.round(leanMilestone?.target || 0);
-        const fullTarget = Math.round(fullMilestone?.target || context.requiredNestEggAtRetirement);
+
+        let fullTarget;
+        if (leanIdx >= 0 && leanIdx < simulationData.length) {
+            fullTarget = Math.round(this._computeFullTarget(leanIdx, context));
+        } else {
+            fullTarget = Math.round(context.requiredNestEggAtRetirement);
+        }
+
         const yearsSaved =
             leanMilestone?.year != null && fullMilestone?.year != null
                 ? Math.max(0, fullMilestone.year - leanMilestone.year)
@@ -494,7 +560,7 @@ export class FireMilestoneCalculator {
                 age1: null,
                 age2: null,
                 portfolio: 0,
-                target: Math.round(defaultTarget),
+                target: isFinite(defaultTarget) ? Math.round(defaultTarget) : 0,
                 status,
                 yearsUntil,
                 isAlreadyAchieved,
@@ -504,6 +570,8 @@ export class FireMilestoneCalculator {
 
         return {
             ...milestone,
+            target: isFinite(milestone.target) ? Math.round(milestone.target) : 0,
+            portfolio: Math.round(milestone.portfolio),
             status,
             yearsUntil,
             isAlreadyAchieved,
@@ -534,9 +602,10 @@ export class FireMilestoneCalculator {
         const requiredNestEggAtRetirement = this.calculateRequiredPortfolioAt(
             simulationData,
             params.coastTargetIdx,
-            params.realRate,
+            params.nominalRate,
             retirementNetExpenseFn,
-            params.terminalYears
+            params.terminalYears,
+            params.realRate
         );
 
         const context = {
@@ -566,6 +635,7 @@ export class FireMilestoneCalculator {
                 coastTargetAge: params.coastTargetAge,
                 baristaAnnualIncome: params.baristaAnnualIncome,
                 leanRatio: params.leanRatio,
+                nominalReturnRatePct: Math.round(params.nominalRate * PERCENT_CONVERSION_FACTOR * 100) / 100,
                 realReturnRatePct: Math.round(params.realRate * PERCENT_CONVERSION_FACTOR * 100) / 100
             },
             trajectory

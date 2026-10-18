@@ -28,6 +28,7 @@ import {
     buildTaxConfig,
     buildSorrConfig
 } from './charts/chart-configs.js';
+import { renderPortfolioOption1CHeader, renderIncomePillHeader } from './charts/chart-stage-header.js';
 
 let portfolioChart = null;
 let incomeChart = null;
@@ -96,17 +97,17 @@ if (typeof window !== 'undefined') {
 
 function isInspectorModeEnabled() {
     if (typeof document === 'undefined') return false;
+    if (document.body?.classList.contains('inspector-disabled')) return false;
     return Boolean(
         document.body?.classList.contains('show-inspector') ||
-            document.querySelector('.dashboard-layout')?.classList.contains('show-inspector')
+            document.querySelector('.dashboard-layout')?.classList.contains('show-inspector') ||
+            true
     );
 }
 
 function checkFinancialDetailsOpen() {
     const finDetailsDrawer = typeof document !== 'undefined' && document.getElementById('financial-details-drawer');
-    const isDrawerVisible = Boolean(finDetailsDrawer && !finDetailsDrawer.classList.contains('hidden'));
-    const hasWindowPin = typeof window !== 'undefined' && window.pinnedYearIndex !== null;
-    return isDrawerVisible || hasWindowPin || pinnedYearIndex !== null;
+    return Boolean(finDetailsDrawer && finDetailsDrawer.classList.contains('modal-fullscreen-lock'));
 }
 
 function positionInspectorHud(inspector, chart, tooltip) {
@@ -117,8 +118,10 @@ function positionInspectorHud(inspector, chart, tooltip) {
 
     inspector.classList.toggle('dock-left', !isLeftSide);
     inspector.classList.toggle('dock-right', isLeftSide);
+    inspector.style.zIndex = '9999';
+    inspector.style.pointerEvents = 'none';
 
-    const minTop = 16;
+    const minTop = Math.max(16, Math.round(canvasRect.top + 8));
     const maxTop = Math.max(minTop, window.innerHeight - 150);
     const targetTop = Math.max(minTop, Math.min(maxTop, canvasRect.top));
     inspector.style.top = `${targetTop}px`;
@@ -131,7 +134,10 @@ function updateInspectorYearHeader(tooltip, snap, state) {
     if (!yearLabel || titleLines.length === 0) return;
 
     if (snap && state) {
-        yearLabel.textContent = `Year ${titleLines[0]} (${state.primarySpouse.name}: ${snap.age1}, ${state.secondarySpouse.name}: ${snap.age2})`;
+        const hasS2 = Boolean(state.secondarySpouse?.name && snap.age2 && snap.age2 > 0);
+        yearLabel.textContent = hasS2
+            ? `Year ${titleLines[0]} (${state.primarySpouse?.name || 'Primary'}: ${snap.age1}, ${state.secondarySpouse.name}: ${snap.age2})`
+            : `Year ${titleLines[0]} (${state.primarySpouse?.name || 'Primary'}: ${snap.age1})`;
     } else {
         yearLabel.textContent = 'Year ' + titleLines[0];
     }
@@ -232,6 +238,11 @@ function upsertChartInstance(canvasEl, existingChart, config, yearlyData, state)
     if (instance) {
         instance.data = config.data;
         instance.options = config.options;
+        if (typeof instance.setDatasetVisibility === 'function' && Array.isArray(config.data?.datasets)) {
+            config.data.datasets.forEach((ds, idx) => {
+                instance.setDatasetVisibility(idx, !ds.hidden);
+            });
+        }
         if (yearlyData) instance.customData = yearlyData;
         instance.customState = state;
         instance.update('none');
@@ -252,7 +263,7 @@ function renderSecondaryCharts(yearlyData, state, labels, annotations, sorrData)
     const ctxNetWorth = document.getElementById('netWorthChart');
     if (ctxNetWorth) {
         const config = buildNetWorthConfig(yearlyData, state, labels, annotations);
-        netWorthChart = upsertChartInstance(ctxNetWorth, netWorthChart, config, null, state);
+        netWorthChart = upsertChartInstance(ctxNetWorth, netWorthChart, config, yearlyData, state);
     }
 
     const ctxTax = document.getElementById('taxChart');
@@ -264,7 +275,7 @@ function renderSecondaryCharts(yearlyData, state, labels, annotations, sorrData)
     const ctxSorr = document.getElementById('sorrChart');
     if (ctxSorr && sorrData) {
         const config = buildSorrConfig(sorrData, labels, annotations);
-        sorrChart = upsertChartInstance(ctxSorr, sorrChart, config, null, state);
+        sorrChart = upsertChartInstance(ctxSorr, sorrChart, config, yearlyData, state);
     }
 }
 
@@ -289,6 +300,7 @@ export function renderCharts(yearlyData, state, events = [], sorrData = null) {
         const config = buildPortfolioConfig(yearlyData, state, labels, annotations, s1Name, s2Name);
         portfolioChart = upsertChartInstance(ctxPortfolio, portfolioChart, config, yearlyData, state);
         applyPinnedHighlight(portfolioChart, activePin);
+        renderPortfolioOption1CHeader(portfolioChart, yearlyData, state, s1Name, s2Name);
     }
 
     const ctxIncome = document.getElementById('incomeChart');
@@ -296,12 +308,13 @@ export function renderCharts(yearlyData, state, events = [], sorrData = null) {
         const config = buildIncomeConfig(yearlyData, state, labels, annotations, s1Name, s2Name);
         incomeChart = upsertChartInstance(ctxIncome, incomeChart, config, yearlyData, state);
         applyPinnedHighlight(incomeChart, activePin);
+        renderIncomePillHeader(incomeChart);
     }
 
     const ctxCashflow = document.getElementById('cashflowChart');
     if (ctxCashflow) {
         const config = buildCashflowConfig(yearlyData, state, labels, annotations, s1Name, s2Name);
-        cashflowChart = upsertChartInstance(ctxCashflow, cashflowChart, config, null, state);
+        cashflowChart = upsertChartInstance(ctxCashflow, cashflowChart, config, yearlyData, state);
     }
 
     renderSecondaryCharts(yearlyData, state, labels, annotations, sorrData);

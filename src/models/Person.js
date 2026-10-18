@@ -120,7 +120,7 @@ function createAccountInstance(accState) {
     acc.id = accId;
     acc.name = accState.name;
     acc.type = accState.type;
-    acc.isActiveContributor = Boolean(accState.isActiveContributor);
+    acc.isActiveContributor = accState.isActiveContributor !== undefined ? Boolean(accState.isActiveContributor) : true;
     acc.isSweepAccount = Boolean(accState.isSweepAccount);
     if (accState.rollover) {
         acc.rollover = JSON.parse(JSON.stringify(accState.rollover));
@@ -139,8 +139,9 @@ function resolveSsnBenefit(state) {
 }
 
 function resolveSplitAmount(val) {
-    if (val !== undefined && val !== null && val !== '') {
-        return Number(val);
+    const num = Number(val);
+    if (val !== undefined && val !== null && val !== '' && !isNaN(num) && num > 0) {
+        return num;
     }
     return null;
 }
@@ -171,6 +172,9 @@ export class Person {
 
     _initDemographics(state) {
         this.name = state.name;
+        this.isConfigured = Boolean(
+            state.name || state.yearOfBirth || state.birthYear || (state.jobs && state.jobs.length > 0)
+        );
         this.birthYear = Number(state.yearOfBirth || state.birthYear) || 1980;
         this.lifeExpectancy =
             state.estimatedLifeExpectancy !== undefined
@@ -457,6 +461,7 @@ export class Person {
             employer100PercentMatchOnTheFirstXPercent: r.employer100PercentMatchOnTheFirstXPercent,
             employer50PercentMatchOnTheNextXPercent: r.employer50PercentMatchOnTheNextXPercent,
             employerMatchBonusPercentage: r.employerMatchBonusPercentage,
+            activeMonthCount: r.months.length,
             rangeLabel,
             baseSalary: r.baseSalary,
             bonus: r.bonus,
@@ -483,6 +488,15 @@ export class Person {
         }
 
         return Array.from(jobMap.values()).map((r) => this._formatJobRecord(r));
+    }
+
+    getJobBreakdownForMonth(currentYear, month, w2Multiplier = 1) {
+        if (this.isRetired(currentYear, month)) return [];
+        const activeJob = findActiveJob(this.jobs, currentYear, month);
+        if (!activeJob) return [];
+        const rec = this._createJobRecord(activeJob);
+        this._accumulateJobRecordMonth(rec, activeJob, month, w2Multiplier);
+        return [this._formatJobRecord(rec)];
     }
 
     getTotalPreTaxBalance() {

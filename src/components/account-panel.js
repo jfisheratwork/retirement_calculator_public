@@ -93,7 +93,7 @@ export class AccountPanel extends BaseComponent {
     }
 
     _renderRothFields(acc, accPrefix) {
-        let out = `<div>${this._input(`Roth Principal ($)`, `${accPrefix}.principle`, 'number', acc.principle || 0, 'Total cumulative post-tax contributions (Roth Principal). Withdrawable at ANY age with 0% tax and 0% penalty, acting as your primary early retirement bridge before age 59.5.')}</div>`;
+        let out = `<div>${this._input(`Original Roth Deposits / Principal ($)`, `${accPrefix}.principle`, 'number', acc.principle || 0, 'The cash you contributed out of pocket into your Roth IRA. You can withdraw your original Roth deposits at any age, completely tax-free and penalty-free, making it an ideal early-retirement bridge.')}</div>`;
         out += `<div style="grid-column: span 2; padding: 0.65rem 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; margin-top: 0.5rem;">`;
         out += `<div class="pane-section-header" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">💰 Annual Roth IRA Contribution</div>`;
         out += this._checkbox(
@@ -114,7 +114,7 @@ export class AccountPanel extends BaseComponent {
 
     _renderBrokerageFields(acc, accPrefix) {
         const defaultCostBasis = acc.costBasis !== undefined ? acc.costBasis : Math.round((acc.balance || 0) * 0.5);
-        let out = `<div>${this._input(`Cost Basis ($)`, `${accPrefix}.costBasis`, 'number', defaultCostBasis, 'Total cumulative after-tax amount invested into this brokerage account. When shares are liquidated, only the capital gain above basis is taxed at preferential LTCG rates (0%/15%/20%) and NIIT (3.8%). Return of capital is completely tax-free.')}</div>`;
+        let out = `<div>${this._input(`Original Purchase Cost / Cost Basis ($)`, `${accPrefix}.costBasis`, 'number', defaultCostBasis, 'The money you originally paid for your investments using after-tax cash. When you sell shares, your original purchase cost comes back 100% tax-free—you only pay capital gains tax on the growth above this amount.')}</div>`;
         out += `<div style="grid-column: span 2; margin-top: -0.25rem; margin-bottom: 0.5rem;">
             <button type="button" class="btn btn-secondary open-cost-basis-modal-btn" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: rgba(59, 130, 246, 0.15); border: 1px solid var(--accent); color: var(--accent); border-radius: 4px; cursor: pointer;">
                 ℹ️ How do I figure out my Cost Basis? (1099-B & Brokerage Guide)
@@ -156,7 +156,7 @@ export class AccountPanel extends BaseComponent {
         const accPrefix = `${this.spousePrefix}.accounts.${this.itemIndex}`;
         const prettyType = this._getPrettyAccountType(acc.type);
         const sweepBadge = acc.isSweepAccount
-            ? `<span style="background: #00cec9; color: #1e272e; font-size: 0.65rem; font-weight: bold; padding: 1px 5px; border-radius: 3px; margin-left: 6px;">⚡ Sweep Account</span>`
+            ? `<span style="background: #00cec9; color: #1e272e; font-size: 0.65rem; font-weight: bold; padding: 1px 5px; border-radius: 3px; margin-left: 6px;">⚡ Excess Savings Target</span>`
             : '';
 
         const isOpenByDefault = this._isCardOpenByDefault(acc);
@@ -172,10 +172,10 @@ export class AccountPanel extends BaseComponent {
 
         if (['taxableBrokerage', 'hysa'].includes(acc.type)) {
             out += this._checkbox(
-                'Designated Sweep Account',
+                'Excess Savings Deposit Target (Sweep Account)',
                 `${accPrefix}.isSweepAccount`,
                 acc.isSweepAccount,
-                'Designates this account to automatically receive 100% of unallocated annual household cash surplus.'
+                'When your annual take-home income exceeds your living expenses, 100% of your unspent cash surplus is automatically deposited and invested into this account.'
             );
         }
 
@@ -317,6 +317,23 @@ export class AccountPanel extends BaseComponent {
         }
     }
 
+    _updateAccountCardSummaryText() {
+        const accPrefix = `${this.spousePrefix}.accounts.${this.itemIndex}`;
+        const summarySpan = this.querySelector(`[id="${accPrefix}-summary-text"]`);
+        if (!summarySpan) return;
+        const nameInput = this.querySelector(`input[data-path="${accPrefix}.name"]`);
+        const balInput = this.querySelector(`input[data-path="${accPrefix}.balance"]`);
+        const typeSelect = this.querySelector(`select[data-path="${accPrefix}.type"]`);
+        const sweepCheck = this.querySelector(`input[data-path="${accPrefix}.isSweepAccount"]`);
+        const prettyType = this._getPrettyAccountType(typeSelect?.value || 'traditional401k');
+        const name = nameInput?.value || prettyType;
+        const balance = Number(balInput?.value || 0).toLocaleString();
+        const sweepBadge = sweepCheck?.checked
+            ? `<span style="background: #00cec9; color: #1e272e; font-size: 0.65rem; font-weight: bold; padding: 1px 5px; border-radius: 3px; margin-left: 6px;">⚡ Excess Savings Target</span>`
+            : '';
+        summarySpan.innerHTML = `${escapeHtml(name)} - $${balance}${sweepBadge}`;
+    }
+
     afterRender() {
         const details = this.querySelector('details.account-card');
         if (details) {
@@ -332,10 +349,10 @@ export class AccountPanel extends BaseComponent {
             });
         }
 
-        this.addEvent('input, select', 'change', (e) => {
-            const path = e.target.getAttribute('data-path');
-            if (path) {
-                this._handleDynamicVisibility(path, e.target);
+        this.addEvent('input', 'input', (e) => {
+            const path = e.target.getAttribute('data-path') || '';
+            if (path.endsWith('.name') || path.endsWith('.balance')) {
+                this._updateAccountCardSummaryText();
             }
             this.dispatchEvent(
                 new CustomEvent('stateChange', {
@@ -343,6 +360,22 @@ export class AccountPanel extends BaseComponent {
                     bubbles: true
                 })
             );
+        });
+
+        this.addEvent('input, select', 'change', (e) => {
+            const path = e.target.getAttribute('data-path') || '';
+            this.dispatchEvent(
+                new CustomEvent('stateChange', {
+                    detail: { element: e.target },
+                    bubbles: true
+                })
+            );
+            if (path.endsWith('.name') || path.endsWith('.balance') || path.endsWith('.isSweepAccount')) {
+                this._updateAccountCardSummaryText();
+            }
+            if (path) {
+                this._handleDynamicVisibility(path, e.target);
+            }
         });
 
         this.querySelectorAll('.open-cost-basis-modal-btn').forEach((btn) => {

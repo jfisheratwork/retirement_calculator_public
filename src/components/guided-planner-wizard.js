@@ -146,6 +146,7 @@ export class GuidedPlannerWizard extends BaseComponent {
         super();
         this._currentStep = STEP_1;
         this._errorMessage = '';
+        this._scenarioName = 'My Retirement Plan';
         this._data = {
             primaryName: 'Primary Planner',
             primaryBirthYear: DEFAULT_PRIMARY_BIRTH_YEAR,
@@ -197,6 +198,62 @@ export class GuidedPlannerWizard extends BaseComponent {
         window.removeEventListener('keydown', this._onKeyDown);
     }
 
+    _buildStructuredStepPayloads() {
+        const goalModeMap = {
+            [GOAL_DIE_WITH_ZERO]: 'die_with_zero',
+            [GOAL_LEGACY]: 'legacy',
+            [GOAL_PRESERVATION]: 'capital_preservation'
+        };
+        return {
+            step1: {
+                primary: {
+                    name: this._data.primaryName,
+                    birthYear: this._data.primaryBirthYear,
+                    targetRetirementAge: this._data.primaryRetirementAge,
+                    lifeExpectancy: this._data.longevityAge
+                },
+                spouse: {
+                    hasSpouse: Boolean(this._data.hasSpouse),
+                    name: this._data.spouseName,
+                    birthYear: this._data.spouseBirthYear,
+                    targetRetirementAge: this._data.spouseRetirementAge
+                },
+                dependentsCount: Number(this._data.dependentsCount) || ZERO,
+                dependents: Array.isArray(this._dependentsList) ? this._dependentsList : undefined
+            },
+            step2: {
+                primaryIncome: this._data.primarySalary,
+                spouseIncome: this._data.hasSpouse ? this._data.spouseSalary : ZERO,
+                monthlyLivingSpend: this._data.monthlyBudget,
+                housing: {
+                    status: this._data.housingStatus,
+                    homeValue: this._data.homeValue,
+                    mortgage: {
+                        originationDate: this._data.mortgageOriginationDate,
+                        originationAmount: this._data.mortgageOriginationAmount,
+                        interestRate: this._data.mortgageInterestRate,
+                        termYears: this._data.mortgageTermYears
+                    }
+                }
+            },
+            step3: {
+                buckets: {
+                    preTax: this._data.preTax,
+                    roth: this._data.roth,
+                    taxable: this._data.taxable,
+                    cash: this._data.cash
+                }
+            },
+            step4: {
+                nominalReturn: this._data.returnRate,
+                socialSecurity: {
+                    primaryStartAge: this._data.socialSecurityClaimAge
+                },
+                goal: goalModeMap[this._data.endOfLifeGoal] || this._data.endOfLifeGoal
+            }
+        };
+    }
+
     getData() {
         const amort = calculateAmortization(
             this._data.mortgageOriginationAmount,
@@ -205,7 +262,9 @@ export class GuidedPlannerWizard extends BaseComponent {
             this._data.mortgageOriginationDate
         );
         return {
+            scenarioName: this._scenarioName,
             ...this._data,
+            ...this._buildStructuredStepPayloads(),
             amortization: amort,
             totalLiquid: this._calculateTotalLiquid()
         };
@@ -258,31 +317,39 @@ export class GuidedPlannerWizard extends BaseComponent {
             if (s.birthYear) res.spouseBirthYear = s.birthYear;
             if (s.targetRetirementAge) res.spouseRetirementAge = s.targetRetirementAge;
         }
+        if (Array.isArray(step1.dependents)) {
+            res.dependentsCount = step1.dependents.length;
+            this._dependentsList = structuredClone(step1.dependents);
+        } else if (step1.dependentsCount !== undefined) {
+            res.dependentsCount = Math.max(ZERO, Number(step1.dependentsCount) || ZERO);
+        }
+        return res;
+    }
+
+    _extractHousingUpdates(h) {
+        const res = {};
+        if (h.status) res.housingStatus = h.status;
+        if (h.homeValue !== undefined) res.homeValue = h.homeValue;
+        const m = h.mortgage;
+        if (m) {
+            if (m.originationDate) res.mortgageOriginationDate = m.originationDate;
+            if (m.originationAmount !== undefined) res.mortgageOriginationAmount = m.originationAmount;
+            if (m.interestRate !== undefined) res.mortgageInterestRate = m.interestRate;
+            if (m.termYears !== undefined) res.mortgageTermYears = m.termYears;
+        }
         return res;
     }
 
     _extractStep2Updates(step2) {
         if (!step2) return {};
         const res = {};
-        if (step2.incomes) {
-            if (step2.incomes.primaryIncome !== undefined) res.primarySalary = step2.incomes.primaryIncome;
-            if (step2.incomes.spouseIncome !== undefined) res.spouseSalary = step2.incomes.spouseIncome;
-        }
-        if (step2.livingExpenses?.monthlySpend !== undefined) {
-            res.monthlyBudget = step2.livingExpenses.monthlySpend;
-        }
-        const h = step2.housing;
-        if (h) {
-            if (h.status) res.housingStatus = h.status;
-            if (h.homeValue !== undefined) res.homeValue = h.homeValue;
-            if (h.mortgage) {
-                const m = h.mortgage;
-                if (m.originationDate) res.mortgageOriginationDate = m.originationDate;
-                if (m.originationAmount !== undefined) res.mortgageOriginationAmount = m.originationAmount;
-                if (m.interestRate !== undefined) res.mortgageInterestRate = m.interestRate;
-                if (m.termYears !== undefined) res.mortgageTermYears = m.termYears;
-            }
-        }
+        const primInc = step2.primaryIncome ?? step2.incomes?.primaryIncome;
+        const spInc = step2.spouseIncome ?? step2.incomes?.spouseIncome;
+        const moSpend = step2.monthlyLivingSpend ?? step2.livingExpenses?.monthlySpend;
+        if (primInc !== undefined) res.primarySalary = primInc;
+        if (spInc !== undefined) res.spouseSalary = spInc;
+        if (moSpend !== undefined) res.monthlyBudget = moSpend;
+        if (step2.housing) Object.assign(res, this._extractHousingUpdates(step2.housing));
         return res;
     }
 
@@ -290,25 +357,42 @@ export class GuidedPlannerWizard extends BaseComponent {
         if (!step3?.buckets) return {};
         const b = step3.buckets;
         const res = {};
-        if (b.preTax?.balance !== undefined) res.preTax = b.preTax.balance;
-        if (b.roth?.balance !== undefined) res.roth = b.roth.balance;
-        if (b.taxable?.balance !== undefined) res.taxable = b.taxable.balance;
-        if (b.cash?.balance !== undefined) res.cash = b.cash.balance;
+        const resolveBucketVal = (entry) => (typeof entry === 'number' ? entry : entry?.balance);
+        const preTaxVal = resolveBucketVal(b.preTax);
+        const rothVal = resolveBucketVal(b.roth);
+        const taxableVal = resolveBucketVal(b.taxable);
+        const cashVal = resolveBucketVal(b.cash);
+        if (preTaxVal !== undefined) res.preTax = preTaxVal;
+        if (rothVal !== undefined) res.roth = rothVal;
+        if (taxableVal !== undefined) res.taxable = taxableVal;
+        if (cashVal !== undefined) res.cash = cashVal;
         return res;
     }
 
     _extractStep4Updates(step4) {
         if (!step4) return {};
         const res = {};
-        if (step4.macro?.nominalReturn !== undefined) res.returnRate = step4.macro.nominalReturn;
-        if (step4.socialSecurity?.primaryClaimAge !== undefined)
-            res.socialSecurityClaimAge = step4.socialSecurity.primaryClaimAge;
-        if (step4.milestoneGoals?.goalType) res.endOfLifeGoal = step4.milestoneGoals.goalType;
+        const nomRet = step4.nominalReturn ?? step4.macro?.nominalReturn;
+        const ssAge = step4.socialSecurity?.primaryStartAge ?? step4.socialSecurity?.primaryClaimAge;
+        const rawGoal = step4.goal || step4.milestoneGoals?.goalType;
+        if (nomRet !== undefined) res.returnRate = nomRet;
+        if (ssAge !== undefined) res.socialSecurityClaimAge = ssAge;
+        if (rawGoal) {
+            const goalReverseMap = {
+                die_with_zero: GOAL_DIE_WITH_ZERO,
+                legacy: GOAL_LEGACY,
+                capital_preservation: GOAL_PRESERVATION
+            };
+            res.endOfLifeGoal = goalReverseMap[rawGoal] || rawGoal;
+        }
         return res;
     }
 
     setViewModel(vm) {
         if (!vm) return;
+        if (vm.scenarioName) {
+            this._scenarioName = String(vm.scenarioName).trim() || this._scenarioName;
+        }
         const updates = {
             ...this._extractStep1Updates(vm.step1),
             ...this._extractStep2Updates(vm.step2),
@@ -447,6 +531,18 @@ export class GuidedPlannerWizard extends BaseComponent {
     _renderStep1() {
         return `
             <div class="step-pane step-pane-1" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div class="card-scenario-name surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1rem 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label for="input-guided-scenario-name" style="font-size: 0.82rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.2rem;">
+                            Scenario Name
+                        </label>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">Name this retirement plan scenario.</span>
+                    </div>
+                    <div style="flex: 1; min-width: 220px;">
+                        <input type="text" id="input-guided-scenario-name" class="input-text" value="${escapeHtml(this._scenarioName || 'My Retirement Plan')}" placeholder="e.g. Baseline Retirement" style="width: 100%; box-sizing: border-box; font-weight: 600;" />
+                    </div>
+                </div>
+
                 <div class="card-primary-earner surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h4 style="margin: 0; font-size: 1.05rem; color: #60a5fa; font-weight: 600;">👤 Primary Planner</h4>
@@ -580,7 +676,7 @@ export class GuidedPlannerWizard extends BaseComponent {
                 <div class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                         <h4 style="margin: 0; font-size: 1.05rem; color: #34d399; font-weight: 600;">🛒 Monthly Living Budget</h4>
-                        <span class="badge-subtle badge-subtle-emerald">${formatUsd(this._data.monthlyBudget * MONTHS_IN_YEAR)}/yr</span>
+                        <span id="guided-monthly-budget-annual-badge" class="badge-subtle badge-subtle-emerald">${formatUsd(this._data.monthlyBudget * MONTHS_IN_YEAR)}/yr</span>
                     </div>
                     <p style="margin: 0 0 0.75rem 0; font-size: 0.82rem; color: var(--text-muted);">
                         Excludes mortgage/rent. Covers groceries, utilities, dining, healthcare, vehicles, and discretionary spend.
@@ -967,6 +1063,14 @@ export class GuidedPlannerWizard extends BaseComponent {
     }
 
     _bindStep1Events() {
+        const scenInput = this.querySelector('#input-guided-scenario-name');
+        if (scenInput) {
+            scenInput.addEventListener('input', (e) => {
+                const val = e.target.value.trim();
+                if (val) this._scenarioName = val;
+            });
+        }
+
         const nameInput = this.querySelector('#input-primary-name');
         if (nameInput) {
             nameInput.addEventListener('input', (e) => {
@@ -1066,6 +1170,10 @@ export class GuidedPlannerWizard extends BaseComponent {
         if (budgetInput) {
             budgetInput.addEventListener('input', (e) => {
                 this._data.monthlyBudget = Number(e.target.value);
+                const badgeEl = this.querySelector('#guided-monthly-budget-annual-badge');
+                if (badgeEl) {
+                    badgeEl.textContent = `${formatUsd(this._data.monthlyBudget * MONTHS_IN_YEAR)}/yr`;
+                }
             });
         }
 

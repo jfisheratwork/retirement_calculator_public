@@ -110,7 +110,25 @@ export const defaultState = {
         termYears: 30,
         yearlyInsurance: 0,
         yearlyTaxes: 0,
-        yearlyRepairs: 0
+        yearlyRepairs: 0,
+        extraMonthlyPayment: 0,
+        recast: {
+            enabled: false,
+            date: `${new Date().getFullYear() + 2}-06`,
+            amount: 0,
+            fundingSource: 'taxableBrokerage'
+        },
+        downsizing: {
+            enabled: false,
+            year: 2034,
+            sellingCostPercentage: 6,
+            replacementHomeCostPercentage: 42.5,
+            propertyCostReductionPercentage: 25,
+            financeReplacement: false,
+            downPaymentPercentage: 20,
+            replacementInterestRate: 5.5,
+            replacementTermYears: 30
+        }
     },
     primaryResidenceEquity: {
         enabled: false,
@@ -132,6 +150,11 @@ export const defaultState = {
         advancedRothStrategy: {
             enabled: false,
             safetyMargin: 0
+        },
+        fireOptions: {
+            coastTargetAge: null,
+            baristaIncome: 40000,
+            leanRatio: 0.75
         }
     },
     assumptions: {
@@ -148,6 +171,15 @@ export const defaultState = {
             startAge: 60,
             returnRate: 5.5
         }
+    },
+    uiState: {
+        detailLevel: 1,
+        jargonMode: 'plain',
+        householdMode: 'couple',
+        activeChartTab: 'portfolio',
+        portfolioViewMode: 'individual',
+        incomeDetailView: false,
+        drawerLayoutMode: 'simplified'
     }
 };
 

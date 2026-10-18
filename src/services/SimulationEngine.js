@@ -18,6 +18,7 @@ import { RMDCalculator } from './RMDCalculator.js';
 import { ContributionCalculator } from './ContributionCalculator.js';
 import { PortfolioManager } from './PortfolioManager.js';
 import { StandardIra } from '../models/Account.js';
+import { SurplusPullForwardEngine } from './SurplusPullForwardEngine.js';
 
 export const SORR_SCENARIOS = {
     '2000-2009': [
@@ -148,7 +149,10 @@ export class SimulationEngine {
                 strategies: this.strategies,
                 mortgage: this.mortgage,
                 snapshot,
-                events: this.events
+                events: this.events,
+                onRecastLumpSum: (lumpSum, fundingSource) => {
+                    this._handleMortgageRecastFunding(lumpSum, fundingSource, year, snapshot);
+                }
             });
 
             this._applyIrmaaExpenses(year, snapshot, yearsFromStart);
@@ -170,7 +174,14 @@ export class SimulationEngine {
                         ? ((snapshot.income.s1.ssn || 0) + (snapshot.income.s2.ssn || 0)) / activeMonths
                         : 0
             };
-            const monthCtx = { isFirstYear, firstActiveMonth, w2RaiseMultiplier, monthlyRates };
+            const monthCtx = {
+                isFirstYear,
+                firstActiveMonth,
+                w2RaiseMultiplier,
+                monthlyRates,
+                s1Tracker: { electiveYtd: 0 },
+                s2Tracker: { electiveYtd: 0 }
+            };
 
             for (let month = 1; month <= 12; month++) {
                 this._simulateMonth(year, month, snapshot, monthCtx);
@@ -248,8 +259,10 @@ export class SimulationEngine {
             s2Trad401k: getAccBal(this.s2, 'traditional401k'),
             s1Trad403b: getAccBal(this.s1, 'trad403b'),
             s2Trad403b: getAccBal(this.s2, 'trad403b'),
-            s1StandardIra: getAccBal(this.s1, 'standardIra'),
-            s2StandardIra: getAccBal(this.s2, 'standardIra'),
+            s1StandardIra: this._getAccountTypeBalance(this.s1, 'standardIra'),
+            s2StandardIra: this._getAccountTypeBalance(this.s2, 'standardIra'),
+            s1SeppIra: this._getSeppIraBalance(this.s1),
+            s2SeppIra: this._getSeppIraBalance(this.s2),
             s1Hysa: getAccBal(this.s1, 'hysa'),
             s2Hysa: getAccBal(this.s2, 'hysa'),
             s1Cd: getAccBal(this.s1, 'cd'),
@@ -270,8 +283,52 @@ export class SimulationEngine {
 
     _populateByAccountBalances(byAccountMap, accounts) {
         (accounts || []).forEach((acc) => {
-            byAccountMap[acc.id || acc.name] = acc.balance;
+            if (acc.id) byAccountMap[acc.id] = acc.balance;
+            if (acc.name) byAccountMap[acc.name] = acc.balance;
         });
+    }
+
+    _getPre72tBalancesMap() {
+        const map = {};
+        this._populateByAccountBalances(map, this.s1.accounts);
+        this._populateByAccountBalances(map, this.s2.accounts);
+        return map;
+    }
+
+    _processMonthlyContributions(year, month, snapshot, monthCtx, w2Breakdown) {
+        const { w2RaiseMultiplier, s1Tracker, s2Tracker } = monthCtx;
+        const filingStatus = this.getFilingStatus(year);
+        const householdMagi = this.yearlyHouseholdMagi ?? null;
+
+        if (w2Breakdown.s1MonthGross > 0) {
+            const s1MonthJobs = this.s1.getJobBreakdownForMonth(year, month, w2RaiseMultiplier);
+            ContributionCalculator.contributeMonthly({
+                spouse: this.s1,
+                monthJobs: s1MonthJobs,
+                annualJobs: snapshot.income.s1.jobs,
+                monthW2Gross: w2Breakdown.s1MonthGross,
+                annualW2Gross: snapshot.income.s1.w2Gross,
+                year,
+                filingStatus,
+                householdMagi,
+                tracker: s1Tracker
+            });
+        }
+
+        if (w2Breakdown.s2MonthGross > 0) {
+            const s2MonthJobs = this.s2.getJobBreakdownForMonth(year, month, w2RaiseMultiplier);
+            ContributionCalculator.contributeMonthly({
+                spouse: this.s2,
+                monthJobs: s2MonthJobs,
+                annualJobs: snapshot.income.s2.jobs,
+                monthW2Gross: w2Breakdown.s2MonthGross,
+                annualW2Gross: snapshot.income.s2.w2Gross,
+                year,
+                filingStatus,
+                householdMagi,
+                tracker: s2Tracker
+            });
+        }
     }
 
     _handleDownsizing(year, month, isFirstYear, firstActiveMonth, snapshot) {
@@ -309,10 +366,38 @@ export class SimulationEngine {
             Object.values(this.s2.accounts).find((acc) => acc.type === 'taxableBrokerage');
         if (sweepAcc && downsizeResult.netCashProceeds > 0) {
             sweepAcc.balance += downsizeResult.netCashProceeds;
+            if (sweepAcc.costBasis !== undefined) {
+                sweepAcc.costBasis += downsizeResult.netCashProceeds;
+            }
         }
 
         if (downsizeResult.cashDeficit > 0) {
             const shortfall = this.withdrawFromPortfolios(downsizeResult.cashDeficit, year, snapshot);
+            if (shortfall > 0 && snapshot) {
+                snapshot.unfundedShortfall = (snapshot.unfundedShortfall || 0) + shortfall;
+            }
+        }
+    }
+
+    _handleMortgageRecastFunding(lumpSum, fundingSource, year, snapshot) {
+        if (lumpSum <= 0 || fundingSource === 'externalWindfall') return;
+        let remaining = lumpSum;
+        const brokerageAccounts = [
+            ...(this.s1.accounts || []).filter((a) => a.type === 'taxableBrokerage'),
+            ...(this.s2.accounts || []).filter((a) => a.type === 'taxableBrokerage')
+        ];
+        for (const acc of brokerageAccounts) {
+            if (remaining <= 0 || !acc || acc.balance <= 0) continue;
+            const drawn = acc.withdraw(remaining, {
+                onLtcgRealized: (g) => {
+                    this.realizedLtcg = (this.realizedLtcg || 0) + g;
+                    if (snapshot) snapshot.realizedLtcg = (snapshot.realizedLtcg || 0) + g;
+                }
+            });
+            remaining -= drawn;
+        }
+        if (remaining > 0) {
+            const shortfall = this.withdrawFromPortfolios(remaining, year, snapshot);
             if (shortfall > 0 && snapshot) {
                 snapshot.unfundedShortfall = (snapshot.unfundedShortfall || 0) + shortfall;
             }
@@ -330,8 +415,10 @@ export class SimulationEngine {
         const bonusMilestone = this._computeMonthlyBonusMilestone(month, snapshot);
 
         this.processMonthlyRollovers(year, month);
+        this._processMonthlyContributions(year, month, snapshot, monthCtx, w2Breakdown);
         this._handleDownsizing(year, month, isFirstYear, firstActiveMonth, snapshot);
 
+        const pre72tByAccount = this._getPre72tBalancesMap();
         const month72tIncome = this._processMonthly72t(year, month, snapshot, isFirstYear, firstActiveMonth);
         const monthConverted = this.processRothConversions(year, snapshot, month);
 
@@ -359,6 +446,8 @@ export class SimulationEngine {
 
         const monthTotalIncome = w2Breakdown.monthTakeHome + monthlyRates.monthlySsn + month72tIncome;
         const monthNetFlow = monthTotalIncome - monthlyRates.monthlyBaseExpenses;
+        const balances = this._getAccountBalancesDictionary();
+        balances.pre72tByAccount = pre72tByAccount;
 
         snapshot.monthlySnapshots.push({
             month,
@@ -373,11 +462,13 @@ export class SimulationEngine {
             expenses: monthlyRates.monthlyBaseExpenses,
             netFlow: monthNetFlow,
             bonusMilestone,
-            balances: this._getAccountBalancesDictionary()
+            balances
         });
     }
 
     _buildInactiveMonthSnapshot(month) {
+        const balances = this._getAccountBalancesDictionary();
+        balances.pre72tByAccount = this._getPre72tBalancesMap();
         return {
             month,
             w2Gross: 0,
@@ -391,7 +482,7 @@ export class SimulationEngine {
             expenses: 0,
             netFlow: 0,
             bonusMilestone: null,
-            balances: this._getAccountBalancesDictionary()
+            balances
         };
     }
 
@@ -415,6 +506,8 @@ export class SimulationEngine {
             (s2W2 > 0 ? (this.s2W2Deductions || 0) * s2MonthShare : 0);
 
         return {
+            s1MonthGross,
+            s2MonthGross,
             w2Gross: s1MonthGross + s2MonthGross,
             monthTakeHome,
             monthTax,
@@ -521,6 +614,7 @@ export class SimulationEngine {
         const inceptionAge = spouse.getAge ? spouse.getAge(year) : year - spouse.birthYear;
         const method = spouse.rule72tMethod || 'amortization';
 
+        spouse.rule72tInceptionBalance = inceptionBalance;
         spouse.rule72tAnnualPayment = calculate72tPayment(inceptionBalance, rate72t, inceptionAge, method);
         spouse.rule72tMonthlyPayment = spouse.rule72tAnnualPayment / 12;
         spouse._72tInceptionDone = true;
@@ -539,13 +633,17 @@ export class SimulationEngine {
     _find72tSourceAccount(spouse, sourceId) {
         const accounts = spouse.accounts || [];
         return (
-            accounts.find((a) => a.id === sourceId || a.name === sourceId || a.type === sourceId) ||
+            (sourceId ? accounts.find((a) => a.id === sourceId || a.name === sourceId || a.type === sourceId) : null) ||
             accounts.find((a) => a.type === 'standardIra' || a.type === 'traditional401k')
         );
     }
 
     _execute72tFundingSplit(spouse, r72t, sourceAcc, targetAcc, dateCtx) {
-        const hasCustomSplit = r72t.splitAmount !== undefined && r72t.splitAmount !== null && r72t.splitAmount !== '';
+        const hasCustomSplit =
+            r72t.splitAmount !== undefined &&
+            r72t.splitAmount !== null &&
+            r72t.splitAmount !== '' &&
+            Number(r72t.splitAmount) > 0;
         const splitAmt = hasCustomSplit ? Number(r72t.splitAmount) : sourceAcc.balance;
         const transferAmount = Math.min(sourceAcc.balance, Math.max(0, splitAmt));
         if (transferAmount <= 0) return;
@@ -553,6 +651,9 @@ export class SimulationEngine {
         sourceAcc.balance -= transferAmount;
         sourceAcc.yearRolloverOut = (sourceAcc.yearRolloverOut || 0) + transferAmount;
         sourceAcc.yearWithdrawals = (sourceAcc.yearWithdrawals || 0) + transferAmount;
+        if (sourceAcc.returnRate !== undefined && targetAcc._is72tDedicated) {
+            targetAcc.returnRate = sourceAcc.returnRate;
+        }
         targetAcc.balance += transferAmount;
         targetAcc.yearRolloverIn = (targetAcc.yearRolloverIn || 0) + transferAmount;
         this.events.push({
@@ -564,7 +665,12 @@ export class SimulationEngine {
     }
 
     _resolve72tTargetIra(spouse, r72t, targetName) {
-        if (r72t.targetIraMode === 'new') {
+        const hasCustomSplit =
+            r72t.splitAmount !== undefined &&
+            r72t.splitAmount !== null &&
+            r72t.splitAmount !== '' &&
+            Number(r72t.splitAmount) > 0;
+        if (r72t.targetIraMode === 'new' || hasCustomSplit) {
             const iraName = r72t.newIraName || r72t.targetAccountName || targetName;
             return this._getOrCreateStandardIra(spouse, iraName, 'ira-72t-');
         }
@@ -573,7 +679,7 @@ export class SimulationEngine {
             const found = (spouse.accounts || []).find((a) => a.id === tgtId || a.name === tgtId || a.type === tgtId);
             if (found) return found;
         }
-        return (spouse.accounts || []).find((a) => a.type === 'standardIra') || null;
+        return (spouse.accounts || []).find((a) => a.type === 'standardIra' && !a._is72tDedicated) || null;
     }
 
     _getOrCreateStandardIra(spouse, iraName, idPrefix = 'ira-') {
@@ -583,6 +689,9 @@ export class SimulationEngine {
             existing.type = 'standardIra';
             existing.enabled = true;
             spouse.accounts.push(existing);
+        }
+        if (idPrefix === 'ira-72t-') {
+            existing._is72tDedicated = true;
         }
         return existing;
     }
@@ -752,6 +861,7 @@ export class SimulationEngine {
             sourceAcc.yearWithdrawals = (sourceAcc.yearWithdrawals || 0) + transferAmount;
             targetAcc.balance += transferAmount;
             targetAcc.yearRolloverIn = (targetAcc.yearRolloverIn || 0) + transferAmount;
+            sourceAcc._rolloverExecuted = true;
             this.events.push({
                 year,
                 month,
@@ -763,7 +873,7 @@ export class SimulationEngine {
 
     _findLegacyRolloverAccounts(spouse, evt) {
         const accounts = spouse.accounts || [];
-        const matchId = (id) => accounts.find((a) => a.id === id || a.name === id || a.type === id);
+        const matchId = (id) => (id ? accounts.find((a) => a.id === id || a.name === id || a.type === id) : null);
         const sourceAcc =
             spouse.getAccount?.(evt.sourceAccount) ||
             matchId(evt.sourceAccount) ||
@@ -847,6 +957,7 @@ export class SimulationEngine {
             year
         });
         const householdMagi = Math.max(0, s1W2 + s2W2 - (s1PreTaxEst + s2PreTaxEst));
+        this.yearlyHouseholdMagi = householdMagi;
 
         const s1Contribs = ContributionCalculator.calculate({
             spouse: this.s1,
@@ -854,7 +965,8 @@ export class SimulationEngine {
             jobs: snapshot.income.s1.jobs,
             year,
             filingStatus,
-            householdMagi
+            householdMagi,
+            mutateAccounts: false
         });
         const s2Contribs = ContributionCalculator.calculate({
             spouse: this.s2,
@@ -862,7 +974,8 @@ export class SimulationEngine {
             jobs: snapshot.income.s2.jobs,
             year,
             filingStatus,
-            householdMagi
+            householdMagi,
+            mutateAccounts: false
         });
         return { s1Contribs, s2Contribs };
     }
@@ -1025,7 +1138,8 @@ export class SimulationEngine {
                 this.strategies?.drawdownTierAge !== undefined ? Number(this.strategies.drawdownTierAge) : 60,
             taxYearData: currentTaxYearData,
             currentTaxableIncome: this.taxableIncome,
-            filingStatus: this.getFilingStatus(year)
+            filingStatus: this.getFilingStatus(year),
+            allowEarlyPenalizedWithdrawals: Boolean(this.strategies?.allowEarlyPenalizedWithdrawals)
         });
         this.cashCushion = cushionWrapper.value;
         return shortfall;
@@ -1135,11 +1249,31 @@ export class SimulationEngine {
         const growthRate = (this.primaryResidenceEquity.annualGrowthRate ?? 3) / 100;
         const homeAppreciation = endHomeValue > 0 ? endHomeValue - endHomeValue / (1 + growthRate) : 0;
         snapshot.growth = this._buildSnapshotGrowth(snapshot, homeAppreciation);
+        snapshot.rule72tMeta = this._buildSnapshot72tMeta(snapshot.year);
 
         const totalPortfolio = this._sumTotalPortfolioBalances(snapshot.balances);
         if (this.initialPortfolioValue === null) {
             this.initialPortfolioValue = totalPortfolio;
         }
+    }
+
+    _buildSpouse72tMeta(spouse, year) {
+        const isActive = Boolean(spouse.is72tActive?.(year) && (spouse.rule72tMonthlyPayment || 0) > 0);
+        const drawAcc = isActive ? this._find72tDrawAccount(spouse) : null;
+        return {
+            active: isActive,
+            inceptionBalance: spouse.rule72tInceptionBalance || 0,
+            annualPayment: spouse.rule72tAnnualPayment || 0,
+            monthlyPayment: spouse.rule72tMonthlyPayment || 0,
+            accountName: drawAcc?.name || null
+        };
+    }
+
+    _buildSnapshot72tMeta(year) {
+        return {
+            s1: this._buildSpouse72tMeta(this.s1, year),
+            s2: this._buildSpouse72tMeta(this.s2, year)
+        };
     }
 
     _cleanSpouseBalances(spouse) {
@@ -1149,13 +1283,20 @@ export class SimulationEngine {
     }
 
     _getAccountTypeBalance(spouse, type) {
-        return (spouse.accounts || []).filter((a) => a.type === type).reduce((sum, a) => sum + (a.balance || 0), 0);
+        return (spouse.accounts || [])
+            .filter((a) => a.type === type && !a._is72tDedicated)
+            .reduce((sum, a) => sum + (a.balance || 0), 0);
     }
 
-    _getAccountTypeGrowth(spouse, type, snapshotYear) {
-        const accs = (spouse.accounts || []).filter((a) => a.type === type);
+    _getSeppIraBalance(spouse) {
+        return (spouse.accounts || [])
+            .filter((a) => a.type === 'standardIra' && a._is72tDedicated)
+            .reduce((sum, a) => sum + (a.balance || 0), 0);
+    }
+
+    _sumAccountGrowthMetrics(accs) {
         const sumField = (key) => cleanPrecision(accs.reduce((sum, a) => sum + (Number(a[key]) || 0), 0));
-        const res = {
+        return {
             interest: sumField('yearInterest'),
             contributions: sumField('yearContributions'),
             conversionsIn: sumField('yearConversionsIn'),
@@ -1164,6 +1305,11 @@ export class SimulationEngine {
             rolloverOut: sumField('yearRolloverOut'),
             withdrawals: sumField('yearWithdrawals')
         };
+    }
+
+    _getAccountTypeGrowth(spouse, type, snapshotYear) {
+        const accs = (spouse.accounts || []).filter((a) => a.type === type && !a._is72tDedicated);
+        const res = this._sumAccountGrowthMetrics(accs);
         if (type === 'rothIra') {
             const rothAcc = accs[0];
             if (rothAcc && typeof rothAcc.getRothPrincipalBreakdown === 'function') {
@@ -1174,6 +1320,11 @@ export class SimulationEngine {
         return res;
     }
 
+    _getSeppIraGrowth(spouse) {
+        const accs = (spouse.accounts || []).filter((a) => a.type === 'standardIra' && a._is72tDedicated);
+        return this._sumAccountGrowthMetrics(accs);
+    }
+
     _buildSnapshotBalances(snapshot, endEquity, endHomeValue, endMortgageBalance) {
         return {
             s1Trad401k: this._getAccountTypeBalance(this.s1, 'traditional401k'),
@@ -1182,6 +1333,8 @@ export class SimulationEngine {
             s2Trad403b: this._getAccountTypeBalance(this.s2, 'trad403b'),
             s1StandardIra: this._getAccountTypeBalance(this.s1, 'standardIra'),
             s2StandardIra: this._getAccountTypeBalance(this.s2, 'standardIra'),
+            s1SeppIra: this._getSeppIraBalance(this.s1),
+            s2SeppIra: this._getSeppIraBalance(this.s2),
             s1Hysa: this._getAccountTypeBalance(this.s1, 'hysa'),
             s2Hysa: this._getAccountTypeBalance(this.s2, 'hysa'),
             s1Cd: this._getAccountTypeBalance(this.s1, 'cd'),
@@ -1209,6 +1362,8 @@ export class SimulationEngine {
             s2Trad403b: this._getAccountTypeGrowth(this.s2, 'trad403b', yr),
             s1StandardIra: this._getAccountTypeGrowth(this.s1, 'standardIra', yr),
             s2StandardIra: this._getAccountTypeGrowth(this.s2, 'standardIra', yr),
+            s1SeppIra: this._getSeppIraGrowth(this.s1),
+            s2SeppIra: this._getSeppIraGrowth(this.s2),
             s1Hysa: this._getAccountTypeGrowth(this.s1, 'hysa', yr),
             s2Hysa: this._getAccountTypeGrowth(this.s2, 'hysa', yr),
             s1Cd: this._getAccountTypeGrowth(this.s1, 'cd', yr),
@@ -1240,6 +1395,8 @@ export class SimulationEngine {
             's2Trad403b',
             's1StandardIra',
             's2StandardIra',
+            's1SeppIra',
+            's2SeppIra',
             's1Hysa',
             's2Hysa',
             's1Cd',
@@ -1271,6 +1428,11 @@ export class SimulationEngine {
         const firstDeathYear = Math.min(s1DeathYear, s2DeathYear);
 
         return year > firstDeathYear ? 'single' : 'mfj';
+    }
+
+    evaluateTerminalSurplusAndOpportunities(options = {}) {
+        const { data } = this.run();
+        return SurplusPullForwardEngine.evaluate(this.originalState || {}, data, options);
     }
 }
 

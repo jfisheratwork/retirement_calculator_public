@@ -93,7 +93,13 @@ export class PreTaxAccount extends Account {
 
     _isRuleOf55Exempt(ownerAge, isRuleOf55Eligible) {
         const isWorkplacePlan = this.type === 'traditional401k' || this.type === 'trad403b';
-        return isRuleOf55Eligible && ownerAge >= RULE_OF_55_MIN_AGE && isWorkplacePlan;
+        return (
+            isRuleOf55Eligible &&
+            ownerAge >= RULE_OF_55_MIN_AGE &&
+            isWorkplacePlan &&
+            this.isActiveContributor !== false &&
+            !this._rolloverExecuted
+        );
     }
 
     /**

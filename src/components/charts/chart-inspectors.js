@@ -70,34 +70,29 @@ function renderColorDot(colorMap, labelText, fallbackColor) {
  * @returns {string} HTML markup
  */
 export function renderInflowSection(inflows, colorMap) {
-    let html = `<div style="margin-bottom: 12px;">
-                    <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Cash Inflows (Income & Distributions)</div>`;
+    let html = `<div style="margin-bottom: 10px;">
+                    <div style="color: var(--text-muted); font-size: 0.78rem; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Cash Inflows</div>`;
 
     if (inflows.s1TakeHome > 0) {
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, `${inflows.s1Name} Take-Home Pay`, '#27ae60')} ${inflows.s1Name} Take-Home Pay</span><span class="inspector-value">${formatCurrency(inflows.s1TakeHome)}</span></div>`;
-        html += renderJobBreakoutRows(inflows.s1Jobs);
     }
     if (inflows.s2TakeHome > 0) {
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, `${inflows.s2Name} Take-Home Pay`, '#2ecc71')} ${inflows.s2Name} Take-Home Pay</span><span class="inspector-value">${formatCurrency(inflows.s2TakeHome)}</span></div>`;
-        html += renderJobBreakoutRows(inflows.s2Jobs);
     }
     if (inflows.totalSsn > 0) {
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, `${inflows.s1Name} SSN`, '#16a085')} Social Security</span><span class="inspector-value">${formatCurrency(inflows.totalSsn)}</span></div>`;
     }
     if (inflows.total72t > 0) {
-        html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, `${inflows.s1Name} Rule 72(t)`, '#f39c12')} Rule 72(t) SEPP</span><span class="inspector-value">${formatCurrency(inflows.total72t)}</span></div>`;
+        html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, `${inflows.s1Name} Early IRA Payout (72t)`, '#f39c12')} Penalty-Free Early IRA Payout (Rule 72t)</span><span class="inspector-value">${formatCurrency(inflows.total72t)}</span></div>`;
     }
     if (inflows.reverseMortgage > 0) {
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, 'Reverse Mortgage', '#e67e22')} Standby Home Equity</span><span class="inspector-value">${formatCurrency(inflows.reverseMortgage)}</span></div>`;
     }
     if (inflows.totalDrawdowns > 0) {
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, 'Portfolio Distributions', '#fdcb6e')} Portfolio Distributions</span><span class="inspector-value" style="color: #fdcb6e;">+${formatCurrency(inflows.totalDrawdowns)}</span></div>`;
-        inflows.drawdownRows.forEach((drawdownRow) => {
-            html += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px;"><span class="inspector-label">↳ ${drawdownRow.label}</span><span class="inspector-value">+${formatCurrency(drawdownRow.amount)}</span></div>`;
-        });
     }
-    if (!inflows.hasEarnedIncome) {
-        html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label"><em>No earned cash income (Fully retired)</em></span></div>`;
+    if (!inflows.hasEarnedIncome && inflows.totalCashInflows === 0) {
+        html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label"><em>No cash inflows</em></span></div>`;
     }
 
     html += `<div class="inspector-row" style="font-size: 0.85rem; font-weight: bold; margin-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 2px;"><span class="inspector-label">Total Cash Inflows</span><span class="inspector-value" style="color: var(--success);">${formatCurrency(inflows.totalCashInflows)}</span></div>`;
@@ -125,9 +120,16 @@ export function renderOutflowSection(outflows, colorMap) {
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, '529 College / Dependent Education', '#e84393')} College 529 Tuition</span><span class="inspector-value">${formatCurrency(outflows.childcare)}</span></div>`;
     }
     if (outflows.irmaa > 0) {
-        html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, 'Medicare IRMAA', '#e17055')} Medicare IRMAA Surcharges</span><span class="inspector-value">${formatCurrency(outflows.irmaa)}</span></div>`;
+        html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, 'Medicare IRMAA', '#e17055')} Medicare High-Income Surcharge (IRMAA)</span><span class="inspector-value">${formatCurrency(outflows.irmaa)}</span></div>`;
     }
-    html += `<div class="inspector-row" style="font-size: 0.85rem; font-weight: bold; margin-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 2px;"><span class="inspector-label">Total Cash Expenses</span><span class="inspector-value" style="color: var(--danger);">${formatCurrency(outflows.totalExpenses)}</span></div>`;
+    if (outflows.nonW2Tax > 0) {
+        html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, 'Non-W2 Taxes (Conversions/Portfolios)', '#ff7675')} Non-W2 Taxes (Conversions/Portfolios)</span><span class="inspector-value">${formatCurrency(outflows.nonW2Tax)}</span></div>`;
+    }
+    if (outflows.earlyWithdrawalPenalty > 0) {
+        html += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; color: #ff7675;"><span class="inspector-label">↳ ⚠️ Includes 10% Early Withdrawal Penalty (Pre-59.5)</span><span class="inspector-value" style="color: #ff7675;">${formatCurrency(outflows.earlyWithdrawalPenalty)}</span></div>`;
+    }
+    const totalOutflowsWithTaxes = (outflows.totalExpenses || 0) + (outflows.nonW2Tax || 0);
+    html += `<div class="inspector-row" style="font-size: 0.85rem; font-weight: bold; margin-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 2px;"><span class="inspector-label">Total Cash Expenses${outflows.nonW2Tax > 0 ? ' + Non-W2 Taxes' : ''}</span><span class="inspector-value" style="color: var(--danger);">${formatCurrency(totalOutflowsWithTaxes)}</span></div>`;
     html += `</div>`;
     return html;
 }
@@ -235,6 +237,8 @@ export function renderActivitySection(snap, state) {
     }
     const s1Name = escapeHtml(state?.primarySpouse?.name || 'S1');
     const s2Name = escapeHtml(state?.secondarySpouse?.name || 'S2');
+    const s1SeppLabel = escapeHtml(state?.primarySpouse?.rule72t?.newIraName || `${s1Name} 72(t) IRA`);
+    const s2SeppLabel = escapeHtml(state?.secondarySpouse?.rule72t?.newIraName || `${s2Name} 72(t) IRA`);
     const accountEntries = [
         [`${s1Name} 401k`, snap.growth.s1Trad401k],
         [`${s2Name} 401k`, snap.growth.s2Trad401k],
@@ -242,6 +246,8 @@ export function renderActivitySection(snap, state) {
         [`${s2Name} 403b`, snap.growth.s2Trad403b],
         [`${s1Name} Std IRA`, snap.growth.s1StandardIra],
         [`${s2Name} Std IRA`, snap.growth.s2StandardIra],
+        [s1SeppLabel, snap.growth.s1SeppIra],
+        [s2SeppLabel, snap.growth.s2SeppIra],
         [`${s1Name} Roth IRA`, snap.growth.s1RothIra],
         [`${s2Name} Roth IRA`, snap.growth.s2RothIra],
         [`${s1Name} HYSA`, snap.growth.s1Hysa],
@@ -277,18 +283,12 @@ export function renderCashflowInspector(snap, state, points) {
     const inflows = FinancialPresentationService.computeCashInflows(snap, state);
     const outflows = FinancialPresentationService.computeExpensesAndOutflows(snap);
     const surplus = FinancialPresentationService.computeCashFlowSurplus(inflows, outflows, state);
-    const additions = FinancialPresentationService.computePortfolioAdditions(snap, state, surplus.surplusAmount);
-    const tax = FinancialPresentationService.computeTaxProfile(snap);
 
     let html = '';
     html += renderInflowSection(inflows, colorMap);
     html += renderOutflowSection(outflows, colorMap);
     html += renderSurplusSection(surplus);
-    if (additions.totalPortfolioAdditions > 0) {
-        html += renderAdditionsSection(additions, state);
-    }
-    html += renderTaxSection(tax);
-    html += renderActivitySection(snap, state);
+    html += `<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.12); text-align: center;">💡 Click any year bar to inspect full tax &amp; account details below</div>`;
     return html;
 }
 
@@ -354,14 +354,107 @@ function renderGenericTotalsFooter(total, chart, tooltip, state) {
 
 function renderTaxChartDetailsFooter(chart, snap) {
     if (chart.canvas.id !== 'taxChart' || !snap?.taxDetails) return '';
+    const earlyPenalty = snap.taxDetails.earlyWithdrawalPenalty ?? snap.earlyWithdrawalPenalty ?? 0;
+    const penaltyRow =
+        earlyPenalty > 0
+            ? `<div class="inspector-row" style="font-size: 0.85rem; color: #ff7675;"><span class="inspector-label">⚠️ 10% Early Penalty (Pre-59.5)</span><span class="inspector-value" style="color: #ff7675;">${formatCurrency(earlyPenalty)}</span></div>`
+            : '';
     return `
         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2);">
             <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px;">Federal Tax Profile (MFJ)</div>
+            ${penaltyRow}
             <div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Top Bracket Hit</span><span class="inspector-value">${(snap.taxDetails.topBracketRate * 100).toFixed(1)}%</span></div>
             <div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Remaining Room</span><span class="inspector-value" style="color: var(--success);">${formatCurrency(snap.taxDetails.remainingRoomInBracket)}</span></div>
             <div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Effective Fed Rate</span><span class="inspector-value">${(snap.taxDetails.effectiveRate * 100).toFixed(1)}%</span></div>
         </div>
     `;
+}
+
+function getRawBalanceEntries(b, s1Name, s2Name, state) {
+    const s1SeppLabel = escapeHtml(state?.primarySpouse?.rule72t?.newIraName || `${s1Name} 72(t) IRA`);
+    const s2SeppLabel = escapeHtml(state?.secondarySpouse?.rule72t?.newIraName || `${s2Name} 72(t) IRA`);
+    return [
+        [`${s1Name} Roth IRA`, b.s1RothIra, '#6c5ce7'],
+        [`${s2Name} Roth IRA`, b.s2RothIra, '#a29bfe'],
+        [`${s1Name} Trad 401k`, b.s1Trad401k, '#00cec9'],
+        [`${s2Name} Trad 401k`, b.s2Trad401k, '#81ecec'],
+        [`${s1Name} 403b`, b.s1Trad403b, '#22a6b3'],
+        [`${s2Name} 403b`, b.s2Trad403b, '#7ed6df'],
+        [`${s1Name} Std IRA`, b.s1StandardIra, '#be2edd'],
+        [`${s2Name} Std IRA`, b.s2StandardIra, '#e056fd'],
+        [s1SeppLabel, b.s1SeppIra, '#f39c12'],
+        [s2SeppLabel, b.s2SeppIra, '#f1c40f'],
+        ['Joint Brokerage', (b.s1Brokerage || 0) + (b.s2Brokerage || 0), '#0984e3'],
+        ['High-Yield Savings (HYSA)', (b.s1Hysa || 0) + (b.s2Hysa || 0), '#10ac84'],
+        ['Cash Cushion', b.cashCushion, '#00b894'],
+        ['Certificates of Deposit (CD)', (b.s1Cd || 0) + (b.s2Cd || 0), '#1dd1a1'],
+        ['Health Savings Account (HSA)', (b.s1Hsa || 0) + (b.s2Hsa || 0), '#2bcbba'],
+        ['Home Equity', b.primaryResidenceEquity, '#fdcb6e'],
+        ['529 College Savings', b.college529, '#e17055']
+    ];
+}
+
+function buildAccountPointsFromSnapshot(snap, state, dataIndex) {
+    const b = snap?.balances || {};
+    const s1Name = escapeHtml(state?.primarySpouse?.name || 'Spouse 1');
+    const s2Name = escapeHtml(state?.secondarySpouse?.name || 'Spouse 2');
+    const isReal = Boolean(state?.assumptions?.displayRealDollars);
+    const infRate = Number(state?.assumptions?.inflationRate) || 0;
+    const deflator = isReal ? Math.pow(1 + infRate / 100, dataIndex) : 1;
+    const adj = (val) => (Number(val) || 0) / deflator;
+
+    const rawEntries = getRawBalanceEntries(b, s1Name, s2Name, state);
+    const totalNW = rawEntries.reduce((sum, [, val]) => sum + (Number(val) || 0), 0);
+    const allEntries = [['Total Net Worth', totalNW, '#10b981'], ...rawEntries];
+
+    const pts = allEntries.map(([label, rawVal, color]) => ({
+        dp: {
+            dataset: { label },
+            raw: adj(rawVal),
+            dataIndex,
+            element: null
+        },
+        colors: { backgroundColor: color, borderColor: color }
+    }));
+    pts.sort((a, bPt) => bPt.dp.raw - a.dp.raw);
+    return pts;
+}
+
+function resolveInspectorPoints(chart, tooltip, points, snap, state) {
+    if (chart?.canvas?.id !== 'portfolioChart' || !Array.isArray(chart?.data?.datasets)) {
+        return points;
+    }
+    const dataIndex = tooltip?.dataPoints?.[0]?.dataIndex ?? 0;
+    const isBucketsDataset = chart.data.datasets.some((ds) => ds.label === 'Retirement Accounts');
+    if (isBucketsDataset && snap?.balances) {
+        return buildAccountPointsFromSnapshot(snap, state, dataIndex);
+    }
+    const visibleMap = new Map();
+    (points || []).forEach((pt) => {
+        if (pt?.dp?.dataset?.label) {
+            visibleMap.set(pt.dp.dataset.label, pt);
+        }
+    });
+    const allPoints = chart.data.datasets.map((ds) => {
+        const existing = visibleMap.get(ds.label);
+        if (existing) return existing;
+        const rawVal = Number(ds.data?.[dataIndex]) || 0;
+        const bg = ds.borderColor || ds.backgroundColor || '#94a3b8';
+        return {
+            dp: {
+                dataset: ds,
+                raw: rawVal,
+                dataIndex,
+                element: null
+            },
+            colors: {
+                backgroundColor: bg,
+                borderColor: bg
+            }
+        };
+    });
+    allPoints.sort((pointA, pointB) => pointB.dp.raw - pointA.dp.raw);
+    return allPoints;
 }
 
 /**
@@ -376,8 +469,9 @@ function renderTaxChartDetailsFooter(chart, snap) {
 export function renderGenericInspector(chart, tooltip, snap, state, points) {
     let html = '';
     let total = 0;
+    const effectivePoints = resolveInspectorPoints(chart, tooltip, points, snap, state);
 
-    points.forEach((pointItem) => {
+    effectivePoints.forEach((pointItem) => {
         const dataPoint = pointItem.dp;
         const colors = pointItem.colors;
         const datasetLabel = dataPoint.dataset.label;

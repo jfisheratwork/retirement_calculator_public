@@ -129,6 +129,8 @@ export class FinancialPresentationService {
         const childcare = eb.childcare || 0;
         const irmaa = eb.irmaa || 0;
         const healthcare = eb.healthcare || 0;
+        const nonW2Tax = snap.taxDetails?.nonW2Tax ?? 0;
+        const earlyWithdrawalPenalty = snap.taxDetails?.earlyWithdrawalPenalty ?? snap.earlyWithdrawalPenalty ?? 0;
         const totalExpenses = snap.expenses || base + mortgage + housing + childcare + irmaa + healthcare;
 
         return {
@@ -138,6 +140,8 @@ export class FinancialPresentationService {
             childcare,
             irmaa,
             healthcare,
+            nonW2Tax,
+            earlyWithdrawalPenalty,
             totalExpenses
         };
     }

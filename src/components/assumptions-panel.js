@@ -28,7 +28,7 @@ export class AssumptionsPanel extends BaseComponent {
 
         html += `<div class="tab-stop-grid-3">`;
         html += `<div>${this._input('Inflation Rate (%)', 'assumptions.inflationRate', 'number', inflRate, 'Estimated compound annual inflation rate. Used to inflate future expenses, phase budgets, and college costs. Historical 50-year US CPI average is ~2.5%–3.2%.')}</div>`;
-        html += `<div>${this._input('Expected W2 Raise (%)', 'assumptions.w2RaiseRate', 'number', w2Raise, 'Annual nominal wage growth rate applied to base W2 salaries. Standard corporate merit raises typically average 2.0%–3.5%.')}</div>`;
+        html += `<div>${this._input('Expected Annual Salary Raise (%)', 'assumptions.w2RaiseRate', 'number', w2Raise, 'The expected annual percentage raise or career income growth applied to your base salary each year before retirement.')}</div>`;
         html += `<div>${this._input('State Tax Rate (%)', 'assumptions.stateTaxRate', 'number', stateTax, 'Estimated flat state income tax rate applied on top of Federal 2024 Married Filing Jointly tax brackets.')}</div>`;
         html += `</div>`;
 
@@ -108,7 +108,7 @@ export class AssumptionsPanel extends BaseComponent {
             this.state.strategies?.drawdownTierAge !== undefined ? this.state.strategies.drawdownTierAge : 60;
 
         let html = `<div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.75rem;">
-            <div style="font-weight: 600; font-size: 0.85rem; color: var(--primary); margin-bottom: 0.35rem;">Withdrawal Priority Waterfall</div>
+            <div style="font-weight: 600; font-size: 0.85rem; color: var(--primary); margin-bottom: 0.35rem;">Account Withdrawal Order (Which Accounts to Tap First)</div>
             <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem; line-height: 1.35;">
                 Controls the liquidation sequence when investment portfolio drawdowns are needed to cover cash flow deficits.
             </div>`;
@@ -131,32 +131,40 @@ export class AssumptionsPanel extends BaseComponent {
         );
         html += `<div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 0.65rem 0.85rem; margin-top: 0.5rem; font-size: 0.78rem; line-height: 1.5; color: var(--text-color);">
             <div style="font-weight: 600; color: #34d399; margin-bottom: 0.25rem;">Active Liquidation Sequence:</div>
-            <div><strong>Before Age ${tierAge} (Early Bridge):</strong> Roth IRA (Principal &amp; Mature Conversions) ➔ Taxable Brokerage &amp; HYSA. <em>Pre-tax accounts preserved &amp; locked.</em></div>
-            <div style="margin-top: 0.2rem;"><strong>Age ${tierAge}+ (Retirement Decumulation):</strong> 1. Workplace 403(b) ➔ 2. Roth IRA ➔ 3. Traditional IRA &amp; 401(k) ➔ 4. Taxable Brokerage.</div>
-        </div></div></div>`;
+            <div><strong>Before Age <span class="drawdown-tier-age-val">${tierAge}</span> (Early Bridge):</strong> Roth IRA (Principal &amp; Mature Conversions) ➔ Taxable Brokerage &amp; HYSA. <em>Pre-tax accounts preserved &amp; locked.</em></div>
+            <div style="margin-top: 0.2rem;"><strong>Age <span class="drawdown-tier-age-val">${tierAge}</span>+ (Retirement Decumulation):</strong> 1. Workplace 403(b) ➔ 2. Roth IRA ➔ 3. Traditional IRA &amp; 401(k) ➔ 4. Taxable Brokerage.</div>
+        </div></div>`;
+        html += `<div style="margin-top: 0.65rem; padding-top: 0.5rem; border-top: 1px dashed rgba(255,255,255,0.1);">`;
+        html += this._checkbox(
+            'Allow Penalized Early Pre-Tax Withdrawals (< Age 59.5, +10% IRS Penalty) as Last Resort',
+            'strategies.allowEarlyPenalizedWithdrawals',
+            Boolean(this.state.strategies?.allowEarlyPenalizedWithdrawals),
+            'By default, Traditional IRAs and non-exempt 401(k)/403(b) accounts are strictly locked before age 59.5 unless Rule 72(t) SEPP or Rule of 55 applies. Enable this only if you want the simulator to break into pre-tax accounts early and pay the 10% IRS penalty when bridge cash runs out.'
+        );
+        html += `</div></div>`;
         return html;
     }
 
     _renderDrawdownStrategy() {
         let html = `<div style="padding: 0.5rem; background: var(--bg-darker); margin-top: 1rem; border-left: 3px solid var(--primary);">
-            <div class="pane-section-header">Portfolio Drawdown & Decumulation Strategy</div>
+            <div class="pane-section-header">Retirement Spending Style &amp; Legacy Goal</div>
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; line-height: 1.4;">
-                Defines your family's drawdown approach across retirement (Capital Preservation vs. Actuarial Die With Zero vs. Health-Adjusted Front-Loaded Curve).
+                Defines your family's spending and withdrawal style across retirement (Preserve Principal vs. Spend Down to Legacy Target vs. Active Early Years Curve).
             </div>`;
 
         const decumOptions = [
-            { value: 'capital_preservation', label: 'Capital Preservation (Standard 4% / SWR)' },
-            { value: 'die_with_zero', label: 'Die With Zero (Target $0 Net Worth)' },
-            { value: 'front_loaded', label: 'Health-Adjusted Front-Loaded Curve' }
+            { value: 'capital_preservation', label: 'Preserve Principal (4% Safe Withdrawal Rate / SWR)' },
+            { value: 'die_with_zero', label: 'Spend Down to Target Legacy (Die With Zero)' },
+            { value: 'front_loaded', label: 'Active Early Retirement Years (Spend More in 50s/60s)' }
         ];
 
         const currentMode = this.state.strategies?.decumulationMode || 'capital_preservation';
         html += this._select(
-            'Drawdown Spending Curve',
+            'Retirement Spending Style',
             'strategies.decumulationMode',
             decumOptions,
             currentMode,
-            'Determines whether withdrawals preserve capital indefinitely, amortize the portfolio down to zero by life expectancy, or front-load travel/vitality spending in early retirement.'
+            'Controls your spending pattern in retirement: Preserve Principal (4% Rule), Spend Down to Target Legacy (Die With Zero), or Spend More in Active Early Years (Go-Go Curve).'
         );
 
         const isDieWithZero = currentMode === 'die_with_zero';
@@ -172,18 +180,18 @@ export class AssumptionsPanel extends BaseComponent {
 
         html += `<div id="drawdown-vitality-settings" style="margin-top: 0.5rem;">`;
         html += this._input(
-            'Early Retirement "Go-Go" Multiplier',
+            'Active Early Retirement Spending Multiplier (Ages 60–69) (x)',
             'strategies.gogoMultiplier',
             'number',
             this.state.strategies?.gogoMultiplier !== undefined ? this.state.strategies.gogoMultiplier : 1.0,
             'Lifestyle spending multiplier applied during active early retirement years (50s/60s) when physical energy and travel desires are highest (1.0x to 1.5x).'
         );
         html += this._input(
-            'Biological Health Aging Offset (Years)',
+            'Personal Health Pace Adjustment (Years)',
             'strategies.healthAgingOffset',
             'number',
             this.state.strategies?.healthAgingOffset || 0,
-            'Simulates biological health aging faster (+years) or slower (-years) than chronological calendar age, dynamically accelerating retirement phase expense transitions.'
+            'Adjusts when your retirement spending transitions from active travel years into slower-paced mature years (+years if health slows down earlier; -years if staying active longer).'
         );
         html += `</div>`;
         html += this._renderWithdrawalWaterfallSubsection();
@@ -193,7 +201,7 @@ export class AssumptionsPanel extends BaseComponent {
 
     _render72tStrategy() {
         let html = `<div style="padding: 0.5rem; background: var(--bg-darker); margin-top: 1rem; border-left: 3px solid var(--primary);">
-            <div class="pane-section-header">72(t) Strategy Configuration</div>`;
+            <div class="pane-section-header">Pre-Age 59½ Penalty-Free Withdrawal Strategy (IRS Rule 72t)</div>`;
         html += this._input(
             'Interest Rate (%)',
             `strategies.rule72tInterestRate`,
@@ -207,12 +215,12 @@ export class AssumptionsPanel extends BaseComponent {
 
     _renderConservativeShift() {
         let html = `<div style="padding: 0.5rem; background: var(--bg-darker); margin-top: 1rem; border-left: 3px solid var(--primary);">
-            <div class="pane-section-header">Conservative Glide Path (Bond Shift)</div>`;
+            <div class="pane-section-header">Automatic Shift to Safer Assets (Bond Buffer)</div>`;
         html += this._checkbox(
             'Enable Conservative Shift',
             'assumptions.conservativeShift.enabled',
             this.state.assumptions.conservativeShift?.enabled,
-            'Simulates shifting equities into bonds and fixed income at a specified age, reducing portfolio volatility and lowering expected annual returns.'
+            'Gradually shifts your portfolio toward safer bonds and fixed income at a target age to cushion against stock market crashes in retirement.'
         );
         html += `<div id="conservative-shift-inputs" style="display: ${this.state.assumptions.conservativeShift?.enabled ? 'block' : 'none'}; margin-top: 0.5rem;">`;
         html += this._input(
@@ -237,37 +245,53 @@ export class AssumptionsPanel extends BaseComponent {
         return html;
     }
 
+    _handleLiveInputValidation(path, value) {
+        if (path === 'assumptions.inflationRate') {
+            const box = this.querySelector('#assumptions-inflation-warning');
+            if (box) {
+                const res = HeuristicValidator.validateInflation(value);
+                box.innerHTML = res ? res.message : '';
+                box.style.display = res ? 'block' : 'none';
+            }
+        } else if (path === 'assumptions.w2RaiseRate') {
+            const box = this.querySelector('#assumptions-wage-warning');
+            if (box) {
+                const res = HeuristicValidator.validateWageGrowth(value);
+                box.innerHTML = res ? res.message : '';
+                box.style.display = res ? 'block' : 'none';
+            }
+        } else if (path && path.startsWith('assumptions.marketReturnRates.') && path.endsWith('.rate')) {
+            const parts = path.split('.');
+            const tIdx = parts[2];
+            const box = this.querySelector(`#market-rate-warning-${tIdx}`);
+            if (box) {
+                const res = HeuristicValidator.validateMarketReturn(value);
+                box.innerHTML = res ? res.message : '';
+                box.style.display = res ? 'block' : 'none';
+            }
+        } else if (path === 'strategies.drawdownTierAge') {
+            const ageVal = Number(value) || 60;
+            this.querySelectorAll('.drawdown-tier-age-val').forEach((spanEl) => {
+                spanEl.textContent = String(ageVal);
+            });
+        }
+    }
+
     afterRender() {
         this.addEvent('input, select', 'input', (e) => {
             const path = e.target.getAttribute('data-path');
-            if (path === 'assumptions.inflationRate') {
-                const box = this.querySelector('#assumptions-inflation-warning');
-                if (box) {
-                    const res = HeuristicValidator.validateInflation(e.target.value);
-                    box.innerHTML = res ? res.message : '';
-                    box.style.display = res ? 'block' : 'none';
-                }
-            } else if (path === 'assumptions.w2RaiseRate') {
-                const box = this.querySelector('#assumptions-wage-warning');
-                if (box) {
-                    const res = HeuristicValidator.validateWageGrowth(e.target.value);
-                    box.innerHTML = res ? res.message : '';
-                    box.style.display = res ? 'block' : 'none';
-                }
-            } else if (path && path.startsWith('assumptions.marketReturnRates.') && path.endsWith('.rate')) {
-                const parts = path.split('.');
-                const tIdx = parts[2];
-                const box = this.querySelector(`#market-rate-warning-${tIdx}`);
-                if (box) {
-                    const res = HeuristicValidator.validateMarketReturn(e.target.value);
-                    box.innerHTML = res ? res.message : '';
-                    box.style.display = res ? 'block' : 'none';
-                }
-            }
+            this._handleLiveInputValidation(path, e.target.value);
+            this.dispatchEvent(
+                new CustomEvent('stateChange', {
+                    detail: { element: e.target },
+                    bubbles: true
+                })
+            );
         });
 
         this.addEvent('input, select', 'change', (e) => {
             const path = e.target.getAttribute('data-path');
+            this._handleLiveInputValidation(path, e.target.value);
             if (path === 'strategies.decumulationMode') {
                 const legacyBox = this.querySelector('#die-with-zero-settings');
                 if (legacyBox) {

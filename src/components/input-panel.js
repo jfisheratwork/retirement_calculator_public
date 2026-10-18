@@ -202,15 +202,41 @@ export class FinancialInputPanel extends BaseComponent {
     }
 
     _syncRetirementDateDerivedAge(current, val) {
-        const parts = val.split('-');
+        const parts = String(val || '').split('-');
         const birthYear = Number(current.yearOfBirth || current.birthYear) || 1980;
         const retYear = parseInt(parts[0], 10) || birthYear + 65;
         current.targetRetirementAge = retYear - birthYear;
     }
 
+    _syncSsnDateDerivedAge(current, val) {
+        const parts = String(val || '').split('-');
+        const birthYear = Number(current.yearOfBirth || current.birthYear) || 1980;
+        const ssnYear = parseInt(parts[0], 10) || birthYear + 67;
+        const ssnMonth = parseInt(parts[1], 10) || 1;
+        current.socialSecurityStartAge = ssnYear - birthYear;
+        current.socialSecurityStartMonth = ssnMonth;
+    }
+
+    _syncSpouseDatesOnBirthYearChange(current) {
+        if (current.targetRetirementDate) {
+            this._syncRetirementDateDerivedAge(current, current.targetRetirementDate);
+        }
+        if (current.socialSecurityStartDate) {
+            this._syncSsnDateDerivedAge(current, current.socialSecurityStartDate);
+        }
+    }
+
     _handleDerivedPathLogic(workingState, current, path, val, keys) {
         if (path.endsWith('.targetRetirementDate') && typeof val === 'string') {
             this._syncRetirementDateDerivedAge(current, val);
+            return;
+        }
+        if (path.endsWith('.socialSecurityStartDate') && typeof val === 'string') {
+            this._syncSsnDateDerivedAge(current, val);
+            return;
+        }
+        if (path.endsWith('.yearOfBirth') && (keys[0] === 'primarySpouse' || keys[0] === 'secondarySpouse')) {
+            this._syncSpouseDatesOnBirthYearChange(current);
             return;
         }
         if (path.endsWith('.socialSecurityMonthlyBenefit')) {
@@ -279,6 +305,18 @@ export class FinancialInputPanel extends BaseComponent {
         } else {
             current.isSweepAccount = false;
         }
+        this.querySelectorAll('account-panel').forEach((panel) => {
+            const prefix = panel.getAttribute('prefix');
+            const idx = parseInt(panel.getAttribute('index'), 10);
+            const acc = workingState[prefix]?.accounts?.[idx];
+            const chk = panel.querySelector(`input[data-path="${prefix}.accounts.${idx}.isSweepAccount"]`);
+            if (chk && acc) {
+                chk.checked = Boolean(acc.isSweepAccount);
+            }
+            if (typeof panel._updateAccountCardSummaryText === 'function') {
+                panel._updateAccountCardSummaryText();
+            }
+        });
     }
 
     _syncCardDisclosure(detailsEl, workingState, isJob) {
@@ -454,70 +492,122 @@ export class FinancialInputPanel extends BaseComponent {
         }
     }
 
+    getDrawerLayoutMode() {
+        const workingMode = this.getWorkingState()?.uiState?.drawerLayoutMode;
+        const globalMode = getState()?.uiState?.drawerLayoutMode;
+        return workingMode || globalMode || 'simplified';
+    }
+
+    setDrawerLayoutMode(mode) {
+        const validMode = mode === 'classic' ? 'classic' : 'simplified';
+        const workingState = this.getWorkingState();
+        if (!workingState.uiState) workingState.uiState = {};
+        workingState.uiState.drawerLayoutMode = validMode;
+        const liveState = getState();
+        if (liveState?.uiState) {
+            liveState.uiState.drawerLayoutMode = validMode;
+        }
+        if (validMode === 'simplified') {
+            const simplifiedMap = {
+                kids: 'personal-details',
+                'account-details': 'job-details',
+                housing: 'expenses'
+            };
+            if (simplifiedMap[this.activeTab]) {
+                this.activeTab = simplifiedMap[this.activeTab];
+            }
+        }
+        this._snapshotOpenDisclosures();
+        this.render();
+        this.afterRender();
+    }
+
     _renderTabNavigationBar() {
-        const tabs = [
-            ['personal-details', 'Personal Details'],
-            ['job-details', 'Job Details'],
-            ['account-details', 'Account Details'],
-            ['conversion-sepp-events', 'Conversion & SEPP Events'],
-            ['expenses', 'Expenses'],
-            ['housing', 'Housing'],
-            ['global', 'Global'],
-            ['kids', 'Kids']
-        ];
+        const isSimplified = this.getDrawerLayoutMode() === 'simplified';
+        const tabs = isSimplified
+            ? [
+                  ['personal-details', '1. 👤 Family & Timeline'],
+                  ['job-details', '2. 💼 Income & Accounts'],
+                  ['expenses', '3. 🏠 Spending & Home'],
+                  ['global', '4. ⚙️ Assumptions'],
+                  ['conversion-sepp-events', '5. 🔄 Tax & Strategy Knobs']
+              ]
+            : [
+                  ['personal-details', '👤 Personal Details'],
+                  ['job-details', '💼 Job Details'],
+                  ['account-details', '🏦 Account Details'],
+                  ['conversion-sepp-events', '🔄 Tax & Early Access (Roth / 72t)'],
+                  ['expenses', '💳 Expenses'],
+                  ['housing', '🏠 Housing'],
+                  ['global', '🌐 Global'],
+                  ['kids', '🎓 Kids']
+              ];
         const buttons = tabs
             .map(
                 ([tabId, label]) =>
                     `<button type="button" class="tab-button ${this.activeTab === tabId ? 'active' : ''}" data-tab="${tabId}">${label}</button>`
             )
             .join('');
-        return `<div class="tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); overflow-x: auto;">${buttons}</div>`;
+        return `<div class="tabs drawer-tab-bar" data-layout-mode="${isSimplified ? 'simplified' : 'classic'}">${buttons}</div>`;
     }
 
     _tabDisplay(tabId, activeDisplay = 'block') {
-        return this.activeTab === tabId ? activeDisplay : 'none';
+        if (this.getDrawerLayoutMode() !== 'simplified') {
+            return this.activeTab === tabId ? activeDisplay : 'none';
+        }
+        const simplifiedGroups = {
+            'personal-details': ['personal-details', 'kids'],
+            'job-details': ['job-details', 'account-details'],
+            expenses: ['expenses', 'housing'],
+            global: ['global'],
+            'conversion-sepp-events': ['conversion-sepp-events']
+        };
+        const visibleTabs = simplifiedGroups[this.activeTab] || [this.activeTab];
+        return visibleTabs.includes(tabId) ? activeDisplay : 'none';
     }
 
     getTemplate() {
         const state = this.getWorkingState();
+        const isSingleMode = state.uiState?.householdMode === 'single';
+        const gridCols = isSingleMode ? '1fr' : '1fr 1fr';
         const s1JobTitle = `${state.primarySpouse?.name || 'My'} Jobs & Income`;
         const s2JobTitle = `${state.secondarySpouse?.name || 'Spouse'} Jobs & Income`;
         return `
-            <div class="tabs-container">
+            <div class="tabs-container drawer-modern-surface">
                 ${this._renderTabNavigationBar()}
 
-                <div class="tab-content" id="tab-personal-details" style="display: ${this._tabDisplay('personal-details', 'grid')}; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1400px;">
+                <div class="tab-content" id="tab-personal-details" style="display: ${this._tabDisplay('personal-details', 'grid')}; grid-template-columns: ${gridCols}; gap: 1.5rem; max-width: 1400px; margin-bottom: 1.5rem;">
                     <spouse-panel prefix="primarySpouse"></spouse-panel>
-                    <spouse-panel prefix="secondarySpouse"></spouse-panel>
+                    ${isSingleMode ? '' : '<spouse-panel prefix="secondarySpouse"></spouse-panel>'}
                 </div>
 
-                <div class="tab-content" id="tab-job-details" style="display: ${this._tabDisplay('job-details', 'grid')}; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1400px;">
+                <div class="tab-content" id="tab-kids" style="display: ${this._tabDisplay('kids')}; max-width: 1400px; margin-bottom: 1.5rem;">
+                    <children-panel></children-panel>
+                </div>
+
+                <div class="tab-content" id="tab-job-details" style="display: ${this._tabDisplay('job-details', 'grid')}; grid-template-columns: ${gridCols}; gap: 1.5rem; max-width: 1400px; margin-bottom: 1.5rem;">
                     ${this._renderJobsColumn('primarySpouse', s1JobTitle, state)}
-                    ${this._renderJobsColumn('secondarySpouse', s2JobTitle, state)}
+                    ${isSingleMode ? '' : this._renderJobsColumn('secondarySpouse', s2JobTitle, state)}
                 </div>
 
-                <div class="tab-content" id="tab-account-details" style="display: ${this._tabDisplay('account-details')}; max-width: 1400px;">
+                <div class="tab-content" id="tab-account-details" style="display: ${this._tabDisplay('account-details')}; max-width: 1400px; margin-bottom: 1.5rem;">
                     <account-details-panel></account-details-panel>
                 </div>
 
-                <div class="tab-content" id="tab-conversion-sepp-events" style="display: ${this._tabDisplay('conversion-sepp-events')}; max-width: 1400px;">
-                    <strategy-events-panel></strategy-events-panel>
-                </div>
-
-                <div class="tab-content" id="tab-expenses" style="display: ${this._tabDisplay('expenses')}; max-width: 1200px;">
+                <div class="tab-content" id="tab-expenses" style="display: ${this._tabDisplay('expenses')}; max-width: 1200px; margin-bottom: 1.5rem;">
                     <expenses-panel></expenses-panel>
                 </div>
 
-                <div class="tab-content" id="tab-housing" style="display: ${this._tabDisplay('housing')}; max-width: 1200px;">
+                <div class="tab-content" id="tab-housing" style="display: ${this._tabDisplay('housing')}; max-width: 1200px; margin-bottom: 1.5rem;">
                     <housing-panel></housing-panel>
                 </div>
 
-                <div class="tab-content" id="tab-global" style="display: ${this._tabDisplay('global')}; max-width: 1200px;">
+                <div class="tab-content" id="tab-global" style="display: ${this._tabDisplay('global')}; max-width: 1200px; margin-bottom: 1.5rem;">
                     <assumptions-panel></assumptions-panel>
                 </div>
 
-                <div class="tab-content" id="tab-kids" style="display: ${this._tabDisplay('kids')}; max-width: 1200px;">
-                    <children-panel></children-panel>
+                <div class="tab-content" id="tab-conversion-sepp-events" style="display: ${this._tabDisplay('conversion-sepp-events')}; max-width: 1400px; margin-bottom: 1.5rem;">
+                    <strategy-events-panel></strategy-events-panel>
                 </div>
             </div>
         `;

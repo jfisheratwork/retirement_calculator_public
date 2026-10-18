@@ -152,6 +152,19 @@ export class BaseComponent extends BaseElement {
             monthSelect.addEventListener('change', updateVal);
             yearInput.addEventListener('change', updateVal);
             yearInput.addEventListener('blur', updateVal);
+            yearInput.addEventListener('input', () => {
+                const rawY = parseInt(yearInput.value, 10);
+                const minYear = parseInt(yearInput.getAttribute('min'), 10) || 1940;
+                const maxYear = parseInt(yearInput.getAttribute('max'), 10) || 2100;
+                if (!isNaN(rawY) && rawY >= minYear && rawY <= maxYear) {
+                    const m = monthSelect.value || '01';
+                    const formatted = `${rawY}-${m}-01`;
+                    if (hiddenInput.value !== formatted) {
+                        hiddenInput.value = formatted;
+                        hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+            });
         });
     }
 
@@ -393,6 +406,16 @@ export class BaseComponent extends BaseElement {
         }
         const specialized = this._inferRateConfig(cleanLabel) || this._inferYearConfig(cleanLabel, path);
         if (specialized) return specialized;
+        if (cleanLabel.includes('(x)') || cleanLabel.includes('multiplier') || cleanLabel.includes('ratio')) {
+            return {
+                prefix: '',
+                suffix: 'x',
+                sizingClass: 'input-rate',
+                minAttr: 'min="0.1"',
+                maxAttr: 'max="5.0"',
+                stepAttr: 'step="0.05"'
+            };
+        }
         if (['age', 'expectancy', 'term (years)'].some((k) => cleanLabel.includes(k))) {
             const { min, max } = this._inferAgeConfig(cleanLabel);
             return {
@@ -402,16 +425,6 @@ export class BaseComponent extends BaseElement {
                 minAttr: `min="${min}"`,
                 maxAttr: `max="${max}"`,
                 stepAttr: 'step="1"'
-            };
-        }
-        if (cleanLabel.includes('multiplier') || cleanLabel.includes('ratio')) {
-            return {
-                prefix: '',
-                suffix: 'x',
-                sizingClass: 'input-rate',
-                minAttr: 'min="0.1"',
-                maxAttr: 'max="5.0"',
-                stepAttr: 'step="0.05"'
             };
         }
         return (

@@ -67,6 +67,11 @@ export class RothConversionManager {
         return Math.min(room, maxAllowed);
     }
 
+    static _is72tLockedAccount(spouse, acc, year) {
+        if (!acc || !spouse?.is72tActive?.(year)) return false;
+        return Boolean(acc._is72tDedicated || (acc.id && acc.id === spouse.rule72t?.activeAccountId));
+    }
+
     /**
      * Execute conversion from a single spouse's pre-tax accounts (Standard IRA -> 401k -> 403b)
      */
@@ -78,7 +83,9 @@ export class RothConversionManager {
         const preTaxTypes = ['standardIra', 'traditional401k', 'trad403b'];
         for (const type of preTaxTypes) {
             if (remaining <= 0) break;
-            const matchingAccounts = (spouse.accounts || []).filter((a) => a.type === type);
+            const matchingAccounts = (spouse.accounts || []).filter(
+                (a) => a.type === type && !this._is72tLockedAccount(spouse, a, year)
+            );
             for (const acc of matchingAccounts) {
                 if (remaining <= 0) break;
                 if (acc && acc.balance > 0) {
@@ -132,10 +139,12 @@ export class RothConversionManager {
     }
 
     static _findStandardConversionSource(spouse, sourceKey) {
-        const accounts = spouse.accounts || [];
+        const accounts = (spouse.accounts || []).filter((a) => !a._is72tDedicated);
         return (
             spouse.getAccount?.(sourceKey) ||
-            accounts.find((a) => a.id === sourceKey || a.name === sourceKey || a.type === sourceKey) ||
+            (sourceKey
+                ? accounts.find((a) => a.id === sourceKey || a.name === sourceKey || a.type === sourceKey)
+                : null) ||
             accounts.find((a) => a.type === 'standardIra') ||
             spouse.accounts.standardIra
         );

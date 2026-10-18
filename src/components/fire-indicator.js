@@ -9,17 +9,20 @@
 
 import { formatAgeString } from '../services/FireMilestoneCalculator.js';
 
-export const NOT_APPLICABLE_LABEL = 'N/A';
-export const ACHIEVED_LABEL = 'Now';
+export const NOT_APPLICABLE_LABEL = 'Unreached';
+export const ACHIEVED_LABEL = 'Today ✓';
 
 /**
- * Formats a milestone into full year and age text (e.g. "2035 (Age 55)" or "2035 (Age 55/56)" or "N/A").
+ * Formats a milestone into full year and age text (e.g. "Today ✓" or "2035 (Age 55)" or "Unreached").
  * @param {Object} milestone
  * @returns {string}
  */
 export function formatMilestoneLabel(milestone) {
-    if (!milestone || !milestone.year) {
+    if (!milestone || milestone.status === 'UNREACHED' || !milestone.year) {
         return NOT_APPLICABLE_LABEL;
+    }
+    if (milestone.status === 'ACHIEVED_TODAY' || milestone.isAlreadyAchieved) {
+        return ACHIEVED_LABEL;
     }
     const ageStr = formatAgeString(milestone.age1 ?? milestone.age, milestone.age2);
     const ageFormatted = ageStr ? ` (${ageStr})` : '';
@@ -45,9 +48,16 @@ export function formatMilestoneShort(milestone) {
 function renderTag(label, cssClass, milestone) {
     const textStr = formatMilestoneLabel(milestone);
     const ageStr = formatAgeString(milestone?.age1 ?? milestone?.age, milestone?.age2);
-    const tooltipText = milestone?.year
-        ? `${label} FIRE: Target achieved in ${milestone.year} (${ageStr})${milestone.isAlreadyAchieved ? ' • Achieved' : ''}`
-        : `${label} FIRE: Not reached in simulation horizon`;
+    let tooltipText;
+    if (milestone?.status === 'ACHIEVED_TODAY' || milestone?.isAlreadyAchieved) {
+        const progress = milestone.mathBreakdown?.coastProgressPct;
+        const progressStr = progress ? ` (${progress}% of target today)` : '';
+        tooltipText = `${label} FIRE: Target already achieved today!${progressStr}`;
+    } else if (milestone?.status === 'ON_TRACK' && milestone.year) {
+        tooltipText = `${label} FIRE: Target projected in ${milestone.year} (${ageStr})`;
+    } else {
+        tooltipText = `${label} FIRE: Unreached in retirement horizon`;
+    }
     return `
         <span class="fire-pill-tag ${cssClass}" title="${tooltipText}">
             <strong>${label}</strong> ${textStr}
