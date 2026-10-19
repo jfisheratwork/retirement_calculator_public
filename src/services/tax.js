@@ -199,11 +199,13 @@ export function precalculateTaxTables(years, inflationRate, startYear = 2026, as
 
 function resolveTaxStatusData(taxYearData, filingStatus) {
     const statusData = taxYearData && taxYearData[filingStatus] ? taxYearData[filingStatus] : taxYearData || {};
+    const defaultIrmaa = filingStatus === 'single' ? IRMAA_BRACKETS_2024_SINGLE : IRMAA_BRACKETS_2024_MFJ;
     return {
         brackets: statusData.brackets || TAX_BRACKETS_2024_MFJ,
         standardDeduction:
             statusData.standardDeduction !== undefined ? statusData.standardDeduction : STANDARD_DEDUCTION_2024_MFJ,
         ltcgBrackets: statusData.ltcgBrackets || LTCG_BRACKETS_2024_MFJ,
+        irmaaBrackets: statusData.irmaaBrackets || defaultIrmaa,
         niitThreshold: statusData.niitThreshold !== undefined ? statusData.niitThreshold : NIIT_THRESHOLD_2024_MFJ
     };
 }
@@ -213,10 +215,12 @@ function calculateOrdinaryFederalTax(agi, brackets, standardDeduction, grossTaxa
     let previousLimit = 0;
     let topBracketRate = 0;
     let remainingRoomInBracket = 0;
+    let prevBracketCeiling = 0;
 
     for (const bracket of brackets) {
         if (agi > previousLimit) {
             topBracketRate = bracket.rate;
+            prevBracketCeiling = previousLimit;
             const taxableInThisBracket = Math.min(agi, bracket.upTo) - previousLimit;
             ordinaryFederalTax += taxableInThisBracket * bracket.rate;
             remainingRoomInBracket = bracket.upTo === Infinity ? 0 : Math.max(0, bracket.upTo - agi);
@@ -229,9 +233,11 @@ function calculateOrdinaryFederalTax(agi, brackets, standardDeduction, grossTaxa
 
     if (agi === 0) {
         topBracketRate = 0;
-        remainingRoomInBracket = standardDeduction - grossTaxableIncome;
+        prevBracketCeiling = 0;
+        remainingRoomInBracket = Math.max(0, standardDeduction - Math.max(0, grossTaxableIncome));
     }
-    return { ordinaryFederalTax, topBracketRate, remainingRoomInBracket };
+    const dropBracketDelta = agi > 0 ? Math.max(0, agi - prevBracketCeiling) : 0;
+    return { ordinaryFederalTax, topBracketRate, remainingRoomInBracket, prevBracketCeiling, dropBracketDelta };
 }
 
 function calculateStackedLtcgTax(agi, ltcgGains, ltcgBrackets) {
@@ -263,10 +269,12 @@ function calculateStackedLtcgTax(agi, ltcgGains, ltcgBrackets) {
  * @returns {object} Full tax breakdown
  */
 export function calculateTax(grossTaxableIncome, stateTaxRate, taxYearData, filingStatus = 'mfj', ltcgGains = 0) {
-    const { brackets, standardDeduction, ltcgBrackets, niitThreshold } = resolveTaxStatusData(
+    const { brackets, standardDeduction, ltcgBrackets, irmaaBrackets, niitThreshold } = resolveTaxStatusData(
         taxYearData,
         filingStatus
     );
+    const ltcgZeroCeiling = ltcgBrackets?.[0]?.upTo || 0;
+    const irmaaThreshold = irmaaBrackets?.[0]?.upTo || 0;
 
     if (grossTaxableIncome <= 0 && ltcgGains <= 0) {
         return {
@@ -276,23 +284,27 @@ export function calculateTax(grossTaxableIncome, stateTaxRate, taxYearData, fili
             effectiveRate: 0,
             topBracketRate: 0,
             remainingRoomInBracket: standardDeduction,
+            prevBracketCeiling: 0,
+            dropBracketDelta: 0,
             grossTaxableIncome: 0,
             standardDeduction,
             agi: 0,
             capitalGainsTax: 0,
             niitTax: 0,
+            realizedLtcg: 0,
+            ltcgZeroCeiling,
+            remainingLtcgZeroRoom: ltcgZeroCeiling,
+            irmaaThreshold,
+            brackets,
             filingStatus
         };
     }
 
     const agi = Math.max(0, grossTaxableIncome - standardDeduction);
-    const { ordinaryFederalTax, topBracketRate, remainingRoomInBracket } = calculateOrdinaryFederalTax(
-        agi,
-        brackets,
-        standardDeduction,
-        grossTaxableIncome
-    );
+    const { ordinaryFederalTax, topBracketRate, remainingRoomInBracket, prevBracketCeiling, dropBracketDelta } =
+        calculateOrdinaryFederalTax(agi, brackets, standardDeduction, grossTaxableIncome);
     const capitalGainsTax = calculateStackedLtcgTax(agi, ltcgGains, ltcgBrackets);
+    const remainingLtcgZeroRoom = Math.max(0, ltcgZeroCeiling - (agi + Math.max(0, ltcgGains)));
 
     let niitTax = 0;
     if (ltcgGains > 0) {
@@ -313,11 +325,18 @@ export function calculateTax(grossTaxableIncome, stateTaxRate, taxYearData, fili
         effectiveRate,
         topBracketRate,
         remainingRoomInBracket,
+        prevBracketCeiling,
+        dropBracketDelta,
         grossTaxableIncome,
         standardDeduction,
         agi,
         capitalGainsTax: capitalGainsTax + niitTax,
         niitTax,
+        realizedLtcg: Math.max(0, ltcgGains),
+        ltcgZeroCeiling,
+        remainingLtcgZeroRoom,
+        irmaaThreshold,
+        brackets,
         filingStatus
     };
 }

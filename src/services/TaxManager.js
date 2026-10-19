@@ -6,9 +6,11 @@ const MONTHS_PER_YEAR = 12;
 const MAX_GROSS_UP_PASSES = 3;
 const DEFAULT_RETURN_RATE_PCT = 7;
 
-function createZeroTaxDetails(snapshot, filingStatus, earlyPenalty = 0) {
+function createZeroTaxDetails(snapshot, filingStatus, earlyPenalty = 0, currentTaxYearData = null) {
     const existing = snapshot.taxDetails || {};
+    const zeroCalc = calculateTax(0, 0, currentTaxYearData, filingStatus, 0);
     return {
+        ...zeroCalc,
         federalTax: 0,
         fedTax: 0,
         stateTax: 0,
@@ -17,8 +19,10 @@ function createZeroTaxDetails(snapshot, filingStatus, earlyPenalty = 0) {
         effectiveRate: 0,
         topBracketRate: 0,
         topBracket: 0,
-        remainingRoomInBracket: 0,
-        bracketRoom: 0,
+        remainingRoomInBracket: zeroCalc.standardDeduction || 0,
+        bracketRoom: zeroCalc.standardDeduction || 0,
+        prevBracketCeiling: 0,
+        dropBracketDelta: 0,
         w2Tax: 0,
         nonW2Tax: earlyPenalty,
         capitalGainsTax: 0,
@@ -26,6 +30,7 @@ function createZeroTaxDetails(snapshot, filingStatus, earlyPenalty = 0) {
         niitTax: 0,
         ficaTax: existing.ficaTax || 0,
         magi: existing.magi ?? 0,
+        taxableSsn: existing.taxableSsn ?? 0,
         hsaDeduction: existing.hsaDeduction ?? 0,
         s1HsaDeduction: existing.s1HsaDeduction ?? 0,
         s2HsaDeduction: existing.s2HsaDeduction ?? 0,
@@ -55,6 +60,7 @@ function copyCarryoverTaxFields(taxResults, existing) {
     taxResults.s2W2Tax = existing.s2W2Tax || 0;
     taxResults.totalW2Tax = existing.totalW2Tax || 0;
     taxResults.magi = existing.magi ?? 0;
+    taxResults.taxableSsn = existing.taxableSsn ?? 0;
     taxResults.hsaDeduction = existing.hsaDeduction ?? 0;
     taxResults.s1HsaDeduction = existing.s1HsaDeduction ?? 0;
     taxResults.s2HsaDeduction = existing.s2HsaDeduction ?? 0;
@@ -106,6 +112,12 @@ function applyGrossUpTaxUpdate(snapshot, taxResults, updatedResults, { updatedPe
     taxResults.topBracket = taxResults.topBracketRate;
     taxResults.remainingRoomInBracket = updatedResults.remainingRoomInBracket || 0;
     taxResults.bracketRoom = taxResults.remainingRoomInBracket;
+    taxResults.prevBracketCeiling = updatedResults.prevBracketCeiling || 0;
+    taxResults.dropBracketDelta = updatedResults.dropBracketDelta || 0;
+    taxResults.grossTaxableIncome = updatedResults.grossTaxableIncome || 0;
+    taxResults.agi = updatedResults.agi || 0;
+    taxResults.realizedLtcg = updatedResults.realizedLtcg || 0;
+    taxResults.remainingLtcgZeroRoom = updatedResults.remainingLtcgZeroRoom || 0;
 }
 
 /**
@@ -197,16 +209,15 @@ export class TaxManager {
         ltcgGains = 0,
         getTaxableIncomeFn
     }) {
+        const yearsFromStart = year - currentYear;
+        const currentTaxYearData = taxTables?.[yearsFromStart] || taxTables?.[taxTables.length - 1] || null;
         const initialPenalty = getEarlyWithdrawalPenalty(snapshot);
         if (taxableIncome <= 0 && ltcgGains <= 0 && initialPenalty <= 0) {
             snapshot.taxes = 0;
             snapshot.earlyWithdrawalPenalty = 0;
-            snapshot.taxDetails = createZeroTaxDetails(snapshot, filingStatus, 0);
+            snapshot.taxDetails = createZeroTaxDetails(snapshot, filingStatus, 0, currentTaxYearData);
             return;
         }
-
-        const yearsFromStart = year - currentYear;
-        const currentTaxYearData = taxTables[yearsFromStart] || taxTables[taxTables.length - 1];
         const activeMonths =
             year === currentYear ? Math.max(1, MONTHS_PER_YEAR - firstActiveMonth + 1) : MONTHS_PER_YEAR;
         const annualization = activeMonths < MONTHS_PER_YEAR ? MONTHS_PER_YEAR / activeMonths : 1;

@@ -7,6 +7,7 @@
  */
 
 import { escapeHtml } from '../utils/sanitize.js';
+import { computeTaxAndWithdrawalCockpit } from '../components/charts/tax-steering-cockpit.js';
 
 const DEFAULT_MATCH_ESTIMATE_RATE = 0.03;
 
@@ -264,5 +265,9 @@ export class FinancialPresentationService {
             netActivity,
             growthRows: this._buildGrowthRows(snap.accounts)
         };
+    }
+
+    static computeTaxAndWithdrawalCockpit(snap, state, dataIndex = 0) {
+        return computeTaxAndWithdrawalCockpit(snap, state, dataIndex);
     }
 }

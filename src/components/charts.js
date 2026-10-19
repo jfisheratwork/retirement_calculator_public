@@ -29,6 +29,7 @@ import {
     buildSorrConfig
 } from './charts/chart-configs.js';
 import { renderPortfolioOption1CHeader, renderIncomePillHeader } from './charts/chart-stage-header.js';
+import { renderTaxSteeringCockpit, renderTaxStrategyInspector } from './charts/tax-steering-cockpit.js';
 
 let portfolioChart = null;
 let incomeChart = null;
@@ -74,6 +75,29 @@ if (typeof window !== 'undefined' && window.Chart) {
 
 export let pinnedYearIndex = null;
 
+function resolveCockpitTargetYearIndex(yearlyData, state, overrideIndex) {
+    if (overrideIndex !== null && overrideIndex !== undefined && yearlyData[overrideIndex]) {
+        return overrideIndex;
+    }
+    const activePin = pinnedYearIndex ?? (typeof window !== 'undefined' ? window.pinnedYearIndex : null);
+    if (activePin !== null && activePin !== undefined && yearlyData[activePin]) {
+        return activePin;
+    }
+    const retAge = Number(state?.primarySpouse?.targetRetirementAge) || 60;
+    const retIdx = yearlyData.findIndex((snap) => Number(snap.age1) === retAge);
+    return retIdx !== -1 ? retIdx : 0;
+}
+
+export function updateTaxSteeringCockpitDom(yearlyData, state, overrideIndex = null) {
+    if (typeof document === 'undefined' || !Array.isArray(yearlyData) || yearlyData.length === 0) return;
+    const container = document.getElementById('tax-steering-cockpit');
+    if (!container) return;
+
+    const targetIdx = resolveCockpitTargetYearIndex(yearlyData, state, overrideIndex);
+    const snap = yearlyData[targetIdx] || yearlyData[0];
+    container.innerHTML = renderTaxSteeringCockpit(snap, state, targetIdx);
+}
+
 /**
  * Updates the active pinned year index for synchronized chart inspection.
  * @param {number|null} index
@@ -81,6 +105,10 @@ export let pinnedYearIndex = null;
 export function setPinnedYearIndex(index) {
     pinnedYearIndex = index;
     if (typeof window !== 'undefined') window.pinnedYearIndex = index;
+    const refChart = cashflowChart || taxChart || portfolioChart;
+    if (refChart?.customData) {
+        updateTaxSteeringCockpitDom(refChart.customData, refChart.customState, index);
+    }
 }
 
 /**
@@ -183,7 +211,14 @@ const externalTooltipHandler = (context) => {
     }));
     points.sort((pointA, pointB) => pointB.dp.raw - pointA.dp.raw);
 
-    if ((chart.canvas.id === 'incomeChart' || chart.canvas.id === 'cashflowChart') && chart.customData && snap) {
+    if ((chart.canvas.id === 'cashflowChart' || chart.canvas.id === 'taxChart') && chart.customData && snap) {
+        const hoveredIdx = tooltip.dataPoints[0]?.dataIndex ?? 0;
+        content.innerHTML = renderTaxStrategyInspector(snap, state, hoveredIdx);
+        updateTaxSteeringCockpitDom(chart.customData, state, hoveredIdx);
+        return;
+    }
+
+    if (chart.canvas.id === 'incomeChart' && chart.customData && snap) {
         content.innerHTML = renderCashflowInspector(snap, state, points);
         return;
     }
@@ -318,6 +353,7 @@ export function renderCharts(yearlyData, state, events = [], sorrData = null) {
     }
 
     renderSecondaryCharts(yearlyData, state, labels, annotations, sorrData);
+    updateTaxSteeringCockpitDom(yearlyData, state);
 }
 
 function resolveChartByKey(chartKey) {

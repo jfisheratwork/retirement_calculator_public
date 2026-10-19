@@ -1,6 +1,9 @@
 import { BaseComponent } from './base-component.js';
 import { escapeHtml } from '../utils/sanitize.js';
 
+const DEFAULT_COST_BASIS_RATIO = 0.6;
+const PERCENT_SCALE = 100;
+
 export class AccountPanel extends BaseComponent {
     constructor() {
         super();
@@ -94,6 +97,12 @@ export class AccountPanel extends BaseComponent {
 
     _renderRothFields(acc, accPrefix) {
         let out = `<div>${this._input(`Original Roth Deposits / Principal ($)`, `${accPrefix}.principle`, 'number', acc.principle || 0, 'The cash you contributed out of pocket into your Roth IRA. You can withdraw your original Roth deposits at any age, completely tax-free and penalty-free, making it an ideal early-retirement bridge.')}</div>`;
+        out += `<div style="grid-column: span 2; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-top: -0.25rem; margin-bottom: 0.35rem;">
+            <span style="font-size: 0.74rem; color: var(--text-muted);">Quick Estimate:</span>
+            <button type="button" class="basis-preset-chip" data-target-input="${accPrefix}.principle" data-ratio="1.00">100% Principal</button>
+            <button type="button" class="basis-preset-chip" data-target-input="${accPrefix}.principle" data-ratio="0.70">70% Principal</button>
+            <button type="button" class="basis-preset-chip" data-target-input="${accPrefix}.principle" data-ratio="0.50">50% Principal</button>
+        </div>`;
         out += `<div style="grid-column: span 2; padding: 0.65rem 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; margin-top: 0.5rem;">`;
         out += `<div class="pane-section-header" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">💰 Annual Roth IRA Contribution</div>`;
         out += this._checkbox(
@@ -113,9 +122,23 @@ export class AccountPanel extends BaseComponent {
     }
 
     _renderBrokerageFields(acc, accPrefix) {
-        const defaultCostBasis = acc.costBasis !== undefined ? acc.costBasis : Math.round((acc.balance || 0) * 0.5);
+        const balanceVal = Number(acc.balance) || 0;
+        const defaultCostBasis =
+            acc.costBasis !== undefined ? Number(acc.costBasis) : Math.round(balanceVal * DEFAULT_COST_BASIS_RATIO);
+        const basisPct =
+            balanceVal > 0 ? Math.min(PERCENT_SCALE, Math.round((defaultCostBasis / balanceVal) * PERCENT_SCALE)) : 60;
+        const gainPct = Math.max(0, PERCENT_SCALE - basisPct);
+
         let out = `<div>${this._input(`Original Purchase Cost / Cost Basis ($)`, `${accPrefix}.costBasis`, 'number', defaultCostBasis, 'The money you originally paid for your investments using after-tax cash. When you sell shares, your original purchase cost comes back 100% tax-free—you only pay capital gains tax on the growth above this amount.')}</div>`;
-        out += `<div style="grid-column: span 2; margin-top: -0.25rem; margin-bottom: 0.5rem;">
+        out += `<div style="grid-column: span 2; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; margin-top: -0.2rem; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                <span style="font-size: 0.74rem; color: var(--text-muted);">Quick Basis Estimate:</span>
+                <button type="button" class="basis-preset-chip" data-target-input="${accPrefix}.costBasis" data-ratio="0.85">85% Mostly New</button>
+                <button type="button" class="basis-preset-chip" data-target-input="${accPrefix}.costBasis" data-ratio="0.60">60% Typical Mix</button>
+                <button type="button" class="basis-preset-chip" data-target-input="${accPrefix}.costBasis" data-ratio="0.35">35% Long-Held</button>
+                <button type="button" class="basis-preset-chip" data-target-input="${accPrefix}.costBasis" data-ratio="1.00">100% Cash-like</button>
+                <span class="basis-split-badge" id="${accPrefix}-basis-badge">${basisPct}% Tax-Free Basis · ${gainPct}% Unrealized Gain</span>
+            </div>
             <button type="button" class="btn btn-secondary open-cost-basis-modal-btn" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: rgba(59, 130, 246, 0.15); border: 1px solid var(--accent); color: var(--accent); border-radius: 4px; cursor: pointer;">
                 ℹ️ How do I figure out my Cost Basis? (1099-B & Brokerage Guide)
             </button>
@@ -334,6 +357,63 @@ export class AccountPanel extends BaseComponent {
         summarySpan.innerHTML = `${escapeHtml(name)} - $${balance}${sweepBadge}`;
     }
 
+    _updateBasisSplitBadge() {
+        const accPrefix = `${this.spousePrefix}.accounts.${this.itemIndex}`;
+        const badge = this.querySelector(`[id="${accPrefix}-basis-badge"]`);
+        if (!badge) return;
+        const balInput = this.querySelector(`input[data-path="${accPrefix}.balance"]`);
+        const basisInput = this.querySelector(`input[data-path="${accPrefix}.costBasis"]`);
+        const bal = Number(balInput?.value || 0);
+        const basis = Number(basisInput?.value || 0);
+        const basisPct = bal > 0 ? Math.min(PERCENT_SCALE, Math.max(0, Math.round((basis / bal) * PERCENT_SCALE))) : 60;
+        const gainPct = Math.max(0, PERCENT_SCALE - basisPct);
+        badge.textContent = `${basisPct}% Tax-Free Basis · ${gainPct}% Unrealized Gain`;
+    }
+
+    _maybeAutoInitBrokerageBasis(targetEl) {
+        const accPrefix = `${this.spousePrefix}.accounts.${this.itemIndex}`;
+        const typeSelect = this.querySelector(`select[data-path="${accPrefix}.type"]`);
+        if (typeSelect?.value !== 'taxableBrokerage') return;
+        const basisInput = this.querySelector(`input[data-path="${accPrefix}.costBasis"]`);
+        if (!basisInput) return;
+        const currentBasis = Number(basisInput.value || 0);
+        const newBal = Number(targetEl.value || 0);
+        if (currentBasis === 0 && newBal > 0 && !basisInput.dataset.userEdited) {
+            basisInput.value = String(Math.round(newBal * DEFAULT_COST_BASIS_RATIO));
+            this.dispatchEvent(
+                new CustomEvent('stateChange', {
+                    detail: { element: basisInput },
+                    bubbles: true
+                })
+            );
+        }
+    }
+
+    _bindBasisPresetChips() {
+        const accPrefix = `${this.spousePrefix}.accounts.${this.itemIndex}`;
+        this.querySelectorAll('.basis-preset-chip').forEach((chip) => {
+            chip.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const targetPath = chip.getAttribute('data-target-input');
+                const ratio = Number(chip.getAttribute('data-ratio') || DEFAULT_COST_BASIS_RATIO);
+                const balInput = this.querySelector(`input[data-path="${accPrefix}.balance"]`);
+                const targetInput = this.querySelector(`input[data-path="${targetPath}"]`);
+                if (!targetInput) return;
+                const bal = Number(balInput?.value || 0);
+                targetInput.value = String(Math.round(bal * ratio));
+                targetInput.dataset.userEdited = 'true';
+                this._updateBasisSplitBadge();
+                this.dispatchEvent(
+                    new CustomEvent('stateChange', {
+                        detail: { element: targetInput },
+                        bubbles: true
+                    })
+                );
+            });
+        });
+    }
+
     afterRender() {
         const details = this.querySelector('details.account-card');
         if (details) {
@@ -351,8 +431,14 @@ export class AccountPanel extends BaseComponent {
 
         this.addEvent('input', 'input', (e) => {
             const path = e.target.getAttribute('data-path') || '';
+            if (path.endsWith('.costBasis') || path.endsWith('.principle')) {
+                e.target.dataset.userEdited = 'true';
+            }
             if (path.endsWith('.name') || path.endsWith('.balance')) {
                 this._updateAccountCardSummaryText();
+            }
+            if (path.endsWith('.balance') || path.endsWith('.costBasis')) {
+                this._updateBasisSplitBadge();
             }
             this.dispatchEvent(
                 new CustomEvent('stateChange', {
@@ -364,6 +450,10 @@ export class AccountPanel extends BaseComponent {
 
         this.addEvent('input, select', 'change', (e) => {
             const path = e.target.getAttribute('data-path') || '';
+            if (path.endsWith('.balance')) {
+                this._maybeAutoInitBrokerageBasis(e.target);
+                this._updateBasisSplitBadge();
+            }
             this.dispatchEvent(
                 new CustomEvent('stateChange', {
                     detail: { element: e.target },
@@ -377,6 +467,8 @@ export class AccountPanel extends BaseComponent {
                 this._handleDynamicVisibility(path, e.target);
             }
         });
+
+        this._bindBasisPresetChips();
 
         this.querySelectorAll('.open-cost-basis-modal-btn').forEach((btn) => {
             btn.addEventListener('click', (e) => {

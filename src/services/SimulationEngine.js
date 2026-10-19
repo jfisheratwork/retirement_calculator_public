@@ -19,6 +19,7 @@ import { ContributionCalculator } from './ContributionCalculator.js';
 import { PortfolioManager } from './PortfolioManager.js';
 import { StandardIra } from '../models/Account.js';
 import { SurplusPullForwardEngine } from './SurplusPullForwardEngine.js';
+import { AcaHealthcareCalculator } from './AcaHealthcareCalculator.js';
 
 export const SORR_SCENARIOS = {
     '2000-2009': [
@@ -938,6 +939,7 @@ export class SimulationEngine {
         });
 
         this.taxableIncome += ordinaryW2Taxable + taxableSsn;
+        snapshot.taxDetails.taxableSsn = taxableSsn;
         snapshot.taxDetails.magi = Math.round(ordinaryW2Taxable + taxableSsn);
         snapshot.taxDetails.hsaDeduction = (s1Contribs.hsaPreTaxDeduction || 0) + (s2Contribs.hsaPreTaxDeduction || 0);
         snapshot.taxDetails.s1HsaDeduction = s1Contribs.hsaPreTaxDeduction || 0;
@@ -1234,6 +1236,42 @@ export class SimulationEngine {
             s2: this.s2
         });
         this.cashCushion = cushionWrapper.value;
+        this._enrichSnapshotTaxAndMagiDetails(year, snapshot);
+    }
+
+    _computeAcaHouseholdSizeAndFpl(year) {
+        const yearsFromStart = Math.max(0, year - this.currentYear);
+        const inflationMultiplier = Math.pow(1 + (Number(this.assumptions.inflationRate) || 0) / 100, yearsFromStart);
+        const s1Alive = this.s1 && this.s1.getAge(year) <= this.s1.lifeExpectancy ? 1 : 0;
+        const s2Alive = !this.isSingleFiler && this.s2 && this.s2.getAge(year) <= this.s2.lifeExpectancy ? 1 : 0;
+        const depCount = (this.dependents || []).filter((child) => {
+            const childBirthYr = Number(child.yearOfBirth || child.birthYear);
+            const childAge = year - childBirthYr;
+            return childBirthYr > 0 && childAge >= 0 && childAge < 26;
+        }).length;
+        const acaHouseholdSize = Math.max(1, s1Alive + s2Alive + depCount);
+        const acaFpl100 = AcaHealthcareCalculator.getFederalPovertyLevel(acaHouseholdSize, inflationMultiplier);
+        return { acaHouseholdSize, acaFpl100 };
+    }
+
+    _enrichSnapshotTaxAndMagiDetails(year, snapshot) {
+        if (!snapshot.taxDetails) snapshot.taxDetails = {};
+        const { acaHouseholdSize, acaFpl100 } = this._computeAcaHouseholdSizeAndFpl(year);
+        const dd = snapshot.income?.drawdowns || {};
+        const totalSsn = (Number(snapshot.income?.s1?.ssn) || 0) + (Number(snapshot.income?.s2?.ssn) || 0);
+        const taxableSsn = Number(snapshot.taxDetails.taxableSsn) || 0;
+        const untaxedSsn = Math.max(0, totalSsn - taxableSsn);
+        const realizedLtcg = Number(this.realizedLtcg || snapshot.realizedLtcg || 0);
+        const totalBrokerageDrawn = (Number(dd.s1Brokerage) || 0) + (Number(dd.s2Brokerage) || 0);
+        const brokerageBasisDrawn = Math.max(0, totalBrokerageDrawn - realizedLtcg);
+        const acaMagi = Math.round(Math.max(0, this.taxableIncome + untaxedSsn + realizedLtcg));
+
+        snapshot.taxDetails.grossTaxableOrdinary = this.taxableIncome;
+        snapshot.taxDetails.realizedLtcg = realizedLtcg;
+        snapshot.taxDetails.brokerageBasisDrawn = brokerageBasisDrawn;
+        snapshot.taxDetails.acaMagi = acaMagi;
+        snapshot.taxDetails.acaHouseholdSize = acaHouseholdSize;
+        snapshot.taxDetails.acaFpl100 = acaFpl100;
     }
 
     finalizeSnapshot(snapshot) {

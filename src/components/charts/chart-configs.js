@@ -559,69 +559,109 @@ export function buildIncomeConfig(yearlyData, state, labels, annotations, ...spo
     };
 }
 
-function buildCashflowOutflowBars(yearlyData, state) {
+const PRE_TAX_DRAWDOWN_KEYS = [
+    's1Trad401k',
+    's2Trad401k',
+    's1Trad403b',
+    's2Trad403b',
+    's1StandardIra',
+    's2StandardIra'
+];
+const HSA_CASH_DRAWDOWN_KEYS = ['s1Hsa', 's2Hsa', 'cashCushion', 's1Hysa', 's2Hysa', 's1Cd', 's2Cd'];
+
+function extractSnapPreTaxVoluntaryDraw(snap) {
+    const inc = snap.income || {};
+    const totalPreTax = sumBalanceKeys(inc.drawdowns || {}, PRE_TAX_DRAWDOWN_KEYS);
+    const mandatoryRmd =
+        Number(inc.mandatoryRmd) || sumBalanceKeys(inc.s1 || {}, ['rmd']) + sumBalanceKeys(inc.s2 || {}, ['rmd']);
+    const rule72t = sumBalanceKeys(inc.s1 || {}, ['rule72t']) + sumBalanceKeys(inc.s2 || {}, ['rule72t']);
+    return Math.max(0, totalPreTax - mandatoryRmd) + rule72t;
+}
+
+function extractSnapTaxFreeDraws(snap) {
+    const dd = snap.income?.drawdowns || {};
+    const td = snap.taxDetails || {};
+    const totalBrok = sumBalanceKeys(dd, ['s1Brokerage', 's2Brokerage']);
+    const realizedLtcg = Number(td.realizedLtcg ?? snap.realizedLtcg ?? 0);
+    const brokBasis =
+        td.brokerageBasisDrawn !== undefined ? Number(td.brokerageBasisDrawn) : Math.max(0, totalBrok - realizedLtcg);
+    const rothDraws = sumBalanceKeys(dd, ['s1RothIra', 's2RothIra']);
+    const hsaCash = sumBalanceKeys(dd, HSA_CASH_DRAWDOWN_KEYS);
+    return brokBasis + rothDraws + hsaCash;
+}
+
+function extractSnapTaxableSsAndLtcg(snap) {
+    const td = snap.taxDetails || {};
+    const totalSsn = (Number(snap.income?.s1?.ssn) || 0) + (Number(snap.income?.s2?.ssn) || 0);
+    const taxableSsn = td.taxableSsn !== undefined ? Number(td.taxableSsn) : totalSsn * 0.85;
+    const ltcg = Number(td.realizedLtcg ?? snap.realizedLtcg ?? 0);
+    return taxableSsn + ltcg;
+}
+
+function extractSnapTotalTaxBill(snap) {
+    return (
+        (Number(snap.taxes) || 0) +
+        (Number(snap.taxDetails?.ficaTax) || 0) +
+        (Number(snap.expenseBreakdown?.irmaa) || 0)
+    );
+}
+
+function buildTaxBucketWithdrawalDatasets(yearlyData, state) {
+    const bar = (label, backgroundColor, fn) => ({
+        label,
+        data: mapData(yearlyData, state, fn),
+        backgroundColor,
+        stack: 'TaxBuckets'
+    });
     return [
+        bar(
+            'W-2 Taxable Income',
+            '#38bdf8',
+            (s) =>
+                (s.income?.s1?.w2TaxableGross ?? s.income?.s1?.w2Net ?? 0) +
+                (s.income?.s2?.w2TaxableGross ?? s.income?.s2?.w2Net ?? 0)
+        ),
+        bar('Pre-Tax Draws (401k / IRA / 72t)', '#2dd4bf', extractSnapPreTaxVoluntaryDraw),
+        bar(
+            'Mandatory RMDs (Age 73+)',
+            '#fb923c',
+            (s) => Number(s.income?.mandatoryRmd) || (Number(s.income?.s1?.rmd) || 0) + (Number(s.income?.s2?.rmd) || 0)
+        ),
+        bar(
+            'Roth Conversions (Bracket Fill)',
+            '#c084fc',
+            (s) => (Number(s.rothConverted?.s1) || 0) + (Number(s.rothConverted?.s2) || 0)
+        ),
+        bar('Taxable SS & Realized LTCG', '#fbbf24', extractSnapTaxableSsAndLtcg),
+        bar('Tax-Free Draws (Roth / Basis / Cash)', '#34d399', extractSnapTaxFreeDraws),
         {
-            label: 'Base Expenses',
-            data: mapData(yearlyData, state, (snap) => snap.expenseBreakdown.base),
-            backgroundColor: '#e74c3c',
-            stack: 'Outflows'
-        },
-        {
-            label: 'Mortgage Payment',
-            data: mapData(yearlyData, state, (snap) => snap.expenseBreakdown.mortgage),
-            backgroundColor: '#a93226',
-            stack: 'Outflows'
-        },
-        {
-            label: 'Housing (Tax/Ins/Repairs)',
-            data: mapData(yearlyData, state, (snap) => snap.expenseBreakdown.housing),
-            backgroundColor: '#e67e22',
-            stack: 'Outflows'
-        },
-        {
-            label: 'Childcare/College',
-            data: mapData(yearlyData, state, (snap) => snap.expenseBreakdown.childcare),
-            backgroundColor: '#d35400',
-            stack: 'Outflows'
-        },
-        {
-            label: 'Non-W2 Taxes (Conversions/Portfolios)',
-            data: mapData(yearlyData, state, (snap) => snap.taxDetails?.nonW2Tax || 0),
-            backgroundColor: '#ff7675',
-            stack: 'Outflows'
-        },
-        {
-            label: 'Reinvested to Cushion',
-            data: mapData(yearlyData, state, (snap) => snap.reinvestedToCushion),
-            backgroundColor: '#2ecc71',
-            stack: 'Outflows'
-        },
-        {
-            label: 'Excess Savings Reinvested (Brokerage / Savings)',
-            data: mapData(yearlyData, state, (snap) => snap.reinvestedToSweep || snap.reinvestedToBrokerage),
-            backgroundColor: '#3498db',
-            stack: 'Outflows'
+            label: 'Total Annual Tax Bill',
+            data: mapData(yearlyData, state, extractSnapTotalTaxBill),
+            type: 'line',
+            borderColor: '#f43f5e',
+            backgroundColor: '#f43f5e',
+            borderWidth: 2.5,
+            tension: 0.3,
+            fill: false,
+            stack: 'TaxLine',
+            order: 0
         }
     ];
 }
 
 /**
- * Builds Chart.js configuration for the Cashflow Inflows vs. Outflows chart.
+ * Builds Chart.js configuration for the Withdrawals & MAGI Stack chart (#cashflowChart).
  * @param {Array<Object>} yearlyData
  * @param {Object} state
  * @param {Array<string>} labels
  * @param {Object} annotations
- * @param {...string} spouseNames
  * @returns {Object}
  */
-export function buildCashflowConfig(yearlyData, state, labels, annotations, ...spouseNames) {
-    const [s1Name = 'Spouse 1', s2Name = 'Spouse 2'] = spouseNames;
-    const datasets = [
-        ...buildEarnedIncomeBars(yearlyData, state, s1Name, s2Name, 'Inflows'),
-        ...buildDrawdownBars(yearlyData, state, s1Name, s2Name, 'Inflows'),
-        ...buildCashflowOutflowBars(yearlyData, state)
-    ];
+export function buildCashflowConfig(yearlyData, state, labels, annotations) {
+    const datasets = buildTaxBucketWithdrawalDatasets(yearlyData, state);
+    const scales = buildStandardXYScales();
+    scales.x.stacked = true;
+    scales.y.stacked = true;
 
     return {
         type: 'bar',
@@ -630,8 +670,9 @@ export function buildCashflowConfig(yearlyData, state, labels, annotations, ...s
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
+            onClick: handleChartClick,
             plugins: {
-                legend: { labels: { color: '#e0e0e0' } },
+                legend: { labels: { color: '#e0e0e0', boxWidth: 12, padding: 12 } },
                 tooltip: {
                     enabled: false,
                     position: 'nearest',
@@ -639,32 +680,7 @@ export function buildCashflowConfig(yearlyData, state, labels, annotations, ...s
                 },
                 annotation: { annotations }
             },
-            scales: {
-                x: {
-                    stacked: true,
-                    ticks: {
-                        color: '#b2bec3',
-                        maxRotation: 45,
-                        minRotation: 45,
-                        autoSkip: true,
-                        maxTicksLimit: 12,
-                        callback: function (tickIdx) {
-                            const lbl = this.getLabelForValue(tickIdx);
-                            const dataPoint = yearlyData[tickIdx];
-                            if (!dataPoint) return lbl;
-                            const hasShortfall = dataPoint.unfundedShortfall > 0;
-                            return lbl + (hasShortfall ? ' ❌' : ' ✅');
-                        }
-                    }
-                },
-                y: {
-                    stacked: true,
-                    ticks: {
-                        color: '#b2bec3',
-                        callback: (tickAmount) => '$' + tickAmount / 1000 + 'k'
-                    }
-                }
-            }
+            scales
         }
     };
 }
@@ -751,8 +767,18 @@ export function buildNetWorthConfig(yearlyData, state, labels, annotations) {
     };
 }
 
+function extractSnapFedOrdinaryTax(snap) {
+    const td = snap.taxDetails;
+    if (td && (td.federalTax !== undefined || td.fedTax !== undefined)) {
+        const fedTotal = Number(td.federalTax ?? td.fedTax ?? 0);
+        const capGains = Number(td.capitalGainsTax ?? td.ltcgTax ?? 0);
+        return Math.max(0, fedTotal - capGains);
+    }
+    return Math.max(0, (Number(snap.taxes) || 0) - (Number(snap.earlyWithdrawalPenalty) || 0));
+}
+
 /**
- * Builds Chart.js configuration for the Estimated Taxes Paid chart.
+ * Builds Chart.js configuration for the Itemized Annual Tax Breakdown chart (#taxChart).
  * @param {Array<Object>} yearlyData
  * @param {Object} state
  * @param {Array<string>} labels
@@ -762,17 +788,47 @@ export function buildNetWorthConfig(yearlyData, state, labels, annotations) {
 export function buildTaxConfig(yearlyData, state, labels, annotations) {
     const datasets = [
         {
-            label: 'Estimated Taxes Paid',
+            label: 'Federal Ordinary Income Tax',
+            data: mapData(yearlyData, state, extractSnapFedOrdinaryTax),
+            backgroundColor: '#f43f5e',
+            borderRadius: 2,
+            stack: 'Taxes'
+        },
+        {
+            label: 'Capital Gains & NIIT Tax',
             data: mapData(yearlyData, state, (snap) =>
-                Math.max(0, (snap.taxes || 0) - (snap.earlyWithdrawalPenalty || 0))
+                Number(snap.taxDetails?.capitalGainsTax ?? snap.taxDetails?.ltcgTax ?? 0)
             ),
-            backgroundColor: '#d63031',
-            borderRadius: 4,
+            backgroundColor: '#fbbf24',
+            borderRadius: 2,
+            stack: 'Taxes'
+        },
+        {
+            label: 'State Income Tax',
+            data: mapData(yearlyData, state, (snap) => Number(snap.taxDetails?.stateTax || 0)),
+            backgroundColor: '#fb923c',
+            borderRadius: 2,
+            stack: 'Taxes'
+        },
+        {
+            label: 'FICA Payroll Tax',
+            data: mapData(yearlyData, state, (snap) => Number(snap.taxDetails?.ficaTax || 0)),
+            backgroundColor: '#38bdf8',
+            borderRadius: 2,
+            stack: 'Taxes'
+        },
+        {
+            label: 'Medicare IRMAA Surcharge',
+            data: mapData(yearlyData, state, (snap) => Number(snap.expenseBreakdown?.irmaa || 0)),
+            backgroundColor: '#e879f9',
+            borderRadius: 2,
             stack: 'Taxes'
         },
         {
             label: '10% Early Withdrawal Penalty (Pre-59.5)',
-            data: mapData(yearlyData, state, (snap) => snap.earlyWithdrawalPenalty || 0),
+            data: mapData(yearlyData, state, (snap) =>
+                Number(snap.taxDetails?.earlyWithdrawalPenalty ?? snap.earlyWithdrawalPenalty ?? 0)
+            ),
             backgroundColor: '#f39c12',
             borderRadius: 4,
             stack: 'Taxes'
@@ -790,8 +846,9 @@ export function buildTaxConfig(yearlyData, state, labels, annotations) {
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
+            onClick: handleChartClick,
             plugins: {
-                legend: { labels: { color: '#e0e0e0' } },
+                legend: { labels: { color: '#e0e0e0', boxWidth: 12, padding: 12 } },
                 tooltip: {
                     enabled: false,
                     position: 'nearest',

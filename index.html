@@ -27,9 +27,9 @@
             crossorigin="anonymous"
         ></script>
 
-        <link rel="stylesheet" href="styles/main.css?v=1792296057173" />
-        <meta name="build-commit" content="a8395b7" />
-        <meta name="build-date" content="2026-10-18" />
+        <link rel="stylesheet" href="styles/main.css?v=1792374643647" />
+        <meta name="build-commit" content="454ae69" />
+        <meta name="build-date" content="2026-10-19" />
     </head>
 
     <body>
@@ -221,10 +221,10 @@
                                             class="stage-mini-btn active"
                                             data-taxes-subview="cashflow"
                                         >
-                                            Cash Flow &amp; Drawdown
+                                            Withdrawals &amp; MAGI Stack
                                         </button>
                                         <button type="button" class="stage-mini-btn" data-taxes-subview="tax">
-                                            Annual Tax Burden
+                                            Tax Breakdown &amp; Rates
                                         </button>
                                         <button type="button" class="stage-mini-btn" data-taxes-subview="networth">
                                             Liquid vs Net Worth
@@ -324,6 +324,7 @@
                                 <div id="subpane-networth" class="chart-container stage-canvas-wrap hidden">
                                     <canvas id="netWorthChart"></canvas>
                                 </div>
+                                <div id="tax-steering-cockpit" class="tax-steering-cockpit"></div>
                             </div>
 
                             <div class="stage-footer-bar">
@@ -441,6 +442,6 @@
         <!-- What If Sandbox Drawer Component -->
         <what-if-drawer id="what-if-drawer"></what-if-drawer>
 
-        <script type="module" src="src/app.js?v=1792296057173"></script>
+        <script type="module" src="src/app.js?v=1792374643647"></script>
     </body>
 </html>
