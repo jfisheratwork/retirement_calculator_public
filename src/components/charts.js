@@ -101,8 +101,13 @@ function updateDatasetTheme(ds, effectiveTheme) {
 }
 
 function updateChartInstanceTheme(chart, colors, effectiveTheme) {
-    if (!chart?.options?.scales) return;
-    Object.values(chart.options.scales).forEach((scale) => updateScaleTheme(scale, colors));
+    if (!chart?.options) return;
+    if (chart.options.scales) {
+        Object.values(chart.options.scales).forEach((scale) => updateScaleTheme(scale, colors));
+    }
+    if (chart.options.plugins?.legend?.labels) {
+        chart.options.plugins.legend.labels.color = colors.textColor;
+    }
     if (chart.data?.datasets) {
         chart.data.datasets.forEach((ds) => updateDatasetTheme(ds, effectiveTheme));
     }

@@ -135,7 +135,7 @@ export class PinLockModal extends BaseComponent {
                     ${
                         this._errorMsg
                             ? `
-                        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.6rem 0.85rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem;">
+                        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: var(--danger); padding: 0.6rem 0.85rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem;">
                             ⚠️ ${escapeHtml(this._errorMsg)}
                         </div>
                     `
@@ -224,7 +224,7 @@ export class PinLockModal extends BaseComponent {
                     <button type="button" class="btn btn-secondary btn-show-change" style="width: 100%; padding: 0.6rem; text-align: left; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <span>🔑</span> <span><strong>Change PIN</strong></span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-show-remove" style="width: 100%; padding: 0.6rem; text-align: left; display: flex; align-items: center; gap: 0.5rem; color: #fca5a5; cursor: pointer;">
+                    <button type="button" class="btn btn-secondary btn-show-remove" style="width: 100%; padding: 0.6rem; text-align: left; display: flex; align-items: center; gap: 0.5rem; color: var(--danger); cursor: pointer;">
                         <span>🔓</span> <span><strong>Remove PIN Protection</strong> (Revert to Baseline Obfuscation)</span>
                     </button>
                 </div>

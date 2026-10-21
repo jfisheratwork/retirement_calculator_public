@@ -341,14 +341,27 @@ function bindPortfolioHeaderEvents(container, chart, retirementItems, otherItems
     });
 }
 
+function hexToRgba(hex, alpha = 0.25) {
+    if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return hex;
+    const cleanHex = hex.replace('#', '');
+    if (cleanHex.length === 6) {
+        const r = parseInt(cleanHex.substring(0, 2), 16);
+        const g = parseInt(cleanHex.substring(2, 4), 16);
+        const b = parseInt(cleanHex.substring(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    return hex;
+}
+
 /**
  * Builds the 5 macro grouped-bucket datasets for #portfolioChart when portfolioViewMode === 'buckets'.
  * @param {Array<Object>} yearlyData
  * @param {Object} state
  * @param {Function} mapDataFn
+ * @param {Function} [colorResolver]
  * @returns {Array<Object>}
  */
-export function buildMacroPortfolioBucketDatasets(yearlyData, state, mapDataFn) {
+export function buildMacroPortfolioBucketDatasets(yearlyData, state, mapDataFn, colorResolver = (lbl, def) => def) {
     const retirementKeys = [
         's1RothIra',
         's2RothIra',
@@ -368,12 +381,18 @@ export function buildMacroPortfolioBucketDatasets(yearlyData, state, mapDataFn) 
 
     const sumKeys = (balances, keys) => keys.reduce((acc, k) => acc + (Number(balances?.[k]) || 0), 0);
 
+    const nwCol = colorResolver('Total Net Worth', '#10b981');
+    const retCol = colorResolver('Retirement Accounts', '#eab308');
+    const brokCol = colorResolver('Brokerage & Cash', '#14b8a6');
+    const homeCol = colorResolver('Home Equity', '#f43f5e');
+    const col529Col = colorResolver('Kids 529s & Other', '#e17055');
+
     return [
         {
             label: 'Total Net Worth',
             data: mapDataFn(yearlyData, state, (snap) => sumKeys(snap.balances, allKeys)),
-            borderColor: '#10b981',
-            backgroundColor: '#10b981',
+            borderColor: nwCol,
+            backgroundColor: nwCol,
             borderWidth: 2.5,
             fill: false,
             tension: 0.4,
@@ -383,8 +402,8 @@ export function buildMacroPortfolioBucketDatasets(yearlyData, state, mapDataFn) 
         {
             label: 'Retirement Accounts',
             data: mapDataFn(yearlyData, state, (snap) => sumKeys(snap.balances, retirementKeys)),
-            borderColor: '#eab308',
-            backgroundColor: 'rgba(234, 179, 8, 0.16)',
+            borderColor: retCol,
+            backgroundColor: hexToRgba(retCol, 0.16),
             borderWidth: 2,
             fill: true,
             tension: 0.4
@@ -392,8 +411,8 @@ export function buildMacroPortfolioBucketDatasets(yearlyData, state, mapDataFn) 
         {
             label: 'Brokerage & Cash',
             data: mapDataFn(yearlyData, state, (snap) => sumKeys(snap.balances, brokerageKeys)),
-            borderColor: '#14b8a6',
-            backgroundColor: 'rgba(20, 184, 166, 0.16)',
+            borderColor: brokCol,
+            backgroundColor: hexToRgba(brokCol, 0.16),
             borderWidth: 2,
             fill: true,
             tension: 0.4
@@ -401,8 +420,8 @@ export function buildMacroPortfolioBucketDatasets(yearlyData, state, mapDataFn) 
         {
             label: 'Home Equity',
             data: mapDataFn(yearlyData, state, (snap) => Number(snap.balances?.primaryResidenceEquity) || 0),
-            borderColor: '#f43f5e',
-            backgroundColor: 'rgba(244, 63, 94, 0.14)',
+            borderColor: homeCol,
+            backgroundColor: hexToRgba(homeCol, 0.14),
             borderWidth: 2,
             fill: true,
             tension: 0.4
@@ -410,8 +429,8 @@ export function buildMacroPortfolioBucketDatasets(yearlyData, state, mapDataFn) 
         {
             label: 'Kids 529s & Other',
             data: mapDataFn(yearlyData, state, (snap) => Number(snap.balances?.college529) || 0),
-            borderColor: '#e17055',
-            backgroundColor: 'rgba(225, 112, 85, 0.14)',
+            borderColor: col529Col,
+            backgroundColor: hexToRgba(col529Col, 0.14),
             borderWidth: 2,
             fill: true,
             tension: 0.4
@@ -454,9 +473,10 @@ export function renderPortfolioOption1CHeader(portfolioChart, yearlyData, state,
  * @param {Array<Object>} yearlyData
  * @param {Object} state
  * @param {Function} mapDataFn
+ * @param {Function} [colorResolver]
  * @returns {Array<Object>}
  */
-export function buildMacroIncomeDatasets(yearlyData, state, mapDataFn) {
+export function buildMacroIncomeDatasets(yearlyData, state, mapDataFn, colorResolver = (lbl, def) => def) {
     const workData = mapDataFn(yearlyData, state, (snap) => {
         const s1TakeHome = snap.income?.s1?.takeHome ?? Math.max(0, snap.income?.s1?.w2Net || 0);
         const s2TakeHome = snap.income?.s2?.takeHome ?? Math.max(0, snap.income?.s2?.w2Net || 0);
@@ -474,30 +494,38 @@ export function buildMacroIncomeDatasets(yearlyData, state, mapDataFn) {
         return drawSum + r72t;
     });
 
+    const workCol = colorResolver('Work & Part-Time Income', '#10b981');
+    const ssCol = colorResolver('Social Security & Pensions', '#3b82f6');
+    const drawCol = colorResolver('Portfolio Withdrawals', '#eab308');
+    const expTaxCol = colorResolver('Total Living Spend + Taxes', '#f43f5e');
+
     return [
         {
             label: 'Work & Part-Time Income',
             data: workData,
-            backgroundColor: '#10b981',
+            backgroundColor: workCol,
+            borderColor: workCol,
             stack: 'Income'
         },
         {
             label: 'Social Security & Pensions',
             data: ssData,
-            backgroundColor: '#3b82f6',
+            backgroundColor: ssCol,
+            borderColor: ssCol,
             stack: 'Income'
         },
         {
             label: 'Portfolio Withdrawals',
             data: drawData,
-            backgroundColor: '#eab308',
+            backgroundColor: drawCol,
+            borderColor: drawCol,
             stack: 'Income'
         },
         {
             label: 'Total Living Spend + Taxes',
             data: mapDataFn(yearlyData, state, (snap) => snap.expenses + (snap.taxDetails?.nonW2Tax || 0)),
-            borderColor: '#f43f5e',
-            backgroundColor: '#f43f5e',
+            borderColor: expTaxCol,
+            backgroundColor: expTaxCol,
             borderWidth: 3,
             type: 'line',
             fill: false,
@@ -531,8 +559,8 @@ export function renderIncomePillHeader(incomeChart) {
                     <span class="stage-mini-switch ${visible ? 'on' : 'off'}">${visible ? 'ON' : 'OFF'}</span>
                     ${
                         isLine
-                            ? `<span class="opt1c-line-swatch" style="background: ${visible ? color : '#64748b'}"></span>`
-                            : `<span class="opt1c-dot" style="background: ${visible ? color : '#64748b'}"></span>`
+                            ? `<span class="opt1c-line-swatch" style="background: ${visible ? color : 'var(--text-muted)'}"></span>`
+                            : `<span class="opt1c-dot" style="background: ${visible ? color : 'var(--text-muted)'}"></span>`
                     }
                     <span>${escapeHtml(ds.label)}</span>
                 </button>

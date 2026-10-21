@@ -506,9 +506,9 @@ export class GuidedPlannerWizard extends BaseComponent {
     _renderErrorMessage() {
         if (!this._errorMessage) return '';
         return `
-            <div class="wizard-alert-error" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.88rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
+            <div class="wizard-alert-error" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: var(--danger); padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.88rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
                 <span>⚠️ ${escapeHtml(this._errorMessage)}</span>
-                <button type="button" class="btn-clear-error" style="background: none; border: none; color: #fca5a5; cursor: pointer; font-size: 1rem;">&times;</button>
+                <button type="button" class="btn-clear-error" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1rem;">&times;</button>
             </div>
         `;
     }
@@ -616,7 +616,7 @@ export class GuidedPlannerWizard extends BaseComponent {
             <div id="spouse-card" class="surface-card" style="background: var(--surface-card); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid rgba(139, 92, 246, 0.3);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h4 style="margin: 0; font-size: 1.05rem; color: #c084fc; font-weight: 600;">💍 Spouse / Partner</h4>
-                    <button type="button" id="btn-remove-spouse" class="btn btn-secondary" style="font-size: 0.78rem; padding: 0.2rem 0.6rem; color: #fca5a5; border-color: rgba(239, 68, 68, 0.3);">
+                    <button type="button" id="btn-remove-spouse" class="btn btn-secondary" style="font-size: 0.78rem; padding: 0.2rem 0.6rem; color: var(--danger); border-color: rgba(239, 68, 68, 0.3);">
                         ✕ Remove
                     </button>
                 </div>
@@ -675,7 +675,7 @@ export class GuidedPlannerWizard extends BaseComponent {
 
                 <div class="surface-card" style="background: var(--surface-card); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <h4 style="margin: 0; font-size: 1.05rem; color: #34d399; font-weight: 600;">🛒 Monthly Living Budget</h4>
+                        <h4 style="margin: 0; font-size: 1.05rem; color: var(--success); font-weight: 600;">🛒 Monthly Living Budget</h4>
                         <span id="guided-monthly-budget-annual-badge" class="badge-subtle badge-subtle-emerald">${formatUsd(this._data.monthlyBudget * MONTHS_IN_YEAR)}/yr</span>
                     </div>
                     <p style="margin: 0 0 0.75rem 0; font-size: 0.82rem; color: var(--text-muted);">
@@ -755,18 +755,18 @@ export class GuidedPlannerWizard extends BaseComponent {
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                         <span style="font-size: 1.1rem;">📊</span>
                         <div>
-                            <div style="font-size: 0.85rem; font-weight: 600; color: #93c5fd;">Live Amortization Preview</div>
-                            <div style="font-size: 0.78rem; color: var(--text-muted);">Current Principal Balance: <strong style="color: #fff;">${formatUsd(amort.currentBalance)}</strong></div>
+                            <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent);">Live Amortization Preview</div>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">Current Principal Balance: <strong style="color: var(--text-main);">${formatUsd(amort.currentBalance)}</strong></div>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <div style="text-align: right;">
                             <div style="font-size: 0.75rem; color: var(--text-muted);">Monthly P&amp;I</div>
-                            <div style="font-size: 0.95rem; font-weight: 700; color: #34d399;">${formatUsd(amort.monthlyPI)}/mo</div>
+                            <div style="font-size: 0.95rem; font-weight: 700; color: var(--success);">${formatUsd(amort.monthlyPI)}/mo</div>
                         </div>
                         <div style="text-align: right;">
                             <div style="font-size: 0.75rem; color: var(--text-muted);">Payoff Target</div>
-                            <div style="font-size: 0.95rem; font-weight: 700; color: #fbbf24;">Year ${amort.payoffYear}</div>
+                            <div style="font-size: 0.95rem; font-weight: 700; color: var(--warning);">Year ${amort.payoffYear}</div>
                         </div>
                     </div>
                 </div>
@@ -807,7 +807,7 @@ export class GuidedPlannerWizard extends BaseComponent {
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 0.75rem;">
                     <div>
                         <span style="font-size: 0.85rem; color: var(--text-muted);">Total Liquid Balance Sheet</span>
-                        <div id="liquid-total-pill" style="font-size: 1.5rem; font-weight: 700; color: #34d399;">
+                        <div id="liquid-total-pill" style="font-size: 1.5rem; font-weight: 700; color: var(--success);">
                             ${formatUsd(totalLiquid)}
                         </div>
                     </div>
@@ -883,8 +883,8 @@ export class GuidedPlannerWizard extends BaseComponent {
     _renderSsClaimOption(age, label, sublabel) {
         const isSelected = Number(this._data.socialSecurityClaimAge) === age;
         return `
-            <div class="option-pill ${isSelected ? 'selected' : ''}" data-ss-age="${age}" style="padding: 0.85rem; border-radius: 0.5rem; border: 1px solid ${isSelected ? '#3b82f6' : 'var(--border)'}; background: ${isSelected ? 'rgba(59, 130, 246, 0.15)' : 'rgba(0,0,0,0.2)'}; cursor: pointer; transition: all 0.2s ease;">
-                <div style="font-weight: 600; font-size: 0.92rem; color: ${isSelected ? '#93c5fd' : 'var(--text-main)'};">${label}</div>
+            <div class="option-pill ${isSelected ? 'selected' : ''}" data-ss-age="${age}" style="padding: 0.85rem; border-radius: 0.5rem; border: 1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}; background: ${isSelected ? 'rgba(59, 130, 246, 0.15)' : 'var(--input-bg)'}; cursor: pointer; transition: all 0.2s ease;">
+                <div style="font-weight: 600; font-size: 0.92rem; color: ${isSelected ? 'var(--primary)' : 'var(--text-main)'};">${label}</div>
                 <div style="font-size: 0.78rem; color: var(--text-muted);">${sublabel}</div>
             </div>
         `;
@@ -893,8 +893,8 @@ export class GuidedPlannerWizard extends BaseComponent {
     _renderGoalOption(goalKey, label, sublabel) {
         const isSelected = this._data.endOfLifeGoal === goalKey;
         return `
-            <div class="option-pill ${isSelected ? 'selected' : ''}" data-goal="${goalKey}" style="padding: 0.85rem; border-radius: 0.5rem; border: 1px solid ${isSelected ? '#8b5cf6' : 'var(--border)'}; background: ${isSelected ? 'rgba(139, 92, 246, 0.15)' : 'rgba(0,0,0,0.2)'}; cursor: pointer; transition: all 0.2s ease;">
-                <div style="font-weight: 600; font-size: 0.92rem; color: ${isSelected ? '#c084fc' : 'var(--text-main)'};">${label}</div>
+            <div class="option-pill ${isSelected ? 'selected' : ''}" data-goal="${goalKey}" style="padding: 0.85rem; border-radius: 0.5rem; border: 1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}; background: ${isSelected ? 'rgba(139, 92, 246, 0.15)' : 'var(--input-bg)'}; cursor: pointer; transition: all 0.2s ease;">
+                <div style="font-weight: 600; font-size: 0.92rem; color: ${isSelected ? 'var(--accent)' : 'var(--text-main)'};">${label}</div>
                 <div style="font-size: 0.78rem; color: var(--text-muted);">${sublabel}</div>
             </div>
         `;
@@ -1258,18 +1258,18 @@ export class GuidedPlannerWizard extends BaseComponent {
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <span style="font-size: 1.1rem;">📊</span>
                     <div>
-                        <div style="font-size: 0.85rem; font-weight: 600; color: #93c5fd;">Live Amortization Preview</div>
-                        <div style="font-size: 0.78rem; color: var(--text-muted);">Current Principal Balance: <strong style="color: #fff;">${formatUsd(amort.currentBalance)}</strong></div>
+                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent);">Live Amortization Preview</div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Current Principal Balance: <strong style="color: var(--text-main);">${formatUsd(amort.currentBalance)}</strong></div>
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <div style="text-align: right;">
                         <div style="font-size: 0.75rem; color: var(--text-muted);">Monthly P&amp;I</div>
-                        <div style="font-size: 0.95rem; font-weight: 700; color: #34d399;">${formatUsd(amort.monthlyPI)}/mo</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--success);">${formatUsd(amort.monthlyPI)}/mo</div>
                     </div>
                     <div style="text-align: right;">
                         <div style="font-size: 0.75rem; color: var(--text-muted);">Payoff Target</div>
-                        <div style="font-size: 0.95rem; font-weight: 700; color: #fbbf24;">Year ${amort.payoffYear}</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--warning);">Year ${amort.payoffYear}</div>
                     </div>
                 </div>
             </div>

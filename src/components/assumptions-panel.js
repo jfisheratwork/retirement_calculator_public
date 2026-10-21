@@ -130,11 +130,11 @@ export class AssumptionsPanel extends BaseComponent {
             'The age milestone where the liquidation priority transitions from early retirement bridge to post-60 decumulation. Defaults to 60.'
         );
         html += `<div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 0.65rem 0.85rem; margin-top: 0.5rem; font-size: 0.78rem; line-height: 1.5; color: var(--text-color);">
-            <div style="font-weight: 600; color: #34d399; margin-bottom: 0.25rem;">Active Liquidation Sequence:</div>
+            <div style="font-weight: 600; color: var(--success); margin-bottom: 0.25rem;">Active Liquidation Sequence:</div>
             <div><strong>Before Age <span class="drawdown-tier-age-val">${tierAge}</span> (Early Bridge):</strong> Roth IRA (Principal &amp; Mature Conversions) ➔ Taxable Brokerage &amp; HYSA. <em>Pre-tax accounts preserved &amp; locked.</em></div>
             <div style="margin-top: 0.2rem;"><strong>Age <span class="drawdown-tier-age-val">${tierAge}</span>+ (Retirement Decumulation):</strong> 1. Workplace 403(b) ➔ 2. Roth IRA ➔ 3. Traditional IRA &amp; 401(k) ➔ 4. Taxable Brokerage.</div>
         </div></div>`;
-        html += `<div style="margin-top: 0.65rem; padding-top: 0.5rem; border-top: 1px dashed rgba(255,255,255,0.1);">`;
+        html += `<div style="margin-top: 0.65rem; padding-top: 0.5rem; border-top: 1px dashed var(--border);">`;
         html += this._checkbox(
             'Allow Penalized Early Pre-Tax Withdrawals (< Age 59.5, +10% IRS Penalty) as Last Resort',
             'strategies.allowEarlyPenalizedWithdrawals',

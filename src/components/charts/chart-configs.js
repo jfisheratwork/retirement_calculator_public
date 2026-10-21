@@ -36,7 +36,20 @@ export const THEME_CHART_PALETTES = {
         sorrCrash: '#d63031',
         sorrMid: '#f6b93b',
         sorrLate: '#00b894',
-        sorrBase: '#0984e3'
+        sorrBase: '#0984e3',
+        work: '#10b981',
+        ssn: '#3b82f6',
+        drawdowns: '#eab308',
+        rmd: '#fb923c',
+        conversions: '#c084fc',
+        taxBill: '#f43f5e',
+        fedTax: '#f43f5e',
+        capGainsTax: '#fbbf24',
+        stateTax: '#fb923c',
+        ficaTax: '#38bdf8',
+        irmaaTax: '#e879f9',
+        penaltyTax: '#f39c12',
+        surplus: '#fdcb6e'
     },
     terminal: {
         netWorth: '#00ff66',
@@ -61,7 +74,20 @@ export const THEME_CHART_PALETTES = {
         sorrCrash: '#ef4444',
         sorrMid: '#fbbf24',
         sorrLate: '#00ff66',
-        sorrBase: '#38bdf8'
+        sorrBase: '#38bdf8',
+        work: '#00ff66',
+        ssn: '#38bdf8',
+        drawdowns: '#fbbf24',
+        rmd: '#f97316',
+        conversions: '#818cf8',
+        taxBill: '#ef4444',
+        fedTax: '#ef4444',
+        capGainsTax: '#fbbf24',
+        stateTax: '#f97316',
+        ficaTax: '#38bdf8',
+        irmaaTax: '#a78bfa',
+        penaltyTax: '#ef4444',
+        surplus: '#00ff66'
     },
     broadsheet: {
         netWorth: '#990f3d',
@@ -86,7 +112,20 @@ export const THEME_CHART_PALETTES = {
         sorrCrash: '#990f3d',
         sorrMid: '#b35900',
         sorrLate: '#097045',
-        sorrBase: '#0d7680'
+        sorrBase: '#0d7680',
+        work: '#097045',
+        ssn: '#1e3a8a',
+        drawdowns: '#b35900',
+        rmd: '#701a75',
+        conversions: '#097045',
+        taxBill: '#990f3d',
+        fedTax: '#990f3d',
+        capGainsTax: '#b35900',
+        stateTax: '#d97706',
+        ficaTax: '#0d7680',
+        irmaaTax: '#701a75',
+        penaltyTax: '#c2410c',
+        surplus: '#0d7680'
     },
     matcha: {
         netWorth: '#1b3820',
@@ -111,7 +150,20 @@ export const THEME_CHART_PALETTES = {
         sorrCrash: '#dc2626',
         sorrMid: '#b7791f',
         sorrLate: '#2e7d32',
-        sorrBase: '#2e7d32'
+        sorrBase: '#2e7d32',
+        work: '#2e7d32',
+        ssn: '#3f6212',
+        drawdowns: '#b7791f',
+        rmd: '#854d0e',
+        conversions: '#b7791f',
+        taxBill: '#c25e38',
+        fedTax: '#c25e38',
+        capGainsTax: '#b7791f',
+        stateTax: '#d97706',
+        ficaTax: '#0d9488',
+        irmaaTax: '#78716c',
+        penaltyTax: '#dc2626',
+        surplus: '#2e7d32'
     }
 };
 
@@ -133,7 +185,7 @@ const THEME_DATASET_MATCHERS = [
     { match: ['hysa', 'high-yield'], resolve: (pal) => pal.hysa },
     { match: ['cd', 'certificate'], resolve: (pal) => pal.cd },
     { match: ['hsa', 'health savings'], resolve: (pal) => pal.hsa },
-    { match: ['brokerage', 'taxable'], resolve: (pal) => pal.brokerage },
+    { match: ['brokerage', 'taxable brokerage'], resolve: (pal) => pal.brokerage },
     { match: ['roth'], resolve: (pal, sec) => resolveSpouseKeyedColor(sec, pal.s2Roth, pal.s1Roth) },
     {
         match: ['401k', 'retirement account'],
@@ -150,6 +202,22 @@ const THEME_DATASET_MATCHERS = [
     },
     { match: ['home equity', 'home &'], resolve: (pal) => pal.homeEquity },
     { match: ['529', 'college'], resolve: (pal) => pal.college529 },
+    { match: ['work &', 'take-home', 'earned income'], resolve: (pal) => pal.work },
+    { match: ['social security', 'pension', 'ssn'], resolve: (pal) => pal.ssn },
+    { match: ['portfolio withdrawal', 'pre-tax draw', 'drawdown'], resolve: (pal) => pal.drawdowns },
+    { match: ['rmd', 'mandatory rmd'], resolve: (pal) => pal.rmd },
+    { match: ['roth conversion', 'bracket fill'], resolve: (pal) => pal.conversions },
+    { match: ['tax-free draw'], resolve: (pal) => pal.s1Roth },
+    { match: ['taxable ss & realized'], resolve: (pal) => pal.brokerage },
+    { match: ['w-2 taxable income'], resolve: (pal) => pal.brokerage },
+    { match: ['total annual tax bill'], resolve: (pal) => pal.taxBill },
+    { match: ['ordinary federal', 'federal tax'], resolve: (pal) => pal.fedTax },
+    { match: ['capital gains', 'niit'], resolve: (pal) => pal.capGainsTax },
+    { match: ['state income', 'state tax'], resolve: (pal) => pal.stateTax },
+    { match: ['fica', 'payroll tax'], resolve: (pal) => pal.ficaTax },
+    { match: ['irmaa', 'medicare surcharge'], resolve: (pal) => pal.irmaaTax },
+    { match: ['early withdrawal penalty', '10% early'], resolve: (pal) => pal.penaltyTax },
+    { match: ['surplus', 'shortfall'], resolve: (pal) => pal.surplus },
     { match: ['outflow', 'expense', 'living'], resolve: (pal) => pal.outflows },
     { match: ['early scenario'], resolve: (pal) => pal.sorrCrash },
     { match: ['mid scenario'], resolve: (pal) => pal.sorrMid },
@@ -472,6 +540,16 @@ function resolveScaleTickColor() {
     return '#b2bec3';
 }
 
+export function resolveLegendLabelColor() {
+    if (typeof document !== 'undefined') {
+        const theme = document.documentElement.getAttribute('data-theme');
+        if (theme === 'broadsheet') return '#1a1a1a';
+        if (theme === 'matcha') return '#1b3820';
+        if (theme === 'terminal') return '#f0fdf4';
+    }
+    return '#f8fafc';
+}
+
 function resolveScaleTitleColor() {
     if (typeof document !== 'undefined') {
         const theme = document.documentElement.getAttribute('data-theme');
@@ -539,8 +617,11 @@ function buildPortfolioScales() {
 export function buildPortfolioConfig(yearlyData, state, labels, annotations, ...spouseNames) {
     const [s1Name = 'Spouse 1', s2Name = 'Spouse 2'] = spouseNames;
     const isBucketsMode = state?.uiState?.portfolioViewMode === 'buckets';
+    const activeTheme = getActiveThemeName();
     const datasets = isBucketsMode
-        ? buildMacroPortfolioBucketDatasets(yearlyData, state, mapData)
+        ? buildMacroPortfolioBucketDatasets(yearlyData, state, mapData, (lbl, def) =>
+              resolveThemeDatasetColor(lbl, def, activeTheme)
+          )
         : buildPortfolioDatasets(yearlyData, state, s1Name, s2Name);
 
     const config = {
@@ -552,7 +633,7 @@ export function buildPortfolioConfig(yearlyData, state, labels, annotations, ...
             interaction: { mode: 'index', intersect: false },
             onClick: handleChartClick,
             plugins: {
-                legend: { display: false, labels: { color: '#e0e0e0' } },
+                legend: { display: false, labels: { color: resolveLegendLabelColor() } },
                 tooltip: {
                     enabled: false,
                     position: 'nearest',
@@ -712,13 +793,16 @@ function buildIncomeOverlayLines(yearlyData, state) {
 export function buildIncomeConfig(yearlyData, state, labels, annotations, ...spouseNames) {
     const [s1Name = 'Spouse 1', s2Name = 'Spouse 2'] = spouseNames;
     const isDetailView = Boolean(state?.uiState?.incomeDetailView);
+    const activeTheme = getActiveThemeName();
     const datasets = isDetailView
         ? [
               ...buildEarnedIncomeBars(yearlyData, state, s1Name, s2Name, 'Income'),
               ...buildDrawdownBars(yearlyData, state, s1Name, s2Name, 'Income'),
               ...buildIncomeOverlayLines(yearlyData, state)
           ]
-        : buildMacroIncomeDatasets(yearlyData, state, mapData);
+        : buildMacroIncomeDatasets(yearlyData, state, mapData, (lbl, def) =>
+              resolveThemeDatasetColor(lbl, def, activeTheme)
+          );
 
     return {
         type: 'bar',
@@ -729,7 +813,7 @@ export function buildIncomeConfig(yearlyData, state, labels, annotations, ...spo
             interaction: { mode: 'index', intersect: false },
             onClick: handleChartClick,
             plugins: {
-                legend: { display: isDetailView, labels: { color: '#e0e0e0' } },
+                legend: { display: isDetailView, labels: { color: resolveLegendLabelColor() } },
                 tooltip: {
                     enabled: false,
                     position: 'nearest',
@@ -808,12 +892,19 @@ function extractSnapTotalTaxBill(snap) {
 }
 
 function buildTaxBucketWithdrawalDatasets(yearlyData, state) {
-    const bar = (label, backgroundColor, fn) => ({
-        label,
-        data: mapData(yearlyData, state, fn),
-        backgroundColor,
-        stack: 'TaxBuckets'
-    });
+    const activeTheme = getActiveThemeName();
+    const resolveCol = (lbl, def) => resolveThemeDatasetColor(lbl, def, activeTheme);
+    const bar = (label, defaultColor, fn) => {
+        const c = resolveCol(label, defaultColor);
+        return {
+            label,
+            data: mapData(yearlyData, state, fn),
+            backgroundColor: c,
+            borderColor: c,
+            stack: 'TaxBuckets'
+        };
+    };
+    const taxBillColor = resolveCol('Total Annual Tax Bill', '#f43f5e');
     return [
         bar(
             'W-2 Taxable Income',
@@ -839,8 +930,8 @@ function buildTaxBucketWithdrawalDatasets(yearlyData, state) {
             label: 'Total Annual Tax Bill',
             data: mapData(yearlyData, state, extractSnapTotalTaxBill),
             type: 'line',
-            borderColor: '#f43f5e',
-            backgroundColor: '#f43f5e',
+            borderColor: taxBillColor,
+            backgroundColor: taxBillColor,
             borderWidth: 2.5,
             tension: 0.3,
             fill: false,
@@ -873,7 +964,7 @@ export function buildCashflowConfig(yearlyData, state, labels, annotations) {
             interaction: { mode: 'index', intersect: false },
             onClick: handleChartClick,
             plugins: {
-                legend: { labels: { color: '#e0e0e0', boxWidth: 12, padding: 12 } },
+                legend: { labels: { color: resolveLegendLabelColor(), boxWidth: 12, padding: 12 } },
                 tooltip: {
                     enabled: false,
                     position: 'nearest',
@@ -961,7 +1052,7 @@ export function buildNetWorthConfig(yearlyData, state, labels, annotations) {
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: { labels: { color: '#e0e0e0' } },
+                legend: { labels: { color: resolveLegendLabelColor() } },
                 tooltip: {
                     enabled: false,
                     position: 'nearest',
@@ -993,11 +1084,13 @@ function extractSnapFedOrdinaryTax(snap) {
  * @returns {Object}
  */
 export function buildTaxConfig(yearlyData, state, labels, annotations) {
+    const activeTheme = getActiveThemeName();
+    const resolveCol = (lbl, def) => resolveThemeDatasetColor(lbl, def, activeTheme);
     const datasets = [
         {
             label: 'Federal Ordinary Income Tax',
             data: mapData(yearlyData, state, extractSnapFedOrdinaryTax),
-            backgroundColor: '#f43f5e',
+            backgroundColor: resolveCol('Federal Ordinary Income Tax', '#f43f5e'),
             borderRadius: 2,
             stack: 'Taxes'
         },
@@ -1006,28 +1099,28 @@ export function buildTaxConfig(yearlyData, state, labels, annotations) {
             data: mapData(yearlyData, state, (snap) =>
                 Number(snap.taxDetails?.capitalGainsTax ?? snap.taxDetails?.ltcgTax ?? 0)
             ),
-            backgroundColor: '#fbbf24',
+            backgroundColor: resolveCol('Capital Gains & NIIT Tax', '#fbbf24'),
             borderRadius: 2,
             stack: 'Taxes'
         },
         {
             label: 'State Income Tax',
             data: mapData(yearlyData, state, (snap) => Number(snap.taxDetails?.stateTax || 0)),
-            backgroundColor: '#fb923c',
+            backgroundColor: resolveCol('State Income Tax', '#fb923c'),
             borderRadius: 2,
             stack: 'Taxes'
         },
         {
             label: 'FICA Payroll Tax',
             data: mapData(yearlyData, state, (snap) => Number(snap.taxDetails?.ficaTax || 0)),
-            backgroundColor: '#38bdf8',
+            backgroundColor: resolveCol('FICA Payroll Tax', '#38bdf8'),
             borderRadius: 2,
             stack: 'Taxes'
         },
         {
             label: 'Medicare IRMAA Surcharge',
             data: mapData(yearlyData, state, (snap) => Number(snap.expenseBreakdown?.irmaa || 0)),
-            backgroundColor: '#e879f9',
+            backgroundColor: resolveCol('Medicare IRMAA Surcharge', '#e879f9'),
             borderRadius: 2,
             stack: 'Taxes'
         },
@@ -1036,7 +1129,7 @@ export function buildTaxConfig(yearlyData, state, labels, annotations) {
             data: mapData(yearlyData, state, (snap) =>
                 Number(snap.taxDetails?.earlyWithdrawalPenalty ?? snap.earlyWithdrawalPenalty ?? 0)
             ),
-            backgroundColor: '#f39c12',
+            backgroundColor: resolveCol('10% Early Withdrawal Penalty (Pre-59.5)', '#f39c12'),
             borderRadius: 4,
             stack: 'Taxes'
         }
@@ -1055,7 +1148,7 @@ export function buildTaxConfig(yearlyData, state, labels, annotations) {
             interaction: { mode: 'index', intersect: false },
             onClick: handleChartClick,
             plugins: {
-                legend: { labels: { color: '#e0e0e0', boxWidth: 12, padding: 12 } },
+                legend: { labels: { color: resolveLegendLabelColor(), boxWidth: 12, padding: 12 } },
                 tooltip: {
                     enabled: false,
                     position: 'nearest',
@@ -1142,7 +1235,7 @@ export function buildSorrConfig(sorrData, labels, annotations) {
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: { labels: { color: '#e0e0e0' } },
+                legend: { labels: { color: resolveLegendLabelColor() } },
                 tooltip: {
                     enabled: false,
                     position: 'nearest',

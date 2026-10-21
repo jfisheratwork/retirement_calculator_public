@@ -54,7 +54,7 @@ export class PinUnlockModal extends BaseComponent {
                     ${
                         this._errorMsg
                             ? `
-                        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.6rem 0.85rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1.25rem; text-align: left;">
+                        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: var(--danger); padding: 0.6rem 0.85rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1.25rem; text-align: left;">
                             ⚠️ ${escapeHtml(this._errorMsg)}
                         </div>
                     `

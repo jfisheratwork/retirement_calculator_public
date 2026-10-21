@@ -89,9 +89,9 @@ function buildCompactSummaryPills(report) {
 
     if (l?.hasLockoutGap) {
         pills.push(`
-            <div class="fire-pill" style="background: rgba(245, 158, 11, 0.14); border-color: rgba(245, 158, 11, 0.4); color: #fde68a;" title="Pre-59½ Liquidity Lockout in ${l.firstGapYear}: -${formatCompactCurrency(l.maxAnnualShortfall)} shortfall while retirement accounts hold reserves">
+            <div class="fire-pill" style="background: rgba(245, 158, 11, 0.14); border-color: rgba(245, 158, 11, 0.4); color: var(--whatif-warn-text, #fde68a);" title="Pre-59½ Liquidity Lockout in ${l.firstGapYear}: -${formatCompactCurrency(l.maxAnnualShortfall)} shortfall while retirement accounts hold reserves">
                 <span>⚠️ ${l.firstGapYear} Gap:</span>
-                <strong style="color: #fbbf24;">-${formatCompactCurrency(l.maxAnnualShortfall)}</strong>
+                <strong style="color: var(--warning, #fbbf24);">-${formatCompactCurrency(l.maxAnnualShortfall)}</strong>
             </div>
         `);
     }
@@ -167,7 +167,11 @@ export function renderPullForwardBanner(containerId, report, onOpenStudio = null
 
 function renderBridgeOptionCard(opt) {
     const badgeColor =
-        opt.feasibility === 'immediate' ? '#34d399' : opt.feasibility === 'action_required' ? '#fbbf24' : '#9ca3af';
+        opt.feasibility === 'immediate'
+            ? 'var(--success)'
+            : opt.feasibility === 'action_required'
+              ? 'var(--warning)'
+              : 'var(--text-muted)';
     const badgeLabel =
         opt.feasibility === 'immediate'
             ? 'Ready to Apply'
@@ -182,7 +186,7 @@ function renderBridgeOptionCard(opt) {
                 <strong style="font-size: 0.82rem; color: var(--text-main);">${escapeHtml(opt.title)}</strong>
                 <span style="font-size: 0.7rem; font-weight: 700; color: ${badgeColor}; white-space: nowrap;">${badgeLabel}</span>
             </div>
-            <div style="font-size: 0.72rem; color: #93c5fd; margin-bottom: 0.3rem;">${escapeHtml(opt.statutoryReference)} • Tax/Penalty Saved: ~${formatCompactCurrency(opt.estimatedTaxPenaltySavings)}</div>
+            <div style="font-size: 0.72rem; color: var(--accent); margin-bottom: 0.3rem;">${escapeHtml(opt.statutoryReference)} • Tax/Penalty Saved: ~${formatCompactCurrency(opt.estimatedTaxPenaltySavings)}</div>
             <p style="margin: 0 0 0.5rem 0; font-size: 0.76rem; line-height: 1.35; color: var(--text-muted);">${escapeHtml(opt.description)}</p>
             <button type="button" class="btn btn-secondary btn-apply-bridge-fix" data-bridge-id="${escapeHtml(opt.id)}" ${disabledAttr} style="width: 100%; font-size: 0.75rem; padding: 0.35rem;">
                 Apply ${escapeHtml(opt.title)}
@@ -305,7 +309,7 @@ export function renderPullForwardStudioSection(report, activeTab = 'bridge') {
                 <span class="what-if-section-icon">🌉</span>
                 <h4>Pull-Forward & Bridge Studio</h4>
             </div>
-            <div class="pull-forward-studio-detail-summary" style="margin-bottom: 0.75rem; padding: 0.6rem 0.75rem; background: rgba(251, 191, 36, 0.08); border-left: 3px solid #fbbf24; border-radius: 0.35rem;">
+            <div class="pull-forward-studio-detail-summary" style="margin-bottom: 0.75rem; padding: 0.6rem 0.75rem; background: rgba(251, 191, 36, 0.08); border-left: 3px solid var(--warning); border-radius: 0.35rem;">
                 <p style="margin: 0 0 0.4rem 0; font-size: 0.78rem; line-height: 1.4; color: var(--text-color);">
                     ${headlineHtml}
                 </p>
@@ -324,7 +328,7 @@ export function renderPullForwardStudioSection(report, activeTab = 'bridge') {
                 <input type="range" class="what-if-slider" id="slider-legacy-reserve" min="0" max="5000000" step="100000" value="${s.desiredLegacyBuffer}">
                 <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
                     <span>Terminal: <strong>${formatCompactCurrency(s.terminalNetWorthNominal)}</strong></span>
-                    <span>Surplus: <strong style="color: #34d399;">${formatCompactCurrency(s.excessTerminalSurplusNominal)}</strong> (${formatCompactCurrency(s.excessTerminalSurplusReal)} real)</span>
+                    <span>Surplus: <strong style="color: var(--success);">${formatCompactCurrency(s.excessTerminalSurplusNominal)}</strong> (${formatCompactCurrency(s.excessTerminalSurplusReal)} real)</span>
                 </div>
             </div>
 
