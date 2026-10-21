@@ -405,7 +405,7 @@ export class GuidedPlannerWizard extends BaseComponent {
     getTemplate() {
         return `
             <div class="guided-wizard-overlay" style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 1.5rem; overflow-y: auto;">
-                <div class="guided-wizard-container glass-panel" style="max-width: 860px; width: 100%; max-height: 90vh; overflow-y: auto; margin: auto; padding: 2rem; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);">
+                <div class="guided-wizard-container glass-panel" style="max-width: 860px; width: 100%; max-height: 90vh; overflow-y: auto; margin: auto; padding: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
                     ${this._renderHeader()}
                     ${this._renderProgressBar()}
                     ${this._renderErrorMessage()}
@@ -531,7 +531,7 @@ export class GuidedPlannerWizard extends BaseComponent {
     _renderStep1() {
         return `
             <div class="step-pane step-pane-1" style="display: flex; flex-direction: column; gap: 1.5rem;">
-                <div class="card-scenario-name surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1rem 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                <div class="card-scenario-name surface-card" style="background: var(--surface-card); padding: 1rem 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 200px;">
                         <label for="input-guided-scenario-name" style="font-size: 0.82rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.2rem;">
                             Scenario Name
@@ -543,7 +543,7 @@ export class GuidedPlannerWizard extends BaseComponent {
                     </div>
                 </div>
 
-                <div class="card-primary-earner surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
+                <div class="card-primary-earner surface-card" style="background: var(--surface-card); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h4 style="margin: 0; font-size: 1.05rem; color: #60a5fa; font-weight: 600;">👤 Primary Planner</h4>
                         <span class="badge-subtle badge-subtle-blue">Required</span>
@@ -568,7 +568,7 @@ export class GuidedPlannerWizard extends BaseComponent {
                     ${this._data.hasSpouse ? this._renderSpouseCard() : this._renderSpouseEmptyBox()}
                 </div>
 
-                <div class="card-longevity surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
+                <div class="card-longevity surface-card" style="background: var(--surface-card); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                         <div>
                             <label style="font-size: 1rem; font-weight: 600; color: var(--text-main);">Longevity Planning Horizon</label>
@@ -585,7 +585,7 @@ export class GuidedPlannerWizard extends BaseComponent {
                     </div>
                 </div>
 
-                <div class="card-dependents" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border); border-radius: 0.75rem;">
+                <div class="card-dependents" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: var(--surface-card); border: 1px solid var(--border); border-radius: 0.75rem;">
                     <div>
                         <span style="font-size: 0.95rem; font-weight: 500; color: var(--text-main);">Dependents / Children</span>
                         <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Number of children in household.</p>
@@ -613,7 +613,7 @@ export class GuidedPlannerWizard extends BaseComponent {
 
     _renderSpouseCard() {
         return `
-            <div id="spouse-card" class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid rgba(139, 92, 246, 0.3);">
+            <div id="spouse-card" class="surface-card" style="background: var(--surface-card); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid rgba(139, 92, 246, 0.3);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h4 style="margin: 0; font-size: 1.05rem; color: #c084fc; font-weight: 600;">💍 Spouse / Partner</h4>
                     <button type="button" id="btn-remove-spouse" class="btn btn-secondary" style="font-size: 0.78rem; padding: 0.2rem 0.6rem; color: #fca5a5; border-color: rgba(239, 68, 68, 0.3);">
@@ -649,7 +649,7 @@ export class GuidedPlannerWizard extends BaseComponent {
 
         return `
             <div class="step-pane step-pane-2" style="display: flex; flex-direction: column; gap: 1.5rem;">
-                <div class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
+                <div class="surface-card" style="background: var(--surface-card); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
                     <h4 style="margin: 0 0 1rem 0; font-size: 1.05rem; color: #60a5fa; font-weight: 600;">💼 Annual Earned Income</h4>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
                         <div>
@@ -673,7 +673,7 @@ export class GuidedPlannerWizard extends BaseComponent {
                     </div>
                 </div>
 
-                <div class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
+                <div class="surface-card" style="background: var(--surface-card); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                         <h4 style="margin: 0; font-size: 1.05rem; color: #34d399; font-weight: 600;">🛒 Monthly Living Budget</h4>
                         <span id="guided-monthly-budget-annual-badge" class="badge-subtle badge-subtle-emerald">${formatUsd(this._data.monthlyBudget * MONTHS_IN_YEAR)}/yr</span>
@@ -690,7 +690,7 @@ export class GuidedPlannerWizard extends BaseComponent {
                     </div>
                 </div>
 
-                <div class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
+                <div class="surface-card" style="background: var(--surface-card); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h4 style="margin: 0; font-size: 1.05rem; color: var(--text-main); font-weight: 600;">🏠 Housing Situation</h4>
                         <div class="housing-toggle-group" style="display: inline-flex; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 999px; padding: 2px;">
@@ -777,7 +777,7 @@ export class GuidedPlannerWizard extends BaseComponent {
     _renderAssetBucketCard(cardConfig) {
         const { title, colorHex, badgeText, badgeClass, desc, inputId, stepAmt, currentAmount } = cardConfig;
         return `
-            <div class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
+            <div class="surface-card" style="background: var(--surface-card); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
                     <h4 style="margin: 0; font-size: 0.95rem; color: ${colorHex}; font-weight: 600;">${title}</h4>
                     <span class="badge-subtle ${badgeClass}">${badgeText}</span>
@@ -838,7 +838,7 @@ export class GuidedPlannerWizard extends BaseComponent {
     _renderStep4() {
         return `
             <div class="step-pane step-pane-4" style="display: flex; flex-direction: column; gap: 1.5rem;">
-                <div class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
+                <div class="surface-card" style="background: var(--surface-card); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                         <div>
                             <label style="font-size: 1rem; font-weight: 600; color: var(--text-main);">Annual Return Rate Expectation</label>
@@ -855,7 +855,7 @@ export class GuidedPlannerWizard extends BaseComponent {
                     </div>
                 </div>
 
-                <div class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
+                <div class="surface-card" style="background: var(--surface-card); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
                     <label style="display: block; font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Social Security Claim Strategy</label>
                     <p style="margin: 0 0 1rem 0; font-size: 0.82rem; color: var(--text-muted);">Choose target claim age for primary earner. Delaying boosts benefit ~8%/year past FRA.</p>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
@@ -865,7 +865,7 @@ export class GuidedPlannerWizard extends BaseComponent {
                     </div>
                 </div>
 
-                <div class="surface-card" style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
+                <div class="surface-card" style="background: var(--surface-card); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border);">
                     <label style="display: block; font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">End-of-Life Wealth Objective</label>
                     <p style="margin: 0 0 1rem 0; font-size: 0.82rem; color: var(--text-muted);">Guides safe withdrawal rate glidepaths and principal preservation priority.</p>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
@@ -902,7 +902,7 @@ export class GuidedPlannerWizard extends BaseComponent {
 
     _renderSmartDefaultsDrawer() {
         return `
-            <details class="smart-defaults-disclosure" style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.75rem 1rem;">
+            <details class="smart-defaults-disclosure" style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.75rem 1rem;">
                 <summary style="cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #94a3b8; display: flex; align-items: center; gap: 0.5rem;">
                     <span>📋 Smart Assumptions &amp; Actuarial Defaults Applied</span>
                     <span class="badge-subtle badge-subtle-gray" style="margin-left: auto;">Auto-Configured</span>

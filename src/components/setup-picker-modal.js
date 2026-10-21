@@ -184,9 +184,9 @@ export class SetupPickerModal extends BaseComponent {
 
         return `
             <div id="setup-picker-overlay" class="drawer-overlay ${visibilityClass}"
-                style="align-items: center; justify-content: center; z-index: 10000; padding: 1.5rem; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(8px);">
+                style="align-items: center; justify-content: center; z-index: 10000; padding: 1.5rem; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px);">
                 <div class="setup-picker-card"
-                    style="width: 1040px; max-width: 95vw; max-height: 92vh; overflow-y: auto; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 1.25rem; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85); padding: 2.25rem;">
+                    style="width: 1040px; max-width: 95vw; max-height: 92vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 1.25rem; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35); padding: 2.25rem;">
                     ${this._renderHeader()}
                     ${this._renderScenarioNamePrompt()}
                     ${this._renderTierCards()}
@@ -203,13 +203,13 @@ export class SetupPickerModal extends BaseComponent {
     _renderScenarioNamePrompt() {
         return `
             <div class="setup-scenario-name-container"
-                style="margin-bottom: 1.75rem; background: rgba(30, 41, 59, 0.65); border: 1px solid rgba(129, 140, 248, 0.3); border-radius: 0.875rem; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap;">
+                style="margin-bottom: 1.75rem; background: var(--surface-card); border: 1px solid var(--border); border-radius: 0.875rem; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 240px;">
                     <label for="setup-scenario-name-input"
-                        style="display: block; font-size: 0.78rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">
+                        style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">
                         Scenario Name
                     </label>
-                    <span style="font-size: 0.85rem; color: #94a3b8;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">
                         Name this scenario plan or customize it anytime in the editor.
                     </span>
                 </div>
@@ -217,7 +217,7 @@ export class SetupPickerModal extends BaseComponent {
                     <input type="text" id="setup-scenario-name-input" class="setup-scenario-name-input"
                         value="${escapeHtml(this._scenarioName || 'My Retirement Plan')}"
                         placeholder="e.g., Baseline Retirement"
-                        style="width: 100%; box-sizing: border-box; padding: 0.65rem 0.85rem; background: #0f172a; border: 1px solid rgba(99, 102, 241, 0.5); border-radius: 0.5rem; color: #f8fafc; font-size: 0.95rem; font-weight: 600;">
+                        style="width: 100%; box-sizing: border-box; padding: 0.65rem 0.85rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.5rem; color: var(--text-main); font-size: 0.95rem; font-weight: 600;">
                 </div>
             </div>
         `;
@@ -229,20 +229,20 @@ export class SetupPickerModal extends BaseComponent {
      */
     _renderHeader() {
         return `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.25rem;">
                 <div>
-                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 9999px; padding: 0.25rem 0.85rem; font-size: 0.75rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: var(--surface-hover); border: 1px solid var(--border); border-radius: 9999px; padding: 0.25rem 0.85rem; font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">
                         <span>✨</span> First-Time Plan Setup
                     </div>
-                    <h2 style="font-size: 1.75rem; font-weight: 700; color: #f8fafc; margin: 0 0 0.5rem 0; letter-spacing: -0.02em;">
+                    <h2 style="font-size: 1.75rem; font-weight: 700; color: var(--text-main); margin: 0 0 0.5rem 0; letter-spacing: -0.02em;">
                         Welcome! How would you like to begin?
                     </h2>
-                    <p style="color: #94a3b8; font-size: 0.95rem; margin: 0; max-width: 720px; line-height: 1.5;">
+                    <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0; max-width: 720px; line-height: 1.5;">
                         Choose an onboarding experience that matches your available time and financial complexity. You can switch between modes at any time without losing any customized data.
                     </p>
                 </div>
                 <button type="button" class="btn-close-picker btn-close" aria-label="Dismiss setup dialog"
-                    style="background: transparent; border: none; color: #94a3b8; font-size: 1.75rem; cursor: pointer; padding: 0.25rem 0.5rem; line-height: 1; border-radius: 0.375rem; transition: color 0.15s ease;">
+                    style="background: transparent; border: none; color: var(--text-muted); font-size: 1.75rem; cursor: pointer; padding: 0.25rem 0.5rem; line-height: 1; border-radius: 0.375rem; transition: color 0.15s ease;">
                     &times;
                 </button>
             </div>
@@ -270,34 +270,34 @@ export class SetupPickerModal extends BaseComponent {
     _renderExpressCard() {
         return `
             <div class="tier-card express-card"
-                style="background: linear-gradient(180deg, rgba(99, 102, 241, 0.14) 0%, rgba(30, 41, 59, 0.85) 100%); border: 2px solid rgba(129, 140, 248, 0.6); border-radius: 1rem; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; position: relative; box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.25);">
+                style="background: var(--surface-card); border: 2px solid var(--primary); border-radius: 1rem; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; position: relative; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);">
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
-                        <span style="background: #6366f1; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.25rem 0.65rem; border-radius: 9999px; letter-spacing: 0.04em;">
+                        <span style="background: var(--primary); color: var(--primary-text); font-size: 0.72rem; font-weight: 800; padding: 0.25rem 0.65rem; border-radius: 9999px; letter-spacing: 0.04em;">
                             ⚡ RECOMMENDED • 60s
                         </span>
                         <span style="font-size: 1.5rem;">🚀</span>
                     </div>
-                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #ffffff; margin: 0 0 0.5rem 0;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin: 0 0 0.5rem 0;">
                         Express Quick-Start
                     </h3>
-                    <p style="color: #cbd5e1; font-size: 0.86rem; line-height: 1.45; margin: 0 0 1.25rem 0;">
+                    <p style="color: var(--text-muted); font-size: 0.86rem; line-height: 1.45; margin: 0 0 1.25rem 0;">
                         Answer just 4 questions to see your instant Freedom Date and savings rate. Smart actuarial defaults handle everything else.
                     </p>
-                    <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.82rem; color: #94a3b8;">
+                    <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.82rem; color: var(--text-muted);">
                         <li style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="color: #34d399; font-weight: bold;">✓</span> 4 essential questions
+                            <span style="color: var(--success); font-weight: bold;">✓</span> 4 essential questions
                         </li>
                         <li style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="color: #34d399; font-weight: bold;">✓</span> Instant Freedom Age & SWR Nest Egg
+                            <span style="color: var(--success); font-weight: bold;">✓</span> Instant Freedom Age & SWR Nest Egg
                         </li>
                         <li style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="color: #34d399; font-weight: bold;">✓</span> Under 60 seconds
+                            <span style="color: var(--success); font-weight: bold;">✓</span> Under 60 seconds
                         </li>
                     </ul>
                 </div>
                 <button type="button" class="btn btn-primary btn-select-express"
-                    style="width: 100%; padding: 0.75rem 1rem; background: #6366f1; hover: #4f46e5; color: #ffffff; font-weight: 700; font-size: 0.95rem; border: none; border-radius: 0.625rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);">
+                    style="width: 100%; padding: 0.75rem 1rem; background: var(--primary); color: var(--primary-text); font-weight: 700; font-size: 0.95rem; border: none; border-radius: 0.625rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
                     Start Express Mode ⚡
                 </button>
             </div>
@@ -311,34 +311,34 @@ export class SetupPickerModal extends BaseComponent {
     _renderGuidedCard() {
         return `
             <div class="tier-card guided-card"
-                style="background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 1rem; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+                style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
-                        <span style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); font-size: 0.72rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 9999px;">
+                        <span style="background: var(--surface-hover); color: var(--primary); border: 1px solid var(--border); font-size: 0.72rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 9999px;">
                             🧭 STEP-BY-STEP
                         </span>
                         <span style="font-size: 1.5rem;">📋</span>
                     </div>
-                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #ffffff; margin: 0 0 0.5rem 0;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin: 0 0 0.5rem 0;">
                         Guided Planner
                     </h3>
-                    <p style="color: #cbd5e1; font-size: 0.86rem; line-height: 1.45; margin: 0 0 1.25rem 0;">
+                    <p style="color: var(--text-muted); font-size: 0.86rem; line-height: 1.45; margin: 0 0 1.25rem 0;">
                         A structured 4-step wizard that walks through your household members, lifestyle expenses, asset buckets, and growth levers.
                     </p>
-                    <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.82rem; color: #94a3b8;">
+                    <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.82rem; color: var(--text-muted);">
                         <li style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="color: #60a5fa; font-weight: bold;">✓</span> 4 focused progressive cards
+                            <span style="color: var(--primary); font-weight: bold;">✓</span> 4 focused progressive cards
                         </li>
                         <li style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="color: #60a5fa; font-weight: bold;">✓</span> Housing, spouse & asset allocation
+                            <span style="color: var(--primary); font-weight: bold;">✓</span> Housing, spouse & asset allocation
                         </li>
                         <li style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="color: #60a5fa; font-weight: bold;">✓</span> 3 to 5 minutes
+                            <span style="color: var(--primary); font-weight: bold;">✓</span> 3 to 5 minutes
                         </li>
                     </ul>
                 </div>
                 <button type="button" class="btn btn-secondary btn-select-guided"
-                    style="width: 100%; padding: 0.75rem 1rem; background: #1e293b; color: #f8fafc; border: 1px solid rgba(255, 255, 255, 0.18); font-weight: 600; font-size: 0.95rem; border-radius: 0.625rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    style="width: 100%; padding: 0.75rem 1rem; background: var(--surface); color: var(--text-main); border: 1px solid var(--border); font-weight: 600; font-size: 0.95rem; border-radius: 0.625rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                     Launch Guided Wizard 🧭
                 </button>
             </div>
@@ -352,34 +352,34 @@ export class SetupPickerModal extends BaseComponent {
     _renderAdvancedCard() {
         return `
             <div class="tier-card advanced-card"
-                style="background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 1rem; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+                style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
-                        <span style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); font-size: 0.72rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 9999px;">
+                        <span style="background: var(--input-bg); color: var(--text-muted); border: 1px solid var(--border); font-size: 0.72rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 9999px;">
                             ⚙️ POWER USER
                         </span>
                         <span style="font-size: 1.5rem;">🎛️</span>
                     </div>
-                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #ffffff; margin: 0 0 0.5rem 0;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin: 0 0 0.5rem 0;">
                         Advanced Studio
                     </h3>
-                    <p style="color: #cbd5e1; font-size: 0.86rem; line-height: 1.45; margin: 0 0 1.25rem 0;">
+                    <p style="color: var(--text-muted); font-size: 0.86rem; line-height: 1.45; margin: 0 0 1.25rem 0;">
                         Direct access to the comprehensive 8-tab parameter deck with custom SEPP 72(t), Medicare IRMAA, and discrete tax cohorts.
                     </p>
-                    <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.82rem; color: #94a3b8;">
+                    <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.82rem; color: var(--text-muted);">
                         <li style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="color: #a78bfa; font-weight: bold;">✓</span> Direct access to all 8 tabs
+                            <span style="color: var(--accent); font-weight: bold;">✓</span> Direct access to all 8 tabs
                         </li>
                         <li style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="color: #a78bfa; font-weight: bold;">✓</span> Discrete accounts & employer match
+                            <span style="color: var(--accent); font-weight: bold;">✓</span> Discrete accounts & employer match
                         </li>
                         <li style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="color: #a78bfa; font-weight: bold;">✓</span> Full actuarial policy levers
+                            <span style="color: var(--accent); font-weight: bold;">✓</span> Full actuarial policy levers
                         </li>
                     </ul>
                 </div>
                 <button type="button" class="btn btn-secondary btn-select-advanced"
-                    style="width: 100%; padding: 0.75rem 1rem; background: #1e293b; color: #f8fafc; border: 1px solid rgba(255, 255, 255, 0.18); font-weight: 600; font-size: 0.95rem; border-radius: 0.625rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    style="width: 100%; padding: 0.75rem 1rem; background: var(--surface); color: var(--text-main); border: 1px solid var(--border); font-weight: 600; font-size: 0.95rem; border-radius: 0.625rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                     Open Advanced Studio ⚙️
                 </button>
             </div>
@@ -392,17 +392,17 @@ export class SetupPickerModal extends BaseComponent {
      */
     _renderFooter() {
         return `
-            <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 1.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+            <div style="border-top: 1px solid var(--border); padding-top: 1.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <span style="color: #94a3b8; font-size: 0.88rem;">Not ready to type numbers?</span>
+                    <span style="color: var(--text-muted); font-size: 0.88rem;">Not ready to type numbers?</span>
                     <button type="button" class="btn btn-secondary btn-load-sample"
-                        style="padding: 0.5rem 1rem; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(148, 163, 184, 0.3); color: #cbd5e1; font-size: 0.85rem; border-radius: 0.5rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600;">
+                        style="padding: 0.5rem 1rem; background: var(--surface); border: 1px solid var(--border); color: var(--text-main); font-size: 0.85rem; border-radius: 0.5rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600;">
                         <span>📊</span> Try a Sample Scenario (Couple 45 & 41, 2 Kids, $180k Income)
                     </button>
                 </div>
                 <div>
                     <button type="button" class="btn-skip-setup"
-                        style="background: transparent; border: none; color: #64748b; font-size: 0.85rem; cursor: pointer; text-decoration: underline;">
+                        style="background: transparent; border: none; color: var(--text-muted); font-size: 0.85rem; cursor: pointer; text-decoration: underline;">
                         Skip setup for now
                     </button>
                 </div>

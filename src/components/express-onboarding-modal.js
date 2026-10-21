@@ -502,9 +502,9 @@ export class ExpressOnboardingModal extends BaseComponent {
 
         return `
             <div id="express-modal-overlay" class="drawer-overlay ${visibilityClass}"
-                style="align-items: center; justify-content: center; z-index: 10000; padding: 1.5rem; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(8px);">
+                style="align-items: center; justify-content: center; z-index: 10000; padding: 1.5rem; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px);">
                 <div class="express-modal-card"
-                    style="width: 860px; max-width: 95vw; max-height: 94vh; overflow-y: auto; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 1.25rem; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85); padding: 2rem;">
+                    style="width: 860px; max-width: 95vw; max-height: 94vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 1.25rem; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35); padding: 2rem;">
                     ${this._renderHeader()}
                     ${this._renderScenarioNameInput()}
                     ${this._renderHeroCard()}
@@ -523,17 +523,17 @@ export class ExpressOnboardingModal extends BaseComponent {
      */
     _renderHeader() {
         return `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
                 <div>
-                    <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 9999px; padding: 0.2rem 0.75rem; font-size: 0.75rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; margin-bottom: 0.5rem;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: var(--surface-hover); border: 1px solid var(--border); border-radius: 9999px; padding: 0.2rem 0.75rem; font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 0.5rem;">
                         <span>⚡</span> Express Mode (60s Quick-Start)
                     </div>
-                    <h2 style="font-size: 1.6rem; font-weight: 700; color: #f8fafc; margin: 0; letter-spacing: -0.02em;">
+                    <h2 style="font-size: 1.6rem; font-weight: 700; color: var(--text-main); margin: 0; letter-spacing: -0.02em;">
                         Your Fast Path to Financial Freedom
                     </h2>
                 </div>
                 <button type="button" class="btn-close-express btn-close" aria-label="Close express setup"
-                    style="background: transparent; border: none; color: #94a3b8; font-size: 1.75rem; cursor: pointer; padding: 0.25rem 0.5rem; line-height: 1; border-radius: 0.375rem;">
+                    style="background: transparent; border: none; color: var(--text-muted); font-size: 1.75rem; cursor: pointer; padding: 0.25rem 0.5rem; line-height: 1; border-radius: 0.375rem;">
                     &times;
                 </button>
             </div>
@@ -547,19 +547,19 @@ export class ExpressOnboardingModal extends BaseComponent {
     _renderScenarioNameInput() {
         return `
             <div class="express-scenario-name-group"
-                style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(129, 140, 248, 0.25); border-radius: 0.75rem; padding: 0.85rem 1.25rem;">
+                style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; background: var(--surface-card); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.85rem 1.25rem;">
                 <div style="flex: 1; min-width: 200px;">
                     <label for="expr-scenario-name"
-                        style="font-size: 0.78rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.2rem;">
+                        style="font-size: 0.78rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.2rem;">
                         Scenario Name
                     </label>
-                    <span style="font-size: 0.82rem; color: #94a3b8;">Active plan scenario name</span>
+                    <span style="font-size: 0.82rem; color: var(--text-muted);">Active plan scenario name</span>
                 </div>
                 <div style="flex: 1; min-width: 240px;">
                     <input type="text" id="expr-scenario-name" class="expr-scenario-name-input"
                         value="${escapeHtml(this._scenarioName || 'My Retirement Plan')}"
                         placeholder="e.g., Baseline Retirement"
-                        style="width: 100%; box-sizing: border-box; padding: 0.55rem 0.75rem; background: #0f172a; border: 1px solid rgba(99, 102, 241, 0.45); border-radius: 0.5rem; color: #f8fafc; font-size: 0.95rem; font-weight: 600;">
+                        style="width: 100%; box-sizing: border-box; padding: 0.55rem 0.75rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.5rem; color: var(--text-main); font-size: 0.95rem; font-weight: 600;">
                 </div>
             </div>
         `;
@@ -579,49 +579,49 @@ export class ExpressOnboardingModal extends BaseComponent {
 
         return `
             <div class="express-hero-card"
-                style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.18) 0%, rgba(139, 92, 246, 0.12) 50%, rgba(30, 41, 59, 0.85) 100%); border: 1px solid rgba(129, 140, 248, 0.4); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.75rem; box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.2);">
+                style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.75rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-                    <div style="font-size: 0.8rem; font-weight: 700; color: #c7d2fe; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.4rem;">
+                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.4rem;">
                         <span>📊</span> Real-Time Projection Preview
                     </div>
-                    <div style="font-size: 0.75rem; color: #94a3b8;">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">
                         Rule of 4% SWR • 7% Nominal Return
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
-                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 0.75rem; padding: 1rem;">
-                        <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">🎯 Projected Freedom</div>
-                        <div id="hero-freedom-age" style="font-size: 1.5rem; font-weight: 800; color: #38bdf8;">${projectedAge}</div>
-                        <div id="hero-freedom-sub" style="font-size: 0.72rem; color: #7dd3fc;">${yearsToFI}</div>
+                    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1rem;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">🎯 Projected Freedom</div>
+                        <div id="hero-freedom-age" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">${projectedAge}</div>
+                        <div id="hero-freedom-sub" style="font-size: 0.72rem; color: var(--text-muted);">${yearsToFI}</div>
                     </div>
 
-                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 0.75rem; padding: 1rem;">
-                        <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">💰 Target Nest Egg</div>
-                        <div id="hero-nest-egg" style="font-size: 1.5rem; font-weight: 800; color: #a78bfa;">${formatDollar(metricsObj.targetNestEgg)}</div>
-                        <div style="font-size: 0.72rem; color: #c4b5fd;">At 4% safe withdrawal</div>
+                    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1rem;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">💰 Target Nest Egg</div>
+                        <div id="hero-nest-egg" style="font-size: 1.5rem; font-weight: 800; color: var(--accent);">${formatDollar(metricsObj.targetNestEgg)}</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted);">At 4% safe withdrawal</div>
                     </div>
 
-                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 0.75rem; padding: 1rem;">
-                        <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">📈 Savings Rate</div>
-                        <div id="hero-savings-rate" style="font-size: 1.5rem; font-weight: 800; color: #34d399;">${metricsObj.savingsRate}%</div>
-                        <div id="hero-savings-sub" style="font-size: 0.72rem; color: #6ee7b7;">${formatDollar(metricsObj.annualSavings)}/yr saved</div>
+                    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1rem;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">📈 Savings Rate</div>
+                        <div id="hero-savings-rate" style="font-size: 1.5rem; font-weight: 800; color: var(--success);">${metricsObj.savingsRate}%</div>
+                        <div id="hero-savings-sub" style="font-size: 0.72rem; color: var(--text-muted);">${formatDollar(metricsObj.annualSavings)}/yr saved</div>
                     </div>
 
-                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 0.75rem; padding: 1rem;">
-                        <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">🛡️ Current Nest Egg</div>
-                        <div id="hero-funded-pct" style="font-size: 1.5rem; font-weight: 800; color: #facc15;">${metricsObj.fundedRatio}% funded</div>
-                        <div style="font-size: 0.72rem; color: #fde047;">${formatDollar(this._formData.portfolio)} invested</div>
+                    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1rem;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">🛡️ Current Nest Egg</div>
+                        <div id="hero-funded-pct" style="font-size: 1.5rem; font-weight: 800; color: var(--warning);">${metricsObj.fundedRatio}% funded</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted);">${formatDollar(this._formData.portfolio)} invested</div>
                     </div>
                 </div>
 
                 <div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.35rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.35rem;">
                         <span>Progress to Financial Independence Target</span>
                         <span>${metricsObj.fundedRatio}%</span>
                     </div>
-                    <div style="width: 100%; height: 8px; background: rgba(15, 23, 42, 0.7); border-radius: 9999px; overflow: hidden;">
-                        <div id="hero-progress-bar" style="width: ${metricsObj.fundedRatio}%; height: 100%; background: linear-gradient(90deg, #6366f1, #38bdf8); transition: width 0.3s ease;"></div>
+                    <div style="width: 100%; height: 8px; background: var(--surface-hover); border-radius: 9999px; overflow: hidden;">
+                        <div id="hero-progress-bar" style="width: ${metricsObj.fundedRatio}%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width 0.3s ease;"></div>
                     </div>
                 </div>
             </div>
@@ -634,56 +634,56 @@ export class ExpressOnboardingModal extends BaseComponent {
      */
     _renderCoreInputs() {
         return `
-            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.25rem;">
-                <div style="font-size: 0.9rem; font-weight: 700; color: #f8fafc; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.4rem;">
+            <div style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.25rem;">
+                <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-main); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.4rem;">
                     <span>🎯</span> The 4 Core Questions
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem;">
                     <div>
-                        <label for="expr-current-age" style="display: block; font-size: 0.82rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.35rem;">
+                        <label for="expr-current-age" style="display: block; font-size: 0.82rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.35rem;">
                             Current Age
                         </label>
                         <input type="number" id="expr-current-age" min="18" max="85" value="${escapeHtml(this._formData.currentAge)}"
-                            style="width: 100%; padding: 0.65rem 0.85rem; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.5rem; color: #fff; font-size: 0.95rem;">
+                            style="width: 100%; padding: 0.65rem 0.85rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.5rem; color: var(--text-main); font-size: 0.95rem;">
                     </div>
 
                     <div>
-                        <label for="expr-retire-age" style="display: block; font-size: 0.82rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.35rem;">
+                        <label for="expr-retire-age" style="display: block; font-size: 0.82rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.35rem;">
                             Target Retirement Age
                         </label>
                         <input type="number" id="expr-retire-age" min="25" max="90" value="${escapeHtml(this._formData.retirementAge)}"
-                            style="width: 100%; padding: 0.65rem 0.85rem; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.5rem; color: #fff; font-size: 0.95rem;">
+                            style="width: 100%; padding: 0.65rem 0.85rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.5rem; color: var(--text-main); font-size: 0.95rem;">
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem;">
                     <div>
-                        <label for="expr-portfolio" style="display: block; font-size: 0.82rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.35rem;">
+                        <label for="expr-portfolio" style="display: block; font-size: 0.82rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.35rem;">
                             Total Invested Portfolio ($)
                         </label>
                         <input type="number" id="expr-portfolio" min="0" step="1000" value="${escapeHtml(this._formData.portfolio)}"
-                            style="width: 100%; padding: 0.65rem 0.85rem; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.5rem; color: #fff; font-size: 0.95rem;">
-                        <span style="font-size: 0.72rem; color: #94a3b8;">Sum of all 401(k), IRA, brokerage & cash</span>
+                            style="width: 100%; padding: 0.65rem 0.85rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.5rem; color: var(--text-main); font-size: 0.95rem;">
+                        <span style="font-size: 0.72rem; color: var(--text-muted);">Sum of all 401(k), IRA, brokerage & cash</span>
                     </div>
 
                     <div>
-                        <label for="expr-income" style="display: block; font-size: 0.82rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.35rem;">
+                        <label for="expr-income" style="display: block; font-size: 0.82rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.35rem;">
                             Annual Net Take-Home Income ($/yr)
                         </label>
                         <input type="number" id="expr-income" min="0" step="1000" value="${escapeHtml(this._formData.income)}"
-                            style="width: 100%; padding: 0.65rem 0.85rem; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.5rem; color: #fff; font-size: 0.95rem;">
-                        <span style="font-size: 0.72rem; color: #94a3b8;">Household take-home income after taxes</span>
+                            style="width: 100%; padding: 0.65rem 0.85rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.5rem; color: var(--text-main); font-size: 0.95rem;">
+                        <span style="font-size: 0.72rem; color: var(--text-muted);">Household take-home income after taxes</span>
                     </div>
                 </div>
 
                 <div>
-                    <label for="expr-expenses" style="display: block; font-size: 0.82rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.35rem;">
+                    <label for="expr-expenses" style="display: block; font-size: 0.82rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.35rem;">
                         Annual Living Expenses ($/yr)
                     </label>
                     <input type="number" id="expr-expenses" min="0" step="1000" value="${escapeHtml(this._formData.expenses)}"
-                        style="width: 100%; padding: 0.65rem 0.85rem; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.5rem; color: #fff; font-size: 0.95rem;">
-                    <span style="font-size: 0.72rem; color: #94a3b8;">Current total annual household spending</span>
+                        style="width: 100%; padding: 0.65rem 0.85rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.5rem; color: var(--text-main); font-size: 0.95rem;">
+                    <span style="font-size: 0.72rem; color: var(--text-muted);">Current total annual household spending</span>
                 </div>
             </div>
         `;
@@ -697,41 +697,41 @@ export class ExpressOnboardingModal extends BaseComponent {
         const arrowChar = this._isAssumptionsOpen ? '▴' : '▾';
 
         return `
-            <div style="background: rgba(30, 41, 59, 0.45); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 0.75rem; margin-bottom: 1rem; overflow: hidden;">
+            <div style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 0.75rem; margin-bottom: 1rem; overflow: hidden;">
                 <button type="button" class="btn-toggle-assumptions"
-                    style="width: 100%; padding: 0.85rem 1.25rem; background: transparent; border: none; color: #cbd5e1; font-weight: 600; font-size: 0.86rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                    style="width: 100%; padding: 0.85rem 1.25rem; background: transparent; border: none; color: var(--text-main); font-weight: 600; font-size: 0.86rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <span style="display: flex; align-items: center; gap: 0.5rem;">
                         <span>📋</span> Smart Assumptions & Defaults Applied
                     </span>
-                    <span style="color: #94a3b8;">${arrowChar}</span>
+                    <span style="color: var(--text-muted);">${arrowChar}</span>
                 </button>
 
                 ${
                     this._isAssumptionsOpen
                         ? `
-                    <div style="padding: 0 1.25rem 1.25rem 1.25rem; font-size: 0.8rem; color: #94a3b8; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem; border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 1rem;">
-                        <div style="background: rgba(15, 23, 42, 0.5); padding: 0.65rem 0.85rem; border-radius: 0.5rem;">
-                            <strong style="color: #cbd5e1; display: block; margin-bottom: 0.15rem;">🏛️ Social Security</strong>
+                    <div style="padding: 0 1.25rem 1.25rem 1.25rem; font-size: 0.8rem; color: var(--text-muted); display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                        <div style="background: var(--surface); padding: 0.65rem 0.85rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 0.15rem;">🏛️ Social Security</strong>
                             ~28% wage replacement (${formatDollar(Math.round((this._formData.income * SOCIAL_SECURITY_BENEFIT_RATIO) / MONTHS_PER_YEAR))}/mo) starting at Age 67.
                         </div>
-                        <div style="background: rgba(15, 23, 42, 0.5); padding: 0.65rem 0.85rem; border-radius: 0.5rem;">
-                            <strong style="color: #cbd5e1; display: block; margin-bottom: 0.15rem;">📈 Compound Returns</strong>
+                        <div style="background: var(--surface); padding: 0.65rem 0.85rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 0.15rem;">📈 Compound Returns</strong>
                             7.0% nominal portfolio growth (4.2% real compound return above inflation).
                         </div>
-                        <div style="background: rgba(15, 23, 42, 0.5); padding: 0.65rem 0.85rem; border-radius: 0.5rem;">
-                            <strong style="color: #cbd5e1; display: block; margin-bottom: 0.15rem;">🏷️ Inflation Benchmark</strong>
+                        <div style="background: var(--surface); padding: 0.65rem 0.85rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 0.15rem;">🏷️ Inflation Benchmark</strong>
                             2.8% per annum historical long-term US CPI.
                         </div>
-                        <div style="background: rgba(15, 23, 42, 0.5); padding: 0.65rem 0.85rem; border-radius: 0.5rem;">
-                            <strong style="color: #cbd5e1; display: block; margin-bottom: 0.15rem;">⏳ Longevity Horizon</strong>
+                        <div style="background: var(--surface); padding: 0.65rem 0.85rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 0.15rem;">⏳ Longevity Horizon</strong>
                             Modeled conservative life expectancy through Age 95.
                         </div>
-                        <div style="background: rgba(15, 23, 42, 0.5); padding: 0.65rem 0.85rem; border-radius: 0.5rem;">
-                            <strong style="color: #cbd5e1; display: block; margin-bottom: 0.15rem;">💼 Bucket Allocation</strong>
+                        <div style="background: var(--surface); padding: 0.65rem 0.85rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 0.15rem;">💼 Bucket Allocation</strong>
                             60% Pre-tax, 25% Roth, 10% Taxable Brokerage, 5% Cash Cushion.
                         </div>
-                        <div style="background: rgba(15, 23, 42, 0.5); padding: 0.65rem 0.85rem; border-radius: 0.5rem;">
-                            <strong style="color: #cbd5e1; display: block; margin-bottom: 0.15rem;">📉 Blanchett Spending Smile</strong>
+                        <div style="background: var(--surface); padding: 0.65rem 0.85rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                            <strong style="color: var(--text-main); display: block; margin-bottom: 0.15rem;">📉 Blanchett Spending Smile</strong>
                             Standard lifestyle smile (100% early, 90% mid, 85% late retirement).
                         </div>
                     </div>
@@ -750,19 +750,19 @@ export class ExpressOnboardingModal extends BaseComponent {
         const arrowChar = this._isDeeperOpen ? '▴' : '▾';
 
         return `
-            <div style="background: rgba(30, 41, 59, 0.45); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 0.75rem; margin-bottom: 1.5rem; overflow: hidden;">
+            <div style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 0.75rem; margin-bottom: 1.5rem; overflow: hidden;">
                 <button type="button" class="btn-toggle-deeper"
-                    style="width: 100%; padding: 0.85rem 1.25rem; background: transparent; border: none; color: #cbd5e1; font-weight: 600; font-size: 0.86rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                    style="width: 100%; padding: 0.85rem 1.25rem; background: transparent; border: none; color: var(--text-main); font-weight: 600; font-size: 0.86rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                     <span style="display: flex; align-items: center; gap: 0.5rem;">
                         <span>➕</span> A Little Deeper: Household & Housing (Optional)
                     </span>
-                    <span style="color: #94a3b8;">${arrowChar}</span>
+                    <span style="color: var(--text-muted);">${arrowChar}</span>
                 </button>
 
                 ${
                     this._isDeeperOpen
                         ? `
-                    <div style="padding: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.06); display: flex; flex-direction: column; gap: 1.25rem;">
+                    <div style="padding: 1.25rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 1.25rem;">
                         ${this._renderHouseholdOptions()}
                         ${this._renderHousingOptions()}
                         ${this._renderAssetBuckets()}
@@ -783,15 +783,15 @@ export class ExpressOnboardingModal extends BaseComponent {
 
         return `
             <div>
-                <label style="display: block; font-size: 0.82rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.5rem;">
+                <label style="display: block; font-size: 0.82rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem;">
                     Household Structure
                 </label>
                 <div style="display: flex; gap: 1rem;">
-                    <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #e2e8f0; cursor: pointer;">
+                    <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-main); cursor: pointer;">
                         <input type="radio" name="expr-filing" value="${FILING_SINGLE}" ${isSingle ? 'checked' : ''}>
                         Single Filer
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #e2e8f0; cursor: pointer;">
+                    <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-main); cursor: pointer;">
                         <input type="radio" name="expr-filing" value="${FILING_MARRIED}" ${!isSingle ? 'checked' : ''}>
                         Married / Couple Filing Jointly
                     </label>
@@ -809,15 +809,15 @@ export class ExpressOnboardingModal extends BaseComponent {
 
         return `
             <div>
-                <label style="display: block; font-size: 0.82rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.5rem;">
+                <label style="display: block; font-size: 0.82rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem;">
                     Housing Situation
                 </label>
                 <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem;">
-                    <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #e2e8f0; cursor: pointer;">
+                    <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-main); cursor: pointer;">
                         <input type="radio" name="expr-housing" value="${HOUSING_RENT}" ${isRent ? 'checked' : ''}>
                         Renting
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #e2e8f0; cursor: pointer;">
+                    <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-main); cursor: pointer;">
                         <input type="radio" name="expr-housing" value="${HOUSING_OWN}" ${!isRent ? 'checked' : ''}>
                         Homeowner
                     </label>
@@ -827,22 +827,22 @@ export class ExpressOnboardingModal extends BaseComponent {
                     isRent
                         ? `
                     <div style="max-width: 280px;">
-                        <label for="expr-rent" style="display: block; font-size: 0.78rem; color: #94a3b8; margin-bottom: 0.25rem;">Monthly Rent ($/mo)</label>
+                        <label for="expr-rent" style="display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.25rem;">Monthly Rent ($/mo)</label>
                         <input type="number" id="expr-rent" value="${escapeHtml(this._formData.monthlyRent)}"
-                            style="width: 100%; padding: 0.5rem; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.375rem; color: #fff; font-size: 0.85rem;">
+                            style="width: 100%; padding: 0.5rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.375rem; color: var(--text-main); font-size: 0.85rem;">
                     </div>
                 `
                         : `
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                         <div>
-                            <label for="expr-home-value" style="display: block; font-size: 0.78rem; color: #94a3b8; margin-bottom: 0.25rem;">Home Market Value ($)</label>
+                            <label for="expr-home-value" style="display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.25rem;">Home Market Value ($)</label>
                             <input type="number" id="expr-home-value" value="${escapeHtml(this._formData.homeValue)}"
-                                style="width: 100%; padding: 0.5rem; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.375rem; color: #fff; font-size: 0.85rem;">
+                                style="width: 100%; padding: 0.5rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.375rem; color: var(--text-main); font-size: 0.85rem;">
                         </div>
                         <div>
-                            <label for="expr-mortgage-bal" style="display: block; font-size: 0.78rem; color: #94a3b8; margin-bottom: 0.25rem;">Remaining Mortgage Balance ($)</label>
+                            <label for="expr-mortgage-bal" style="display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.25rem;">Remaining Mortgage Balance ($)</label>
                             <input type="number" id="expr-mortgage-bal" value="${escapeHtml(this._formData.mortgageBalance)}"
-                                style="width: 100%; padding: 0.5rem; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.375rem; color: #fff; font-size: 0.85rem;">
+                                style="width: 100%; padding: 0.5rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.375rem; color: var(--text-main); font-size: 0.85rem;">
                         </div>
                     </div>
                 `
@@ -861,36 +861,36 @@ export class ExpressOnboardingModal extends BaseComponent {
 
         return `
             <div>
-                <label style="display: block; font-size: 0.82rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.5rem;">
+                <label style="display: block; font-size: 0.82rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem;">
                     Quick Asset Split (% of Total Portfolio)
                 </label>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem;">
-                    <div style="background: rgba(15, 23, 42, 0.6); padding: 0.65rem; border-radius: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.08);">
-                        <div style="font-size: 0.75rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.25rem;">Pre-Tax 401(k)/IRA</div>
+                    <div style="background: var(--surface); padding: 0.65rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                        <div style="font-size: 0.75rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.25rem;">Pre-Tax 401(k)/IRA</div>
                         <input type="number" id="expr-bucket-pretax" min="0" max="100" value="${escapeHtml(bucketsObj.preTaxPct)}"
-                            style="width: 70px; padding: 0.3rem 0.5rem; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.25rem; color: #fff; font-size: 0.82rem;"> %
-                        <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.25rem;">${formatDollar(totalPort * (bucketsObj.preTaxPct / PERCENT_SCALE))}</div>
+                            style="width: 70px; padding: 0.3rem 0.5rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.25rem; color: var(--text-main); font-size: 0.82rem;"> %
+                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">${formatDollar(totalPort * (bucketsObj.preTaxPct / PERCENT_SCALE))}</div>
                     </div>
 
-                    <div style="background: rgba(15, 23, 42, 0.6); padding: 0.65rem; border-radius: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.08);">
-                        <div style="font-size: 0.75rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.25rem;">Roth IRA / 401(k)</div>
+                    <div style="background: var(--surface); padding: 0.65rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                        <div style="font-size: 0.75rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.25rem;">Roth IRA / 401(k)</div>
                         <input type="number" id="expr-bucket-roth" min="0" max="100" value="${escapeHtml(bucketsObj.rothPct)}"
-                            style="width: 70px; padding: 0.3rem 0.5rem; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.25rem; color: #fff; font-size: 0.82rem;"> %
-                        <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.25rem;">${formatDollar(totalPort * (bucketsObj.rothPct / PERCENT_SCALE))}</div>
+                            style="width: 70px; padding: 0.3rem 0.5rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.25rem; color: var(--text-main); font-size: 0.82rem;"> %
+                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">${formatDollar(totalPort * (bucketsObj.rothPct / PERCENT_SCALE))}</div>
                     </div>
 
-                    <div style="background: rgba(15, 23, 42, 0.6); padding: 0.65rem; border-radius: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.08);">
-                        <div style="font-size: 0.75rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.25rem;">Taxable Brokerage</div>
+                    <div style="background: var(--surface); padding: 0.65rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                        <div style="font-size: 0.75rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.25rem;">Taxable Brokerage</div>
                         <input type="number" id="expr-bucket-taxable" min="0" max="100" value="${escapeHtml(bucketsObj.taxablePct)}"
-                            style="width: 70px; padding: 0.3rem 0.5rem; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.25rem; color: #fff; font-size: 0.82rem;"> %
-                        <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.25rem;">${formatDollar(totalPort * (bucketsObj.taxablePct / PERCENT_SCALE))}</div>
+                            style="width: 70px; padding: 0.3rem 0.5rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.25rem; color: var(--text-main); font-size: 0.82rem;"> %
+                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">${formatDollar(totalPort * (bucketsObj.taxablePct / PERCENT_SCALE))}</div>
                     </div>
 
-                    <div style="background: rgba(15, 23, 42, 0.6); padding: 0.65rem; border-radius: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.08);">
-                        <div style="font-size: 0.75rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.25rem;">Cash & Emergency</div>
+                    <div style="background: var(--surface); padding: 0.65rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                        <div style="font-size: 0.75rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.25rem;">Cash & Emergency</div>
                         <input type="number" id="expr-bucket-cash" min="0" max="100" value="${escapeHtml(bucketsObj.cashPct)}"
-                            style="width: 70px; padding: 0.3rem 0.5rem; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.25rem; color: #fff; font-size: 0.82rem;"> %
-                        <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.25rem;">${formatDollar(totalPort * (bucketsObj.cashPct / PERCENT_SCALE))}</div>
+                            style="width: 70px; padding: 0.3rem 0.5rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.25rem; color: var(--text-main); font-size: 0.82rem;"> %
+                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">${formatDollar(totalPort * (bucketsObj.cashPct / PERCENT_SCALE))}</div>
                     </div>
                 </div>
             </div>
@@ -903,20 +903,20 @@ export class ExpressOnboardingModal extends BaseComponent {
      */
     _renderFooterActions() {
         return `
-            <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 1.25rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+            <div style="border-top: 1px solid var(--border); padding-top: 1.25rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
                 <button type="button" class="btn btn-secondary btn-skip-express"
-                    style="padding: 0.6rem 1rem; background: transparent; border: 1px solid rgba(255, 255, 255, 0.15); color: #94a3b8; border-radius: 0.5rem; cursor: pointer; font-size: 0.88rem;">
+                    style="padding: 0.6rem 1rem; background: transparent; border: 1px solid var(--border); color: var(--text-muted); border-radius: 0.5rem; cursor: pointer; font-size: 0.88rem;">
                     Close / Skip
                 </button>
 
                 <div style="display: flex; gap: 0.75rem;">
                     <button type="button" class="btn btn-secondary btn-calc-express"
-                        style="padding: 0.65rem 1.15rem; background: #1e293b; border: 1px solid rgba(99, 102, 241, 0.4); color: #c7d2fe; font-weight: 600; border-radius: 0.5rem; cursor: pointer; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                        style="padding: 0.65rem 1.15rem; background: var(--surface); border: 1px solid var(--border); color: var(--text-main); font-weight: 600; border-radius: 0.5rem; cursor: pointer; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 0.35rem;">
                         <span>⚡</span> Calculate My Numbers
                     </button>
 
                     <button type="button" class="btn btn-primary btn-finish-express"
-                        style="padding: 0.65rem 1.4rem; background: #6366f1; color: #ffffff; font-weight: 700; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);">
+                        style="padding: 0.65rem 1.4rem; background: var(--primary); color: var(--primary-text); font-weight: 700; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
                         Launch Full Dashboard →
                     </button>
                 </div>

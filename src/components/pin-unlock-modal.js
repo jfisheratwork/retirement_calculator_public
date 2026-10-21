@@ -43,11 +43,11 @@ export class PinUnlockModal extends BaseComponent {
 
     getTemplate() {
         return `
-            <div id="pin-unlock-overlay" class="drawer-overlay ${this._isOpen ? '' : 'hidden'}" style="align-items: center; justify-content: center; z-index: 20000; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);">
-                <div class="glass-panel" style="padding: 2.5rem; border-radius: 1.25rem; width: 440px; max-width: 90vw; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9); text-align: center;">
+            <div id="pin-unlock-overlay" class="drawer-overlay ${this._isOpen ? '' : 'hidden'}" style="align-items: center; justify-content: center; z-index: 20000; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px);">
+                <div class="glass-panel" style="padding: 2.5rem; border-radius: 1.25rem; width: 440px; max-width: 90vw; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35); text-align: center;">
                     <div style="font-size: 3rem; margin-bottom: 0.75rem;">🔒</div>
-                    <h2 style="margin: 0 0 0.5rem; font-size: 1.5rem; color: #fff;">Unlock Financial Data</h2>
-                    <p style="margin: 0 0 1.5rem; color: #94a3b8; font-size: 0.9rem; line-height: 1.45;">
+                    <h2 style="margin: 0 0 0.5rem; font-size: 1.5rem; color: var(--text-main);">Unlock Financial Data</h2>
+                    <p style="margin: 0 0 1.5rem; color: var(--text-muted); font-size: 0.9rem; line-height: 1.45;">
                         Your financial scenarios are protected with <strong>AES-256-GCM encryption</strong>. Enter your PIN to decrypt and load your data into memory.
                     </p>
 
@@ -66,17 +66,17 @@ export class PinUnlockModal extends BaseComponent {
                         <div>
                             <input type="password" id="input-unlock-pin" maxlength="12" placeholder="Enter your PIN"
                                 autocomplete="current-password" ${this._isSubmitting ? 'disabled' : ''}
-                                style="width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: #1e293b; color: #fff; font-size: 1.25rem; text-align: center; letter-spacing: 0.25rem;">
+                                style="width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 1.25rem; text-align: center; letter-spacing: 0.25rem;">
                         </div>
 
                         <button type="submit" class="btn btn-primary btn-submit-unlock" ${this._isSubmitting ? 'disabled' : ''}
-                            style="padding: 0.75rem; border-radius: 8px; background: #eab308; color: #000; font-weight: 700; font-size: 1rem; border: none; cursor: ${this._isSubmitting ? 'not-allowed' : 'pointer'}; transition: all 0.2s ease;">
+                            style="padding: 0.75rem; border-radius: 8px; background: var(--primary); color: var(--primary-text); font-weight: 700; font-size: 1rem; border: none; cursor: ${this._isSubmitting ? 'not-allowed' : 'pointer'}; transition: all 0.2s ease;">
                             ${this._isSubmitting ? `<span class="pin-spinner"></span> Decrypting...` : '🔓 Unlock Plan'}
                         </button>
                     </form>
 
-                    <div style="margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">
-                        <button type="button" class="btn-forgot-pin" ${this._isSubmitting ? 'disabled' : ''} style="background: none; border: none; color: #64748b; font-size: 0.8rem; cursor: pointer; text-decoration: underline;">
+                    <div style="margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--border);">
+                        <button type="button" class="btn-forgot-pin" ${this._isSubmitting ? 'disabled' : ''} style="background: none; border: none; color: var(--text-muted); font-size: 0.8rem; cursor: pointer; text-decoration: underline;">
                             Forgot PIN? Reset Local Data
                         </button>
                     </div>

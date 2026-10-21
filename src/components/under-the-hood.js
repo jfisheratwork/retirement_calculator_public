@@ -24,8 +24,8 @@ class UnderTheHood extends BaseComponent {
     _renderTopicCard(topicConfig) {
         const { icon, title, badgeText, badgeBg, badgeColor, bodyHtml } = topicConfig;
         return `
-            <details class="hood-topic" style="background: var(--bg-darker); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
-                <summary style="padding: 0.85rem 1rem; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; list-style: none; user-select: none; background: rgba(30, 41, 59, 0.5);">
+            <details class="hood-topic" style="background: var(--surface-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
+                <summary style="padding: 0.85rem 1rem; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; list-style: none; user-select: none; background: var(--surface);">
                     <span style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
                         <span>${icon}</span>
                         <span>${title}</span>
@@ -203,7 +203,7 @@ class UnderTheHood extends BaseComponent {
 
         return `
             <div class="hood-container" style="display: flex; flex-direction: column; gap: 1rem;">
-                <div class="hood-header-controls" style="background: rgba(15, 23, 42, 0.6); padding: 0.85rem; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.75rem;">
+                <div class="hood-header-controls" style="background: var(--surface-card); padding: 0.85rem; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.75rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                         <div style="font-size: 0.85rem; color: var(--text-muted);">
                             Interactive reference guide detailing all math, tax rules, and withdrawal hierarchies.
@@ -215,7 +215,7 @@ class UnderTheHood extends BaseComponent {
                     </div>
                     <div style="position: relative;">
                         <input type="text" class="hood-search-input" placeholder="🔍 Search calculations (e.g. 72(t), Roth 5-Year, Sweep, Taxes, SORR)..." 
-                               style="width: 100%; padding: 0.45rem 0.75rem; font-size: 0.85rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-darker); color: var(--text-color); box-sizing: border-box;">
+                               style="width: 100%; padding: 0.45rem 0.75rem; font-size: 0.85rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); box-sizing: border-box;">
                     </div>
                 </div>
 

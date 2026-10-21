@@ -122,14 +122,14 @@ export class PinLockModal extends BaseComponent {
         const isConfigured = isStoragePinConfigured();
 
         return `
-            <div id="pin-lock-modal" class="drawer-overlay ${this._isOpen ? '' : 'hidden'}" style="align-items: center; justify-content: center; z-index: 10000;">
-                <div class="glass-panel" style="padding: 2rem; border-radius: 1rem; width: 480px; max-width: 92vw; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);">
+            <div id="pin-lock-modal" class="drawer-overlay ${this._isOpen ? '' : 'hidden'}" style="align-items: center; justify-content: center; z-index: 10000; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px);">
+                <div class="glass-panel" style="padding: 2rem; border-radius: 1rem; width: 480px; max-width: 92vw; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <span style="font-size: 1.5rem;">${isConfigured ? '🛡️' : '🔒'}</span>
-                            <h2 style="margin: 0; font-size: 1.25rem; color: #fff;">${isConfigured ? 'PIN Security Management' : 'Lock Data with PIN'}</h2>
+                            <h2 style="margin: 0; font-size: 1.25rem; color: var(--text-main);">${isConfigured ? 'PIN Security Management' : 'Lock Data with PIN'}</h2>
                         </div>
-                        <button type="button" class="btn-close-lock btn-close" aria-label="Close dialog" style="font-size: 1.5rem; background: none; border: none; color: #94a3b8; cursor: pointer; line-height: 1;">&times;</button>
+                        <button type="button" class="btn-close-lock btn-close" aria-label="Close dialog" style="font-size: 1.5rem; background: none; border: none; color: var(--text-muted); cursor: pointer; line-height: 1;">&times;</button>
                     </div>
 
                     ${
@@ -163,33 +163,33 @@ export class PinLockModal extends BaseComponent {
             <form id="pin-setup-form" style="display: flex; flex-direction: column; gap: 1rem;">
                 <input type="text" name="username" value="local-user" autocomplete="username" style="display:none;" aria-hidden="true">
                 <!-- Strong Security Warning Box -->
-                <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 8px; padding: 0.85rem; color: #fef08a; font-size: 0.82rem; line-height: 1.45;">
-                    <div style="font-weight: 700; color: #fde047; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.35rem;">
+                <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem; color: var(--text-main); font-size: 0.82rem; line-height: 1.45;">
+                    <div style="font-weight: 700; color: var(--warning); margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.35rem;">
                         <span>⚠️</span> <span>CRITICAL SECURITY WARNING: Cryptographic PIN Lock</span>
                     </div>
                     <p style="margin: 0 0 0.45rem;">
                         Enabling PIN Lock encrypts all saved profiles in local storage using <strong>AES-GCM 256-bit encryption</strong> derived from your secret PIN via PBKDF2 (100,000 iterations).
                     </p>
-                    <p style="margin: 0 0 0.45rem; color: #fff; font-weight: 600;">
+                    <p style="margin: 0 0 0.45rem; color: var(--text-main); font-weight: 600;">
                         From now on, every time you load this page you will need to unlock the content first with this PIN to get your financial plans back into local memory.
                     </p>
-                    <p style="margin: 0; color: #f87171; font-weight: 700;">
+                    <p style="margin: 0; color: var(--danger); font-weight: 700;">
                         If you lose or forget this PIN, your local data CANNOT be recovered by anyone.
                     </p>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                     <div>
-                        <label for="input-new-pin" style="display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 0.25rem;">Enter PIN (4–12 characters):</label>
+                        <label for="input-new-pin" style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.25rem;">Enter PIN (4–12 characters):</label>
                         <input type="password" id="input-new-pin" maxlength="12" placeholder="e.g. 1234 or a strong passphrase"
                             autocomplete="new-password" ${this._isSubmitting ? 'disabled' : ''}
-                            style="width: 100%; box-sizing: border-box; padding: 0.55rem; border-radius: 6px; border: 1px solid var(--border); background: #1e293b; color: #fff; font-size: 0.95rem;">
+                            style="width: 100%; box-sizing: border-box; padding: 0.55rem; border-radius: 6px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 0.95rem;">
                     </div>
                     <div>
-                        <label for="input-confirm-pin" style="display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 0.25rem;">Confirm PIN:</label>
+                        <label for="input-confirm-pin" style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.25rem;">Confirm PIN:</label>
                         <input type="password" id="input-confirm-pin" maxlength="12" placeholder="Re-enter your PIN"
                             autocomplete="new-password" ${this._isSubmitting ? 'disabled' : ''}
-                            style="width: 100%; box-sizing: border-box; padding: 0.55rem; border-radius: 6px; border: 1px solid var(--border); background: #1e293b; color: #fff; font-size: 0.95rem;">
+                            style="width: 100%; box-sizing: border-box; padding: 0.55rem; border-radius: 6px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 0.95rem;">
                     </div>
                 </div>
 
@@ -237,15 +237,15 @@ export class PinLockModal extends BaseComponent {
 
     _renderChangePinSubform() {
         return `
-            <form id="pin-change-form" style="background: #1e293b; padding: 1rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column; gap: 0.5rem;">
+            <form id="pin-change-form" style="background: var(--surface-card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.5rem;">
                 <input type="text" name="username" value="local-user" autocomplete="username" style="display:none;" aria-hidden="true">
-                <h4 style="margin: 0 0 0.25rem; color: #fff; font-size: 0.95rem;">Change PIN</h4>
+                <h4 style="margin: 0 0 0.25rem; color: var(--text-main); font-size: 0.95rem;">Change PIN</h4>
                 <input type="password" id="input-curr-pin" placeholder="Current PIN" required autocomplete="current-password"
-                    style="padding: 0.45rem; border-radius: 4px; border: 1px solid var(--border); background: #0f172a; color: #fff;">
+                    style="padding: 0.45rem; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main);">
                 <input type="password" id="input-new-pin-change" placeholder="New PIN (min 4 chars)" required maxlength="12" autocomplete="new-password"
-                    style="padding: 0.45rem; border-radius: 4px; border: 1px solid var(--border); background: #0f172a; color: #fff;">
+                    style="padding: 0.45rem; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main);">
                 <input type="password" id="input-new-pin-confirm" placeholder="Confirm New PIN" required maxlength="12" autocomplete="new-password"
-                    style="padding: 0.45rem; border-radius: 4px; border: 1px solid var(--border); background: #0f172a; color: #fff;">
+                    style="padding: 0.45rem; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main);">
                 <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
                     <button type="button" class="btn btn-secondary btn-cancel-sub" style="padding: 0.4rem 0.8rem;">Cancel</button>
                     <button type="submit" class="btn btn-primary btn-submit-change" ${this._isSubmitting ? 'disabled' : ''} style="padding: 0.4rem 0.8rem; cursor: pointer;">
@@ -258,16 +258,16 @@ export class PinLockModal extends BaseComponent {
 
     _renderRemovePinSubform() {
         return `
-            <form id="pin-remove-form" style="background: #1e293b; padding: 1rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column; gap: 0.5rem;">
+            <form id="pin-remove-form" style="background: var(--surface-card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.5rem;">
                 <input type="text" name="username" value="local-user" autocomplete="username" style="display:none;" aria-hidden="true">
-                <h4 style="margin: 0 0 0.25rem; color: #fca5a5; font-size: 0.95rem;">Remove PIN Lock</h4>
-                <p style="font-size: 0.8rem; color: #cbd5e1; margin: 0 0 0.25rem;">Enter your current PIN to decrypt and return storage to baseline split-key obfuscation.</p>
+                <h4 style="margin: 0 0 0.25rem; color: var(--danger); font-size: 0.95rem;">Remove PIN Lock</h4>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0 0 0.25rem;">Enter your current PIN to decrypt and return storage to baseline split-key obfuscation.</p>
                 <input type="password" id="input-remove-curr-pin" placeholder="Current PIN" required autocomplete="current-password"
-                    style="padding: 0.45rem; border-radius: 4px; border: 1px solid var(--border); background: #0f172a; color: #fff;">
+                    style="padding: 0.45rem; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main);">
                 <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
                     <button type="button" class="btn btn-secondary btn-cancel-sub" style="padding: 0.4rem 0.8rem;">Cancel</button>
                     <button type="submit" class="btn btn-primary btn-submit-remove" ${this._isSubmitting ? 'disabled' : ''}
-                        style="padding: 0.4rem 0.8rem; background: #ef4444; color: #fff; border: none; cursor: pointer;">
+                        style="padding: 0.4rem 0.8rem; background: var(--danger); color: #fff; border: none; cursor: pointer;">
                         ${this._isSubmitting ? `<span class="pin-spinner pin-spinner-light"></span> Removing...` : 'Remove PIN Protection'}
                     </button>
                 </div>

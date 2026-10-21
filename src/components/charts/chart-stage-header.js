@@ -78,14 +78,15 @@ function hasAnyPositiveValue(dataArr) {
 
 function buildPillHtml(dsInfo) {
     const activeClass = dsInfo.visible ? 'active' : 'muted';
-    const borderStyle = dsInfo.visible ? `border-color: ${dsInfo.color};` : 'border-color: rgba(148, 163, 184, 0.28);';
-    const dotColor = dsInfo.visible ? dsInfo.color : '#64748b';
+    const borderStyle = dsInfo.visible ? `border-color: ${dsInfo.color};` : 'border-color: var(--border);';
+    const dotColor = dsInfo.visible ? dsInfo.color : 'var(--text-muted)';
     return `
         <button
             type="button"
             class="opt1c-sub-pill ${activeClass}"
             data-ds-index="${dsInfo.index}"
-            style="${borderStyle}"
+            data-full-label="${escapeHtml(dsInfo.fullLabel)}"
+            style="${borderStyle} --pill-color: ${dsInfo.color};"
             title="Click to toggle ${escapeHtml(dsInfo.fullLabel)} on chart"
         >
             <span class="opt1c-dot" style="background: ${dotColor}"></span>

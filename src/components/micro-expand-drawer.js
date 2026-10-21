@@ -168,7 +168,7 @@ export class MicroExpandDrawer extends BaseComponent {
 
     _renderDrawerCard(count) {
         return `
-            <div class="micro-drawer-popover glass-panel" style="position: absolute; top: calc(100% + 8px); left: 0; z-index: 1000; width: 340px; max-width: 90vw; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 0.75rem; padding: 1.25rem; box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55); backdrop-filter: blur(12px);">
+            <div class="micro-drawer-popover glass-panel" style="position: absolute; top: calc(100% + 8px); left: 0; z-index: 1000; width: 340px; max-width: 90vw; background: var(--popover-bg); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem; box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25); backdrop-filter: blur(12px);">
                 ${this._isConsolidatePromptOpen ? this._renderConsolidationPrompt() : this._renderDrawerContent(count)}
             </div>
         `;
@@ -179,11 +179,11 @@ export class MicroExpandDrawer extends BaseComponent {
         return `
             <div class="drawer-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.85rem;">
                 <div>
-                    <h5 style="margin: 0; font-size: 0.95rem; color: #93c5fd; font-weight: 600;">
+                    <h5 style="margin: 0; font-size: 0.95rem; color: var(--primary); font-weight: 600;">
                         ${escapeHtml(this._getEffectiveTitle())}
                     </h5>
                     <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">
-                        Total: <strong style="color: #34d399;">${formatUsd(sum)}</strong> (${count} items)
+                        Total: <strong style="color: var(--success);">${formatUsd(sum)}</strong> (${count} items)
                     </div>
                 </div>
                 <button type="button" class="btn-close-micro" style="background: transparent; border: none; font-size: 1.2rem; color: var(--text-muted); cursor: pointer; padding: 0 0.25rem;">&times;</button>
@@ -196,7 +196,7 @@ export class MicroExpandDrawer extends BaseComponent {
             ${this._renderAddItemForm()}
 
             <div class="drawer-footer-actions" style="margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                <button type="button" class="btn-trigger-consolidate" style="background: none; border: none; font-size: 0.75rem; color: #fbbf24; cursor: pointer; text-decoration: underline; padding: 0;">
+                <button type="button" class="btn-trigger-consolidate" style="background: none; border: none; font-size: 0.75rem; color: var(--warning); cursor: pointer; text-decoration: underline; padding: 0;">
                     ⚡ Consolidate into single summary
                 </button>
                 <button type="button" class="btn-done-micro btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 999px;">
@@ -218,7 +218,7 @@ export class MicroExpandDrawer extends BaseComponent {
         return this._items
             .map(
                 (item, idx) => `
-            <div class="child-item-row" data-item-id="${escapeHtml(String(item.id || idx))}" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: rgba(255, 255, 255, 0.03); padding: 0.4rem 0.6rem; border-radius: 0.4rem; border: 1px solid rgba(255, 255, 255, 0.06);">
+            <div class="child-item-row" data-item-id="${escapeHtml(String(item.id || idx))}" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: var(--surface); padding: 0.4rem 0.6rem; border-radius: 0.4rem; border: 1px solid var(--border);">
                 <div style="flex: 1; min-width: 0;">
                     <div style="font-size: 0.82rem; font-weight: 500; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         ${escapeHtml(item.name || `Item ${idx + 1}`)}
@@ -227,8 +227,8 @@ export class MicroExpandDrawer extends BaseComponent {
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                     <span style="font-size: 0.75rem; color: var(--text-muted);">$</span>
-                    <input type="number" class="input-item-val" data-item-id="${escapeHtml(String(item.id || idx))}" value="${item.value || ZERO}" style="width: 85px; font-size: 0.8rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border); border-radius: 4px; padding: 0.2rem 0.4rem; color: #fff; text-align: right;" />
-                    <button type="button" class="btn-remove-item" data-item-id="${escapeHtml(String(item.id || idx))}" title="Remove item" style="background: none; border: none; color: #fca5a5; font-size: 0.85rem; cursor: pointer; padding: 0 0.2rem;">&times;</button>
+                    <input type="number" class="input-item-val" data-item-id="${escapeHtml(String(item.id || idx))}" value="${item.value || ZERO}" style="width: 85px; font-size: 0.8rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.2rem 0.4rem; color: var(--text-main); text-align: right;" />
+                    <button type="button" class="btn-remove-item" data-item-id="${escapeHtml(String(item.id || idx))}" title="Remove item" style="background: none; border: none; color: var(--danger); font-size: 0.85rem; cursor: pointer; padding: 0 0.2rem;">&times;</button>
                 </div>
             </div>
         `
@@ -238,11 +238,11 @@ export class MicroExpandDrawer extends BaseComponent {
 
     _renderAddItemForm() {
         return `
-            <div class="add-item-box" style="background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: 0.4rem; padding: 0.5rem;">
+            <div class="add-item-box" style="background: var(--surface-card); border: 1px dashed var(--border); border-radius: 0.4rem; padding: 0.5rem;">
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.35rem;">+ Add New ${escapeHtml(this._entityName)}</div>
                 <div style="display: flex; gap: 0.4rem;">
-                    <input type="text" id="input-new-item-name" placeholder="Title/Name" style="flex: 1; font-size: 0.78rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 4px; padding: 0.25rem 0.4rem; color: #fff;" />
-                    <input type="number" id="input-new-item-val" placeholder="$ Amount" style="width: 80px; font-size: 0.78rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 4px; padding: 0.25rem 0.4rem; color: #fff; text-align: right;" />
+                    <input type="text" id="input-new-item-name" placeholder="Title/Name" style="flex: 1; font-size: 0.78rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.25rem 0.4rem; color: var(--text-main);" />
+                    <input type="number" id="input-new-item-val" placeholder="$ Amount" style="width: 80px; font-size: 0.78rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.25rem 0.4rem; color: var(--text-main); text-align: right;" />
                     <button type="button" id="btn-add-child-item" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 4px;">Add</button>
                 </div>
             </div>
@@ -255,7 +255,7 @@ export class MicroExpandDrawer extends BaseComponent {
 
         return `
             <div class="consolidation-alert" style="display: flex; flex-direction: column; gap: 0.75rem;">
-                <div style="display: flex; align-items: center; gap: 0.4rem; color: #fbbf24;">
+                <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--warning);">
                     <span style="font-size: 1.1rem;">⚠️</span>
                     <strong style="font-size: 0.88rem;">Consolidate ${count} ${escapeHtml(this._entityName)}?</strong>
                 </div>
@@ -263,7 +263,7 @@ export class MicroExpandDrawer extends BaseComponent {
                     This will consolidate your <strong>${count} individual ${escapeHtml(this._entityName)}</strong> into a single summary amount of <strong>${valFormatted}</strong>.
                 </p>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
-                    <button type="button" id="btn-confirm-consolidate" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.4rem; background: #3b82f6; text-align: center;">
+                    <button type="button" id="btn-confirm-consolidate" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.4rem; background: var(--primary); color: var(--primary-text); text-align: center;">
                         Proceed with Consolidation
                     </button>
                     <button type="button" id="btn-cancel-consolidate" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.4rem; text-align: center;">

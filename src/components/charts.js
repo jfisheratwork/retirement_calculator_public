@@ -119,11 +119,17 @@ function refreshOption1CHeaderPills(effectiveTheme) {
     if (!opt1cHeader) return;
     const pills = opt1cHeader.querySelectorAll('.opt1c-sub-pill');
     pills.forEach((p) => {
-        const nameEl = p.querySelector('.opt1c-pill-name');
-        if (nameEl) {
-            const label = nameEl.textContent.trim();
-            const color = resolveThemeDatasetColor(label, '#3b82f6', effectiveTheme);
-            p.style.setProperty('--pill-color', color);
+        const fullLabel =
+            p.getAttribute('data-full-label') || p.querySelector('.opt1c-pill-name')?.textContent?.trim() || '';
+        const color = resolveThemeDatasetColor(fullLabel, '#3b82f6', effectiveTheme);
+        p.style.setProperty('--pill-color', color);
+        const dot = p.querySelector('.opt1c-dot');
+        if (p.classList.contains('active')) {
+            p.style.borderColor = color;
+            if (dot) dot.style.backgroundColor = color;
+        } else {
+            p.style.borderColor = 'var(--border)';
+            if (dot) dot.style.backgroundColor = 'var(--text-muted)';
         }
     });
 }
