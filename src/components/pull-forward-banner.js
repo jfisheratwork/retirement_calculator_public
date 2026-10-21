@@ -177,9 +177,9 @@ function renderBridgeOptionCard(opt) {
     const disabledAttr = opt.feasibility === 'ineligible' ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : '';
 
     return `
-        <div class="pull-forward-option-card" style="padding: 0.65rem; margin-bottom: 0.5rem; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 0.4rem;">
+        <div class="pull-forward-option-card" style="padding: 0.65rem; margin-bottom: 0.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 0.4rem;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.25rem;">
-                <strong style="font-size: 0.82rem; color: #fff;">${escapeHtml(opt.title)}</strong>
+                <strong style="font-size: 0.82rem; color: var(--text-main);">${escapeHtml(opt.title)}</strong>
                 <span style="font-size: 0.7rem; font-weight: 700; color: ${badgeColor}; white-space: nowrap;">${badgeLabel}</span>
             </div>
             <div style="font-size: 0.72rem; color: #93c5fd; margin-bottom: 0.3rem;">${escapeHtml(opt.statutoryReference)} • Tax/Penalty Saved: ~${formatCompactCurrency(opt.estimatedTaxPenaltySavings)}</div>
@@ -198,7 +198,7 @@ export function renderPathwayABody(report) {
 
     if (lockout?.hasLockoutGap) {
         return `
-            <div style="padding: 0.5rem; margin-bottom: 0.6rem; background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.35); border-radius: 0.35rem; font-size: 0.78rem; color: #fca5a5;">
+            <div style="padding: 0.5rem; margin-bottom: 0.6rem; background: var(--surface); border: 1.5px solid var(--danger); border-radius: 0.35rem; font-size: 0.78rem; color: var(--danger);">
                 ⚠️ <strong>${lockout.firstGapYear} Pre-59½ Lockout Gap:</strong> ${formatCompactCurrency(lockout.maxAnnualShortfall)}/yr (${lockout.gapDurationYears} yr duration)
             </div>
             ${cardsHtml}
@@ -206,13 +206,13 @@ export function renderPathwayABody(report) {
     }
 
     return `
-        <div class="whatif-bridge-success" style="padding: 0.65rem; margin-bottom: 0.6rem; background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.35); border-radius: 0.4rem; font-size: 0.78rem; color: #6ee7b7; line-height: 1.4;">
+        <div class="whatif-bridge-success" style="padding: 0.65rem; margin-bottom: 0.6rem; background: var(--surface); border: 1.5px solid var(--success); border-radius: 0.4rem; font-size: 0.78rem; color: var(--success); line-height: 1.4;">
             🟢 <strong>Zero Pre-59½ Lockout Gaps:</strong> Pre-retirement liquidity bridge is fully funded. Taxable accounts, cash cushion, and Roth principal cover all spending prior to age 59½ with $0 early penalty exposure.
         </div>
         ${
             cardsHtml
                 ? `<details class="whatif-bridge-accordion" style="margin-top: 0.5rem;">
-                    <summary style="cursor: pointer; font-size: 0.75rem; font-weight: 600; color: #93c5fd; padding: 0.3rem 0;">Explore Optional Bridge Strategies (${solutions.length} Available)</summary>
+                    <summary style="cursor: pointer; font-size: 0.75rem; font-weight: 600; color: var(--primary); padding: 0.3rem 0;">Explore Optional Bridge Strategies (${solutions.length} Available)</summary>
                     <div style="margin-top: 0.5rem;">${cardsHtml}</div>
                 </details>`
                 : ''
@@ -230,10 +230,10 @@ export function renderPathwayBBody(report) {
         .map((d) => {
             const canShift = d.yearsReclaimed > 0 && d.isTerminalSafe;
             return `
-            <div style="padding: 0.65rem; margin-bottom: 0.5rem; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 0.4rem;">
+            <div style="padding: 0.65rem; margin-bottom: 0.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 0.4rem;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                    <strong style="font-size: 0.82rem; color: #fff;">${escapeHtml(d.spouseName)} Barista / Coast Shift</strong>
-                    <span style="font-size: 0.75rem; font-weight: 700; color: ${canShift ? '#34d399' : '#9ca3af'};">
+                    <strong style="font-size: 0.82rem; color: var(--text-main);">${escapeHtml(d.spouseName)} Barista / Coast Shift</strong>
+                    <span style="font-size: 0.75rem; font-weight: 700; color: ${canShift ? 'var(--success)' : 'var(--text-muted)'};">
                         ${canShift ? `${d.yearsReclaimed} Yrs Earlier` : 'At Baseline'}
                     </span>
                 </div>
@@ -257,10 +257,10 @@ export function renderPathwayCBody(report) {
     const canAccelerate = accel.yearsAccelerated > 0 && accel.legacyTargetRespected;
 
     return `
-        <div style="padding: 0.65rem; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 0.4rem;">
+        <div style="padding: 0.65rem; background: var(--surface); border: 1px solid var(--border); border-radius: 0.4rem;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-                <strong style="font-size: 0.84rem; color: #fff;">Earliest Safe Full Retirement</strong>
-                <span style="font-size: 0.78rem; font-weight: 700; color: ${canAccelerate ? '#34d399' : '#9ca3af'};">
+                <strong style="font-size: 0.84rem; color: var(--text-main);">Earliest Safe Full Retirement</strong>
+                <span style="font-size: 0.78rem; font-weight: 700; color: ${canAccelerate ? 'var(--success)' : 'var(--text-muted)'};">
                     ${canAccelerate ? `Retire ${accel.yearsAccelerated} Yrs Earlier!` : 'Baseline Optimal'}
                 </span>
             </div>

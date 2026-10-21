@@ -12,6 +12,165 @@ import {
 
 let defaultTooltipHandler = null;
 
+export const THEME_CHART_PALETTES = {
+    slate: {
+        netWorth: '#10b981',
+        cash: '#00b894',
+        hysa: '#10ac84',
+        cd: '#1dd1a1',
+        hsa: '#2bcbba',
+        brokerage: '#0984e3',
+        s1Roth: '#6c5ce7',
+        s2Roth: '#a29bfe',
+        s1Trad401k: '#00cec9',
+        s2Trad401k: '#81ecec',
+        s1Trad403b: '#22a6b3',
+        s2Trad403b: '#7ed6df',
+        s1StdIra: '#be2edd',
+        s2StdIra: '#e056fd',
+        s1Sepp: '#f39c12',
+        s2Sepp: '#f1c40f',
+        homeEquity: '#fdcb6e',
+        college529: '#e17055',
+        outflows: '#f43f5e',
+        sorrCrash: '#d63031',
+        sorrMid: '#f6b93b',
+        sorrLate: '#00b894',
+        sorrBase: '#0984e3'
+    },
+    terminal: {
+        netWorth: '#00ff66',
+        cash: '#059669',
+        hysa: '#10b981',
+        cd: '#34d399',
+        hsa: '#2dd4bf',
+        brokerage: '#38bdf8',
+        s1Roth: '#00ff66',
+        s2Roth: '#86efac',
+        s1Trad401k: '#10b981',
+        s2Trad401k: '#6ee7b7',
+        s1Trad403b: '#059669',
+        s2Trad403b: '#34d399',
+        s1StdIra: '#22d3ee',
+        s2StdIra: '#67e8f9',
+        s1Sepp: '#fbbf24',
+        s2Sepp: '#fde047',
+        homeEquity: '#fbbf24',
+        college529: '#f97316',
+        outflows: '#f43f5e',
+        sorrCrash: '#ef4444',
+        sorrMid: '#fbbf24',
+        sorrLate: '#00ff66',
+        sorrBase: '#38bdf8'
+    },
+    broadsheet: {
+        netWorth: '#990f3d',
+        cash: '#475569',
+        hysa: '#0f766e',
+        cd: '#14b8a6',
+        hsa: '#0284c7',
+        brokerage: '#0d7680',
+        s1Roth: '#097045',
+        s2Roth: '#16a34a',
+        s1Trad401k: '#1e3a8a',
+        s2Trad401k: '#2563eb',
+        s1Trad403b: '#1d4ed8',
+        s2Trad403b: '#3b82f6',
+        s1StdIra: '#701a75',
+        s2StdIra: '#9333ea',
+        s1Sepp: '#b35900',
+        s2Sepp: '#d97706',
+        homeEquity: '#b35900',
+        college529: '#c2410c',
+        outflows: '#990f3d',
+        sorrCrash: '#990f3d',
+        sorrMid: '#b35900',
+        sorrLate: '#097045',
+        sorrBase: '#0d7680'
+    },
+    matcha: {
+        netWorth: '#1b3820',
+        cash: '#4f634f',
+        hysa: '#3f6212',
+        cd: '#65a30d',
+        hsa: '#0d9488',
+        brokerage: '#c25e38',
+        s1Roth: '#b7791f',
+        s2Roth: '#f59e0b',
+        s1Trad401k: '#2e7d32',
+        s2Trad401k: '#4ade80',
+        s1Trad403b: '#15803d',
+        s2Trad403b: '#22c55e',
+        s1StdIra: '#854d0e',
+        s2StdIra: '#a16207',
+        s1Sepp: '#b7791f',
+        s2Sepp: '#d97706',
+        homeEquity: '#78716c',
+        college529: '#ea580c',
+        outflows: '#c25e38',
+        sorrCrash: '#dc2626',
+        sorrMid: '#b7791f',
+        sorrLate: '#2e7d32',
+        sorrBase: '#2e7d32'
+    }
+};
+
+export function getActiveThemeName() {
+    if (typeof document !== 'undefined') {
+        const docTheme = document.documentElement.getAttribute('data-theme');
+        if (docTheme && THEME_CHART_PALETTES[docTheme]) return docTheme;
+    }
+    return 'slate';
+}
+
+function resolveSpouseKeyedColor(isSecondary, secondaryColor, primaryColor) {
+    return isSecondary ? secondaryColor : primaryColor;
+}
+
+const THEME_DATASET_MATCHERS = [
+    { match: ['net worth'], resolve: (pal) => pal.netWorth },
+    { match: ['cash cushion', 'cash &'], resolve: (pal) => pal.cash },
+    { match: ['hysa', 'high-yield'], resolve: (pal) => pal.hysa },
+    { match: ['cd', 'certificate'], resolve: (pal) => pal.cd },
+    { match: ['hsa', 'health savings'], resolve: (pal) => pal.hsa },
+    { match: ['brokerage', 'taxable'], resolve: (pal) => pal.brokerage },
+    { match: ['roth'], resolve: (pal, sec) => resolveSpouseKeyedColor(sec, pal.s2Roth, pal.s1Roth) },
+    {
+        match: ['401k', 'retirement account'],
+        resolve: (pal, sec) => resolveSpouseKeyedColor(sec, pal.s2Trad401k, pal.s1Trad401k)
+    },
+    { match: ['403b'], resolve: (pal, sec) => resolveSpouseKeyedColor(sec, pal.s2Trad403b, pal.s1Trad403b) },
+    {
+        match: ['std ira', 'standard ira'],
+        resolve: (pal, sec) => resolveSpouseKeyedColor(sec, pal.s2StdIra, pal.s1StdIra)
+    },
+    {
+        match: ['72(t)', 'sepp', 'early ira'],
+        resolve: (pal, sec) => resolveSpouseKeyedColor(sec, pal.s2Sepp, pal.s1Sepp)
+    },
+    { match: ['home equity', 'home &'], resolve: (pal) => pal.homeEquity },
+    { match: ['529', 'college'], resolve: (pal) => pal.college529 },
+    { match: ['outflow', 'expense', 'living'], resolve: (pal) => pal.outflows },
+    { match: ['early scenario'], resolve: (pal) => pal.sorrCrash },
+    { match: ['mid scenario'], resolve: (pal) => pal.sorrMid },
+    { match: ['late scenario'], resolve: (pal) => pal.sorrLate },
+    { match: ['base assumption'], resolve: (pal) => pal.sorrBase }
+];
+
+export function resolveThemeDatasetColor(label = '', defaultColor = '#3b82f6', themeId = 'slate') {
+    const pal = THEME_CHART_PALETTES[themeId] || THEME_CHART_PALETTES.slate;
+    const l = String(label).toLowerCase();
+    const isSecondary = l.includes('secondary') || l.includes('s2') || l.includes('lisa');
+
+    for (const rule of THEME_DATASET_MATCHERS) {
+        if (rule.match.some((keyword) => l.includes(keyword))) {
+            return rule.resolve(pal, isSecondary);
+        }
+    }
+
+    return defaultColor;
+}
+
 /**
  * Registers the external tooltip handler used by interactive charts.
  * @param {Function} handlerFn
@@ -136,12 +295,26 @@ export function generateAnnotationsConfig(events) {
     return annotations;
 }
 
+export function hexToRgba(hex, alpha = 0.25) {
+    if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return hex;
+    const cleanHex = hex.replace('#', '');
+    if (cleanHex.length === 6) {
+        const r = parseInt(cleanHex.substring(0, 2), 16);
+        const g = parseInt(cleanHex.substring(2, 4), 16);
+        const b = parseInt(cleanHex.substring(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    return hex;
+}
+
 function createLineDataset(label, data, color, isHidden = false) {
+    const activeTheme = getActiveThemeName();
+    const resolvedColor = resolveThemeDatasetColor(label, color, activeTheme);
     const datasetObj = {
         label,
         data,
-        borderColor: color,
-        backgroundColor: color,
+        borderColor: resolvedColor,
+        backgroundColor: resolvedColor,
         fill: false,
         tension: 0.4
     };
@@ -231,13 +404,15 @@ function buildRetirementAccountDatasets(yearlyData, state, s1Name, s2Name) {
 }
 
 function buildPortfolioDatasets(yearlyData, state, s1Name, s2Name) {
+    const activeTheme = getActiveThemeName();
     const totalNetWorth = mapData(yearlyData, state, (snap) => sumBalanceKeys(snap.balances, ALL_NET_WORTH_KEYS));
+    const nwColor = resolveThemeDatasetColor('Total Net Worth', '#10b981', activeTheme);
     return [
         {
             label: 'Total Net Worth',
             data: totalNetWorth,
-            borderColor: '#10b981',
-            backgroundColor: '#10b981',
+            borderColor: nwColor,
+            backgroundColor: nwColor,
             borderWidth: 2.5,
             fill: false,
             tension: 0.4,
@@ -290,11 +465,29 @@ function buildPortfolioDatasets(yearlyData, state, s1Name, s2Name) {
     ];
 }
 
+function resolveScaleTickColor() {
+    if (typeof window !== 'undefined' && window.Chart?.defaults?.color) {
+        return window.Chart.defaults.color;
+    }
+    return '#b2bec3';
+}
+
+function resolveScaleTitleColor() {
+    if (typeof document !== 'undefined') {
+        const theme = document.documentElement.getAttribute('data-theme');
+        if (theme === 'broadsheet') return '#1a1a1a';
+        if (theme === 'matcha') return '#1b3820';
+    }
+    return '#b2bec3';
+}
+
 function buildPortfolioScales() {
+    const tickCol = resolveScaleTickColor();
+    const titleCol = resolveScaleTitleColor();
     return {
         x: {
             ticks: {
-                color: '#b2bec3',
+                color: tickCol,
                 maxRotation: 45,
                 minRotation: 45,
                 autoSkip: true,
@@ -308,11 +501,11 @@ function buildPortfolioScales() {
             title: {
                 display: true,
                 text: 'Account Balances',
-                color: '#b2bec3',
+                color: titleCol,
                 font: { size: 11, weight: 'bold' }
             },
             ticks: {
-                color: '#b2bec3',
+                color: tickCol,
                 callback: (tickAmount) => '$' + tickAmount / 1000 + 'k'
             }
         },
@@ -387,7 +580,9 @@ function extractSpouseTakeHome(snapshotItem, spouseKey, clampNonNegative = false
 }
 
 function createStackedBarDataset(label, data, backgroundColor, stack) {
-    return { label, data, backgroundColor, stack };
+    const activeTheme = getActiveThemeName();
+    const resolvedColor = resolveThemeDatasetColor(label, backgroundColor, activeTheme);
+    return { label, data, backgroundColor: resolvedColor, borderColor: resolvedColor, stack };
 }
 
 function buildEarnedIncomeBars(yearlyData, state, s1Name, s2Name, stackName) {
@@ -468,13 +663,17 @@ function buildDrawdownBars(yearlyData, state, s1Name, s2Name, stackName) {
 }
 
 function buildIncomeOverlayLines(yearlyData, state) {
+    const activeTheme = getActiveThemeName();
+    const expColor = resolveThemeDatasetColor('Total Expenses', '#eb2f06', activeTheme);
+    const expTaxColor = resolveThemeDatasetColor('Total Expenses + Non-W2 Taxes', '#ff7675', activeTheme);
+    const surplusColor = resolveThemeDatasetColor('Surplus / Shortfall', '#fdcb6e', activeTheme);
     return [
         {
             label: 'Surplus / Shortfall',
             data: mapData(yearlyData, state, (snap) => snap.surplus),
             type: 'line',
-            borderColor: '#fdcb6e',
-            backgroundColor: '#fdcb6e',
+            borderColor: surplusColor,
+            backgroundColor: surplusColor,
             borderWidth: 2,
             borderDash: [5, 5],
             stack: 'LineSurplus'
@@ -482,7 +681,8 @@ function buildIncomeOverlayLines(yearlyData, state) {
         {
             label: 'Total Expenses',
             data: mapData(yearlyData, state, (snap) => snap.expenses),
-            borderColor: '#eb2f06',
+            borderColor: expColor,
+            backgroundColor: expColor,
             type: 'line',
             fill: false,
             stack: 'LineExp'
@@ -490,7 +690,8 @@ function buildIncomeOverlayLines(yearlyData, state) {
         {
             label: 'Total Expenses + Non-W2 Taxes',
             data: mapData(yearlyData, state, (snap) => snap.expenses + (snap.taxDetails?.nonW2Tax || 0)),
-            borderColor: '#ff7675',
+            borderColor: expTaxColor,
+            backgroundColor: expTaxColor,
             type: 'line',
             fill: false,
             borderDash: [5, 5],
@@ -540,7 +741,7 @@ export function buildIncomeConfig(yearlyData, state, labels, annotations, ...spo
                 x: {
                     stacked: true,
                     ticks: {
-                        color: '#b2bec3',
+                        color: resolveScaleTickColor(),
                         maxRotation: 45,
                         minRotation: 45,
                         autoSkip: true,
@@ -550,7 +751,7 @@ export function buildIncomeConfig(yearlyData, state, labels, annotations, ...spo
                 y: {
                     stacked: true,
                     ticks: {
-                        color: '#b2bec3',
+                        color: resolveScaleTickColor(),
                         callback: (tickAmount) => '$' + tickAmount / 1000 + 'k'
                     }
                 }
@@ -686,10 +887,11 @@ export function buildCashflowConfig(yearlyData, state, labels, annotations) {
 }
 
 function buildStandardXYScales() {
+    const tickCol = resolveScaleTickColor();
     return {
         x: {
             ticks: {
-                color: '#b2bec3',
+                color: tickCol,
                 maxRotation: 45,
                 minRotation: 45,
                 autoSkip: true,
@@ -698,7 +900,7 @@ function buildStandardXYScales() {
         },
         y: {
             ticks: {
-                color: '#b2bec3',
+                color: tickCol,
                 callback: (tickAmount) => '$' + tickAmount / 1000 + 'k'
             }
         }
@@ -714,32 +916,37 @@ function buildStandardXYScales() {
  * @returns {Object}
  */
 export function buildNetWorthConfig(yearlyData, state, labels, annotations) {
+    const activeTheme = getActiveThemeName();
     const liquidAssets = mapData(yearlyData, state, (snap) => sumBalanceKeys(snap.balances, LIQUID_BALANCE_KEYS));
     const netHomeEquity = mapData(yearlyData, state, (snap) => snap.balances.primaryResidenceEquity || 0);
     const netWorth = liquidAssets.map((liquidVal, yearIdx) => liquidVal + netHomeEquity[yearIdx]);
+
+    const nwColor = resolveThemeDatasetColor('Total Net Worth', '#e17055', activeTheme);
+    const liquidColor = resolveThemeDatasetColor('Liquid Assets', '#0984e3', activeTheme);
+    const homeColor = resolveThemeDatasetColor('Home Equity', '#fdcb6e', activeTheme);
 
     const datasets = [
         {
             label: 'Total Net Worth',
             data: netWorth,
-            borderColor: '#e17055',
-            backgroundColor: 'rgba(225, 112, 85, 0.1)',
+            borderColor: nwColor,
+            backgroundColor: hexToRgba(nwColor, 0.1),
             fill: true,
             tension: 0.4
         },
         {
             label: 'Liquid Assets',
             data: liquidAssets,
-            borderColor: '#0984e3',
-            backgroundColor: 'rgba(9, 132, 227, 0.1)',
+            borderColor: liquidColor,
+            backgroundColor: hexToRgba(liquidColor, 0.1),
             fill: true,
             tension: 0.4
         },
         {
             label: 'Home Equity',
             data: netHomeEquity,
-            borderColor: '#fdcb6e',
-            backgroundColor: 'rgba(253, 203, 110, 0.1)',
+            borderColor: homeColor,
+            backgroundColor: hexToRgba(homeColor, 0.1),
             fill: false,
             tension: 0.4,
             borderDash: [4, 4]
@@ -862,13 +1069,15 @@ export function buildTaxConfig(yearlyData, state, labels, annotations) {
 }
 
 function buildSorrDatasets(sorrData) {
+    const activeTheme = getActiveThemeName();
+    const pal = THEME_CHART_PALETTES[activeTheme] || THEME_CHART_PALETTES.slate;
     if (!sorrData.early) {
         return [
             {
                 label: 'Base Assumption (General Avg)',
                 data: sorrData.base,
-                borderColor: '#0984e3',
-                backgroundColor: 'rgba(9, 132, 227, 0.1)',
+                borderColor: pal.sorrBase,
+                backgroundColor: hexToRgba(pal.sorrBase, 0.1),
                 fill: false,
                 tension: 0.4,
                 borderWidth: 3
@@ -879,8 +1088,8 @@ function buildSorrDatasets(sorrData) {
         {
             label: 'Early Scenario',
             data: sorrData.early,
-            borderColor: '#d63031',
-            backgroundColor: 'rgba(214, 48, 49, 0.1)',
+            borderColor: pal.sorrCrash,
+            backgroundColor: hexToRgba(pal.sorrCrash, 0.1),
             fill: false,
             tension: 0.4,
             borderDash: [5, 5]
@@ -888,8 +1097,8 @@ function buildSorrDatasets(sorrData) {
         {
             label: 'Mid Scenario',
             data: sorrData.mid,
-            borderColor: '#f6b93b',
-            backgroundColor: 'rgba(246, 185, 59, 0.1)',
+            borderColor: pal.sorrMid,
+            backgroundColor: hexToRgba(pal.sorrMid, 0.1),
             fill: false,
             tension: 0.4,
             borderDash: [5, 5]
@@ -897,8 +1106,8 @@ function buildSorrDatasets(sorrData) {
         {
             label: 'Late Scenario',
             data: sorrData.late,
-            borderColor: '#00b894',
-            backgroundColor: 'rgba(0, 184, 148, 0.1)',
+            borderColor: pal.sorrLate,
+            backgroundColor: hexToRgba(pal.sorrLate, 0.1),
             fill: false,
             tension: 0.4,
             borderDash: [5, 5]
@@ -906,8 +1115,8 @@ function buildSorrDatasets(sorrData) {
         {
             label: 'Base Assumption',
             data: sorrData.base,
-            borderColor: '#0984e3',
-            backgroundColor: 'rgba(9, 132, 227, 0.1)',
+            borderColor: pal.sorrBase,
+            backgroundColor: hexToRgba(pal.sorrBase, 0.1),
             fill: false,
             tension: 0.4,
             borderWidth: 3

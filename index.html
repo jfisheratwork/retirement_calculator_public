@@ -27,9 +27,40 @@
             crossorigin="anonymous"
         ></script>
 
-        <link rel="stylesheet" href="styles/main.css?v=1792374643647" />
-        <meta name="build-commit" content="454ae69" />
-        <meta name="build-date" content="2026-10-19" />
+        <!-- Anti-FOUT Theme Initializer (SPEC-085) -->
+        <script>
+            (function () {
+                try {
+                    var mode = localStorage.getItem('app_theme_mode') || 'system';
+                    var theme = localStorage.getItem('app_theme_id') || 'slate';
+                    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    var defaultLight = 'broadsheet';
+                    var defaultDark = 'slate';
+                    var effectiveTheme =
+                        mode === 'system'
+                            ? prefersDark
+                                ? theme === 'broadsheet' || theme === 'matcha'
+                                    ? defaultDark
+                                    : theme
+                                : theme === 'slate' || theme === 'terminal'
+                                  ? defaultLight
+                                  : theme
+                            : mode === 'light'
+                              ? theme === 'slate' || theme === 'terminal'
+                                  ? defaultLight
+                                  : theme
+                              : theme === 'broadsheet' || theme === 'matcha'
+                                ? defaultDark
+                                : theme;
+                    document.documentElement.setAttribute('data-theme', effectiveTheme);
+                    document.documentElement.setAttribute('data-theme-mode', mode);
+                } catch (_) {}
+            })();
+        </script>
+
+        <link rel="stylesheet" href="styles/main.css?v=1792553881114" />
+        <meta name="build-commit" content="66aaa0c" />
+        <meta name="build-date" content="2026-10-21" />
     </head>
 
     <body>
@@ -118,6 +149,144 @@
                         ?
                     </button>
                     <button id="btn-lock-data" class="btn-header-icon" title="PIN Lock Security">🔒</button>
+                    <div class="theme-picker-wrapper">
+                        <button
+                            type="button"
+                            id="btn-theme-picker"
+                            class="btn-header-icon"
+                            title="Themes & Appearance"
+                            aria-haspopup="dialog"
+                            aria-expanded="false"
+                            aria-label="Select Theme & Appearance"
+                        >
+                            🎨
+                        </button>
+                        <div
+                            id="theme-picker-popover"
+                            class="theme-picker-popover"
+                            role="dialog"
+                            aria-label="Theme Selection"
+                            hidden
+                        >
+                            <div class="theme-popover-header">
+                                <span class="theme-popover-title">Appearance</span>
+                            </div>
+                            <div class="theme-mode-segmented" role="radiogroup" aria-label="Mode">
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    class="theme-mode-btn"
+                                    data-mode="system"
+                                    aria-checked="false"
+                                    title="Follow OS Preference"
+                                >
+                                    ◐ Auto
+                                </button>
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    class="theme-mode-btn"
+                                    data-mode="dark"
+                                    aria-checked="false"
+                                    title="Force Dark Mode"
+                                >
+                                    🌙 Dark
+                                </button>
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    class="theme-mode-btn"
+                                    data-mode="light"
+                                    aria-checked="false"
+                                    title="Force Light Mode"
+                                >
+                                    ☀️ Light
+                                </button>
+                            </div>
+                            <div class="theme-palette-list" role="radiogroup" aria-label="Theme Palettes">
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    class="theme-palette-option"
+                                    data-theme-id="slate"
+                                    aria-checked="false"
+                                >
+                                    <div class="theme-option-info">
+                                        <div class="theme-swatch-circles">
+                                            <span class="theme-swatch-dot" style="background: #0f172a"></span>
+                                            <span class="theme-swatch-dot" style="background: #1e293b"></span>
+                                            <span class="theme-swatch-dot" style="background: #3b82f6"></span>
+                                        </div>
+                                        <div class="theme-option-names">
+                                            <span class="theme-option-name">Slate 900</span>
+                                            <span class="theme-option-mode-tag">Classic Dark</span>
+                                        </div>
+                                    </div>
+                                    <span class="theme-check-icon">✓</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    class="theme-palette-option"
+                                    data-theme-id="terminal"
+                                    aria-checked="false"
+                                >
+                                    <div class="theme-option-info">
+                                        <div class="theme-swatch-circles">
+                                            <span class="theme-swatch-dot" style="background: #000000"></span>
+                                            <span class="theme-swatch-dot" style="background: #0c121d"></span>
+                                            <span class="theme-swatch-dot" style="background: #00ff66"></span>
+                                        </div>
+                                        <div class="theme-option-names">
+                                            <span class="theme-option-name">Terminal Matrix</span>
+                                            <span class="theme-option-mode-tag">OLED Pitch Black</span>
+                                        </div>
+                                    </div>
+                                    <span class="theme-check-icon">✓</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    class="theme-palette-option"
+                                    data-theme-id="broadsheet"
+                                    aria-checked="false"
+                                >
+                                    <div class="theme-option-info">
+                                        <div class="theme-swatch-circles">
+                                            <span class="theme-swatch-dot" style="background: #fff1e5"></span>
+                                            <span class="theme-swatch-dot" style="background: #ffffff"></span>
+                                            <span class="theme-swatch-dot" style="background: #990f3d"></span>
+                                        </div>
+                                        <div class="theme-option-names">
+                                            <span class="theme-option-name">FT Broadsheet</span>
+                                            <span class="theme-option-mode-tag">Salmon Newsprint Light</span>
+                                        </div>
+                                    </div>
+                                    <span class="theme-check-icon">✓</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    class="theme-palette-option"
+                                    data-theme-id="matcha"
+                                    aria-checked="false"
+                                >
+                                    <div class="theme-option-info">
+                                        <div class="theme-swatch-circles">
+                                            <span class="theme-swatch-dot" style="background: #f4f6f0"></span>
+                                            <span class="theme-swatch-dot" style="background: #ffffff"></span>
+                                            <span class="theme-swatch-dot" style="background: #2e7d32"></span>
+                                        </div>
+                                        <div class="theme-option-names">
+                                            <span class="theme-option-name">Matcha Sage</span>
+                                            <span class="theme-option-mode-tag">Botanical Linen Light</span>
+                                        </div>
+                                    </div>
+                                    <span class="theme-check-icon">✓</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     <button id="btn-edit-params" class="btn-header-icon" title="Settings">⚙️</button>
                 </div>
             </header>
@@ -278,7 +447,7 @@
                                         flex-wrap: wrap;
                                     "
                                 >
-                                    <span style="font-size: 0.9rem; font-weight: 600; color: #e2e8f0">
+                                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-main)">
                                         Early Market Crash Stress Test (Sequence of Returns Risk)
                                     </span>
                                     <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap">
@@ -442,6 +611,6 @@
         <!-- What If Sandbox Drawer Component -->
         <what-if-drawer id="what-if-drawer"></what-if-drawer>
 
-        <script type="module" src="src/app.js?v=1792374643647"></script>
+        <script type="module" src="src/app.js?v=1792553881114"></script>
     </body>
 </html>

@@ -304,7 +304,7 @@ export class WhatIfDrawer extends BaseComponent {
         const adjustedMonthly = Math.round(baselineMonthly * (1 + this.expenseAdjustmentPercent / 100));
         const monthlyDiff = adjustedMonthly - baselineMonthly;
         const pct = this.expenseAdjustmentPercent;
-        const projColor = pct < 0 ? '#34d399' : pct > 0 ? '#f87171' : 'var(--text-color)';
+        const projColor = pct < 0 ? 'var(--success)' : pct > 0 ? 'var(--danger)' : 'var(--text-main)';
         const chipLevels = [-20, -10, -5, 0, 5, 10, 20];
         const chipsHtml = chipLevels
             .map((lvl) => {
@@ -369,7 +369,7 @@ export class WhatIfDrawer extends BaseComponent {
         return `
             <div class="what-if-child-card" data-child-idx="${idx}">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                    <strong style="font-size: 0.85rem; color: #fff;">${escapeHtml(child.name || `Child ${idx + 1}`)}</strong>
+                    <strong style="font-size: 0.85rem; color: var(--text-main);">${escapeHtml(child.name || `Child ${idx + 1}`)}</strong>
                     <span style="font-size: 0.75rem; color: var(--text-muted);">HS Grad: ${hsGradYear} (${yearsLeft} yrs)</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 0.2rem;">
@@ -378,7 +378,7 @@ export class WhatIfDrawer extends BaseComponent {
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 0.2rem;">
                     <span style="color: var(--text-muted);">Projected at Age 18:</span>
-                    <span style="color: ${projectedExisting >= targetFund ? '#34d399' : '#fde047'}; font-weight: 600;">$${projectedExisting.toLocaleString()}</span>
+                    <span style="color: ${projectedExisting >= targetFund ? 'var(--whatif-health-text)' : 'var(--whatif-warn-text)'}; font-weight: 600;">$${projectedExisting.toLocaleString()}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 0.4rem;">
                     <span style="color: var(--text-muted);">4-Year College Target:</span>
@@ -419,7 +419,7 @@ export class WhatIfDrawer extends BaseComponent {
             ? `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; font-size: 0.78rem;">
                 <label style="color: var(--text-muted);">Claiming Start Age:</label>
-                <select id="sel-reverse-mortgage-age" style="padding: 0.2rem 0.4rem; font-size: 0.78rem; background: var(--bg-dark); color: #fff; border: 1px solid var(--border); border-radius: 4px;">
+                <select id="sel-reverse-mortgage-age" style="padding: 0.2rem 0.4rem; font-size: 0.78rem; background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px;">
                     <option value="62" ${startAge === 62 ? 'selected' : ''}>Age 62</option>
                     <option value="65" ${startAge === 65 ? 'selected' : ''}>Age 65</option>
                     <option value="68" ${startAge === 68 ? 'selected' : ''}>Age 68</option>
@@ -527,7 +527,7 @@ export class WhatIfDrawer extends BaseComponent {
             ? `
             <div class="whatif-opportunity-pill" role="status" style="margin-bottom: 0.65rem;">
                 <span>⚡ <strong>Surplus Opportunity:</strong> Safe to retire <strong>${accel.yearsAccelerated} yrs earlier</strong> (${accel.earliestSafeRetirementYearPrimary})!</span>
-                <button type="button" id="btn-quick-retire-earlier" class="btn btn-small" data-years-accel="${accel.yearsAccelerated}" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: #10b981; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 700;">Apply Earlier</button>
+                <button type="button" id="btn-quick-retire-earlier" class="btn btn-small btn-primary" data-years-accel="${accel.yearsAccelerated}" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 700;">Apply Earlier</button>
             </div>
             `
             : '';
@@ -612,7 +612,7 @@ export class WhatIfDrawer extends BaseComponent {
                 <input type="range" class="what-if-slider" id="slider-legacy-reserve" min="0" max="5000000" step="100000" value="${desiredLegacyBuffer}">
                 <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
                     <span>Terminal: <strong>${formatCompactCurrency(terminalNetWorthNominal)}</strong></span>
-                    <span>Surplus: <strong style="color: #34d399;">${formatCompactCurrency(excessSurplus)}</strong> (${formatCompactCurrency(excessReal)} real)</span>
+                    <span>Surplus: <strong style="color: var(--whatif-health-text);">${formatCompactCurrency(excessSurplus)}</strong> (${formatCompactCurrency(excessReal)} real)</span>
                 </div>
             </div>
         `;
@@ -624,7 +624,7 @@ export class WhatIfDrawer extends BaseComponent {
             dependents.length > 0
                 ? `
                 <details class="whatif-collapsible-section" style="margin-top: 0.75rem;">
-                    <summary style="cursor: pointer; font-size: 0.82rem; font-weight: 600; color: #93c5fd; padding: 0.4rem 0;">
+                    <summary style="cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--primary); padding: 0.4rem 0;">
                         🎓 Fund Kids' College (${dependents.length} Children)
                     </summary>
                     <div style="margin-top: 0.5rem;">
@@ -636,7 +636,7 @@ export class WhatIfDrawer extends BaseComponent {
 
         const equityDetailsHtml = `
             <details class="whatif-collapsible-section" style="margin-top: 0.75rem;">
-                <summary style="cursor: pointer; font-size: 0.82rem; font-weight: 600; color: #93c5fd; padding: 0.4rem 0;">
+                <summary style="cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--primary); padding: 0.4rem 0;">
                     🏡 Access Equity &amp; Longevity Diagnostic
                 </summary>
                 <div style="margin-top: 0.5rem;">
@@ -670,10 +670,10 @@ export class WhatIfDrawer extends BaseComponent {
                     <div style="display: flex; align-items: flex-start; gap: 0.6rem;">
                         <span style="font-size: 1.25rem; line-height: 1.1;">🔮</span>
                         <div>
-                            <strong style="display: block; font-size: 0.82rem; color: #34d399; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.2rem;">
+                            <strong style="display: block; font-size: 0.82rem; color: var(--whatif-health-text); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.2rem;">
                                 Editing What-If Scenario
                             </strong>
-                            <p style="margin: 0; font-size: 0.78rem; line-height: 1.35; color: #d1fae5;">
+                            <p style="margin: 0; font-size: 0.78rem; line-height: 1.35; color: var(--text-main);">
                                 Changes save to <strong>${activeName}</strong> while your original scenario remains safely untouched.
                             </p>
                         </div>
@@ -686,10 +686,10 @@ export class WhatIfDrawer extends BaseComponent {
                 <div style="display: flex; align-items: flex-start; gap: 0.6rem;">
                     <span style="font-size: 1.25rem; line-height: 1.1;">🛡️</span>
                     <div>
-                        <strong style="display: block; font-size: 0.82rem; color: #fde047; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.2rem;">
+                        <strong style="display: block; font-size: 0.82rem; color: var(--whatif-warn-text); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.2rem;">
                             Safe Copy-on-Change Protection
                         </strong>
-                        <p style="margin: 0; font-size: 0.78rem; line-height: 1.35; color: #fef08a;">
+                        <p style="margin: 0; font-size: 0.78rem; line-height: 1.35; color: var(--text-main);">
                             Your first change will prompt to copy <strong>${activeName}</strong> into a new <strong>What If: ___</strong> scenario so your original plan is never modified.
                         </p>
                     </div>
@@ -703,20 +703,20 @@ export class WhatIfDrawer extends BaseComponent {
         const suggestedSuffix = escapeHtml(this._pendingFork?.suggestedSuffix || 'Custom Scenario');
         const isOpen = Boolean(this._pendingFork);
         return `
-            <div id="whatif-fork-modal" class="whatif-fork-modal ${isOpen ? 'open' : 'hidden'}" role="dialog" aria-modal="true" aria-label="Create What-If Scenario" style="margin: 0.75rem 1rem; padding: 1rem; background: rgba(15, 23, 42, 0.96); border: 1.5px solid #f59e0b; border-radius: 10px; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);">
-                <div style="font-size: 0.9rem; font-weight: 700; color: #fde047; margin-bottom: 0.35rem;">
+            <div id="whatif-fork-modal" class="whatif-fork-modal ${isOpen ? 'open' : 'hidden'}" role="dialog" aria-modal="true" aria-label="Create What-If Scenario" style="margin: 0.75rem 1rem; padding: 1rem; background: var(--surface-card); border: 1.5px solid var(--warning); border-radius: 10px; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);">
+                <div style="font-size: 0.9rem; font-weight: 700; color: var(--whatif-warn-text); margin-bottom: 0.35rem;">
                     🔮 Create "What If" Scenario Copy
                 </div>
                 <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 0.65rem 0; line-height: 1.35;">
                     We'll copy <strong id="whatif-fork-active-name">${activeName}</strong> into a new scenario and switch to it so your original plan stays untouched:
                 </p>
-                <div style="display: flex; align-items: center; gap: 0.4rem; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(245, 158, 11, 0.45); border-radius: 6px; padding: 0.35rem 0.6rem; margin-bottom: 0.75rem;">
-                    <span style="font-size: 0.82rem; font-weight: 700; color: #fbbf24; white-space: nowrap;">What If:</span>
-                    <input type="text" id="whatif-fork-name-input" value="${suggestedSuffix}" placeholder="Scenario name..." style="flex: 1; background: transparent; border: none; color: #fff; font-size: 0.85rem; font-weight: 600; outline: none;" />
+                <div style="display: flex; align-items: center; gap: 0.4rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.6rem; margin-bottom: 0.75rem;">
+                    <span style="font-size: 0.82rem; font-weight: 700; color: var(--whatif-warn-text); white-space: nowrap;">What If:</span>
+                    <input type="text" id="whatif-fork-name-input" value="${suggestedSuffix}" placeholder="Scenario name..." style="flex: 1; background: transparent; border: none; color: var(--text-main); font-size: 0.85rem; font-weight: 600; outline: none;" />
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
                     <button type="button" id="btn-cancel-whatif-fork" class="btn btn-secondary btn-small" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;">Cancel</button>
-                    <button type="button" id="btn-confirm-whatif-fork" class="btn btn-primary btn-small" style="font-size: 0.78rem; padding: 0.35rem 0.85rem; background: #f59e0b; border-color: #d97706; color: #0f172a; font-weight: 700;">Create &amp; Apply</button>
+                    <button type="button" id="btn-confirm-whatif-fork" class="btn btn-primary btn-small" style="font-size: 0.78rem; padding: 0.35rem 0.85rem; font-weight: 700;">Create &amp; Apply</button>
                 </div>
             </div>
         `;
@@ -750,7 +750,7 @@ export class WhatIfDrawer extends BaseComponent {
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                         <span style="font-size: 1.3rem;">🔮</span>
                         <div>
-                            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #fff;">What If? Sandbox</h3>
+                            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-main);">What If? Sandbox</h3>
                             <span class="what-if-wip-pill">SCENARIO STUDIO</span>
                         </div>
                     </div>

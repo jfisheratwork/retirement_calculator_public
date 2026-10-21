@@ -32,6 +32,7 @@ import './components/guided-planner-wizard.js';
 import './components/micro-expand-drawer.js';
 import { SurplusPullForwardEngine } from './services/SurplusPullForwardEngine.js';
 import { renderPullForwardBanner } from './components/pull-forward-banner.js';
+import { initThemeSwitcher } from './components/theme-switcher.js';
 
 // DOM Elements
 let btnLoadSample;
@@ -62,6 +63,7 @@ let expressModalInstance;
 let guidedModalInstance;
 
 function bootstrap() {
+    initThemeSwitcher();
     pinLockModalInstance = document.querySelector('pin-lock-modal');
     pinUnlockModalInstance = document.querySelector('pin-unlock-modal');
 

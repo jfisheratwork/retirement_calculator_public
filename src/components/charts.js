@@ -26,7 +26,9 @@ import {
     buildCashflowConfig,
     buildNetWorthConfig,
     buildTaxConfig,
-    buildSorrConfig
+    buildSorrConfig,
+    resolveThemeDatasetColor,
+    hexToRgba
 } from './charts/chart-configs.js';
 import { renderPortfolioOption1CHeader, renderIncomePillHeader } from './charts/chart-stage-header.js';
 import { renderTaxSteeringCockpit, renderTaxStrategyInspector } from './charts/tax-steering-cockpit.js';
@@ -64,6 +66,84 @@ export {
     buildTaxConfig,
     buildSorrConfig
 };
+
+function resolveChartColorsForTheme(effectiveTheme) {
+    if (effectiveTheme === 'broadsheet') {
+        return { tickColor: '#666059', gridColor: 'rgba(0, 0, 0, 0.08)', textColor: '#1a1a1a' };
+    }
+    if (effectiveTheme === 'matcha') {
+        return { tickColor: '#4f634f', gridColor: 'rgba(0, 0, 0, 0.08)', textColor: '#1b3820' };
+    }
+    if (effectiveTheme === 'terminal') {
+        return { tickColor: '#94a3b8', gridColor: 'rgba(255, 255, 255, 0.08)', textColor: '#f8fafc' };
+    }
+    return { tickColor: '#b2bec3', gridColor: 'rgba(255, 255, 255, 0.08)', textColor: '#f8fafc' };
+}
+
+function updateScaleTheme(scale, colors) {
+    if (!scale) return;
+    if (scale.ticks) scale.ticks.color = colors.tickColor;
+    if (scale.grid) scale.grid.color = colors.gridColor;
+    if (scale.title?.display) scale.title.color = colors.textColor;
+}
+
+function updateDatasetTheme(ds, effectiveTheme) {
+    if (!ds) return;
+    const newColor = resolveThemeDatasetColor(ds.label, ds.borderColor || ds.backgroundColor, effectiveTheme);
+    ds.borderColor = newColor;
+    if (ds.backgroundColor && typeof ds.backgroundColor === 'string') {
+        if (ds.backgroundColor.startsWith('rgba') || ds.backgroundColor.startsWith('rgb')) {
+            ds.backgroundColor = hexToRgba(newColor, 0.2);
+        } else {
+            ds.backgroundColor = newColor;
+        }
+    }
+}
+
+function updateChartInstanceTheme(chart, colors, effectiveTheme) {
+    if (!chart?.options?.scales) return;
+    Object.values(chart.options.scales).forEach((scale) => updateScaleTheme(scale, colors));
+    if (chart.data?.datasets) {
+        chart.data.datasets.forEach((ds) => updateDatasetTheme(ds, effectiveTheme));
+    }
+    try {
+        chart.update('none');
+    } catch {
+        // Safe fallback if canvas is transitioning
+    }
+}
+
+function refreshOption1CHeaderPills(effectiveTheme) {
+    if (typeof document === 'undefined') return;
+    const opt1cHeader = document.getElementById('portfolio-option1c-header');
+    if (!opt1cHeader) return;
+    const pills = opt1cHeader.querySelectorAll('.opt1c-sub-pill');
+    pills.forEach((p) => {
+        const nameEl = p.querySelector('.opt1c-pill-name');
+        if (nameEl) {
+            const label = nameEl.textContent.trim();
+            const color = resolveThemeDatasetColor(label, '#3b82f6', effectiveTheme);
+            p.style.setProperty('--pill-color', color);
+        }
+    });
+}
+
+/**
+ * Synchronizes Chart.js defaults and active chart scales with the active theme.
+ * @param {string} effectiveTheme - 'slate' | 'terminal' | 'broadsheet' | 'matcha'
+ */
+export function applyChartTheme(effectiveTheme = 'slate') {
+    const colors = resolveChartColorsForTheme(effectiveTheme);
+
+    if (typeof window !== 'undefined' && window.Chart) {
+        window.Chart.defaults.color = colors.tickColor;
+        window.Chart.defaults.borderColor = colors.gridColor;
+    }
+
+    const charts = [portfolioChart, incomeChart, cashflowChart, taxChart, netWorthChart, sorrChart];
+    charts.forEach((chart) => updateChartInstanceTheme(chart, colors, effectiveTheme));
+    refreshOption1CHeaderPills(effectiveTheme);
+}
 
 // Configure global Chart.js settings for more prominent hover highlights
 // Reference: https://github.com/chartjs/Chart.js/releases/tag/v4.4.7
@@ -323,6 +403,10 @@ function renderSecondaryCharts(yearlyData, state, labels, annotations, sorrData)
  */
 export function renderCharts(yearlyData, state, events = [], sorrData = null) {
     if (!yearlyData || yearlyData.length === 0) return;
+
+    const activeTheme =
+        typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') || 'slate' : 'slate';
+    applyChartTheme(activeTheme);
 
     const labels = yearlyData.map((snap) => snap.year.toString());
     const s1Name = escapeHtml(state.primarySpouse?.name || 'Spouse 1');
