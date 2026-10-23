@@ -21,8 +21,8 @@
     --secondary: #475569;
     --secondary-hover: #334155;
     --secondary-text: #f8fafc;
-    --accent: #8b5cf6; /* Violet 500 */
-    --accent-color: #8b5cf6;
+    --accent: #a78bfa; /* Violet 400 for high-contrast dark text */
+    --accent-color: #a78bfa;
     --danger: #ef4444; /* Red 500 */
     --error: #ef4444;
     --warning: #f59e0b; /* Amber 500 */
@@ -165,11 +165,11 @@
     --secondary: #e2e8da;
     --secondary-hover: #d2dcce;
     --secondary-text: #1b3820;
-    --accent: #c25e38;
-    --accent-color: #c25e38;
+    --accent: #a34823;
+    --accent-color: #a34823;
     --danger: #b91c1c;
     --error: #b91c1c;
-    --warning: #b7791f;
+    --warning: #8c5305;
     --success: #2e7d32;
     --font-family: 'Inter', sans-serif;
     --font-heading: 'Inter', sans-serif;
@@ -1410,7 +1410,7 @@ body.show-inspector #chart-inspector:not(.hidden),
 #chart-inspector h3 {
     margin: 0 0 0.5rem 0;
     font-size: 1.1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border);
     padding-bottom: 0.5rem;
     color: var(--primary);
 }
@@ -1438,11 +1438,11 @@ body.show-inspector #chart-inspector:not(.hidden),
 .inspector-total {
     margin-top: 0.5rem;
     padding-top: 0.5rem;
-    border-top: 1px dashed rgba(255, 255, 255, 0.2);
+    border-top: 1px dashed var(--border);
     display: flex;
     justify-content: space-between;
     font-weight: bold;
-    color: #fff;
+    color: var(--text-main);
 }
 
 .chart-container {

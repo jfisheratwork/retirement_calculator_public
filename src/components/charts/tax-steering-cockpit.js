@@ -339,19 +339,19 @@ function renderBracketCardHtml(vm) {
     const bt = vm.bracketThermo;
     const fillActionText =
         bt.roomToFill > 0
-            ? `<span style="color: #34d399; font-weight: 700;">+${formatCurrency(bt.roomToFill)}</span>`
-            : `<span style="color: #94a3b8;">Bracket Full</span>`;
+            ? `<span style="color: var(--success); font-weight: 700;">+${formatCurrency(bt.roomToFill)}</span>`
+            : `<span style="color: var(--text-muted);">Bracket Full</span>`;
     const dropActionText =
         bt.dropDelta > 0
-            ? `<span style="color: #fbbf24; font-weight: 600;">-${formatCurrency(bt.dropDelta)}</span>`
-            : `<span style="color: #34d399;">At 0% Standard Ded.</span>`;
+            ? `<span style="color: var(--warning); font-weight: 600;">-${formatCurrency(bt.dropDelta)}</span>`
+            : `<span style="color: var(--success);">At 0% Standard Ded.</span>`;
 
     return `
         <div class="tax-cockpit-card">
             <div>
                 <div class="tax-cockpit-card-header">
-                    <span class="tax-cockpit-card-title" style="color: #a5b4fc;">1. Federal Bracket &amp; Roth Fill</span>
-                    <span class="tax-cockpit-badge" style="background: rgba(99, 102, 241, 0.2); color: #c7d2fe;">
+                    <span class="tax-cockpit-card-title">1. Federal Bracket &amp; Roth Fill</span>
+                    <span class="tax-cockpit-badge" style="background: var(--surface-hover); color: var(--primary); border: 1px solid var(--border);">
                         Top Bracket: ${vm.taxes.topBracketPct}%
                     </span>
                 </div>
@@ -383,8 +383,8 @@ function renderBracketCardHtml(vm) {
 function renderIrmaaCardHtml(vm, aca, magi) {
     const underIrmaa = aca.deltaToIrmaa >= 0;
     const badgeColor = underIrmaa
-        ? 'background: rgba(16, 185, 129, 0.2); color: #6ee7b7;'
-        : 'background: rgba(244, 63, 94, 0.2); color: #fda4af;';
+        ? 'background: var(--surface-hover); color: var(--success); border: 1px solid var(--border);'
+        : 'background: var(--surface-hover); color: var(--danger); border: 1px solid var(--border);';
     const fillPct = Math.min(
         PERCENT_SCALE,
         Math.round((magi / Math.max(aca.irmaaThreshold * 1.25, 1)) * PERCENT_SCALE)
@@ -393,7 +393,7 @@ function renderIrmaaCardHtml(vm, aca, magi) {
         <div class="tax-cockpit-card">
             <div>
                 <div class="tax-cockpit-card-header">
-                    <span class="tax-cockpit-card-title" style="color: #6ee7b7;">2. Medicare IRMAA MAGI Guardrail</span>
+                    <span class="tax-cockpit-card-title">2. Medicare IRMAA MAGI Guardrail</span>
                     <span class="tax-cockpit-badge" style="${badgeColor}">
                         ${underIrmaa ? 'Safe (No IRMAA)' : 'IRMAA Triggered'}
                     </span>
@@ -408,13 +408,13 @@ function renderIrmaaCardHtml(vm, aca, magi) {
             <div class="tax-cockpit-levers">
                 <div class="tax-lever-row">
                     <span>${underIrmaa ? '▲ Room before Tier 1 IRMAA Cliff:' : '▼ Reduce MAGI to avoid IRMAA:'}</span>
-                    <span style="color: ${underIrmaa ? '#34d399' : '#fb7185'}; font-weight: 700;">
+                    <span style="color: ${underIrmaa ? 'var(--success)' : 'var(--danger)'}; font-weight: 700;">
                         ${underIrmaa ? '+' : ''}${formatCurrency(aca.deltaToIrmaa)}
                     </span>
                 </div>
                 <div class="tax-lever-row">
                     <span>Annual Medicare IRMAA Surcharge:</span>
-                    <span style="font-weight: 600; color: #e2e8f0;">${formatCurrency(vm.taxes.irmaa)}</span>
+                    <span style="font-weight: 600; color: var(--text-main);">${formatCurrency(vm.taxes.irmaa)}</span>
                 </div>
             </div>
         </div>
@@ -424,8 +424,8 @@ function renderIrmaaCardHtml(vm, aca, magi) {
 function renderAcaCardHtml(aca, magi) {
     const under400 = aca.deltaTo400Fpl >= 0;
     const badgeStyle = under400
-        ? 'background: rgba(16, 185, 129, 0.2); color: #6ee7b7;'
-        : 'background: rgba(245, 158, 11, 0.2); color: #fcd34d;';
+        ? 'background: var(--surface-hover); color: var(--success); border: 1px solid var(--border);'
+        : 'background: var(--surface-hover); color: var(--warning); border: 1px solid var(--border);';
     const barScale = Math.max(aca.fpl400 * 1.2, magi, 1);
     const w200 = Math.min(PERCENT_SCALE, Math.round((Math.min(magi, aca.fpl200) / barScale) * PERCENT_SCALE));
     const w400 = Math.max(
@@ -444,7 +444,7 @@ function renderAcaCardHtml(aca, magi) {
         <div class="tax-cockpit-card">
             <div>
                 <div class="tax-cockpit-card-header">
-                    <span class="tax-cockpit-card-title" style="color: #6ee7b7;">2. ACA Healthcare MAGI Guardrail</span>
+                    <span class="tax-cockpit-card-title">2. ACA Healthcare MAGI Guardrail</span>
                     <span class="tax-cockpit-badge" style="${badgeStyle}">
                         ${aca.fplRatioPct}% FPL (${aca.householdSize}p HH)
                     </span>
@@ -461,13 +461,13 @@ function renderAcaCardHtml(aca, magi) {
             <div class="tax-cockpit-levers">
                 <div class="tax-lever-row">
                     <span>${under400 ? '▲ MAGI room below 400% FPL Cliff:' : '▼ Reduce MAGI to hit 400% FPL:'}</span>
-                    <span style="color: ${under400 ? '#34d399' : '#fb7185'}; font-weight: 700;">
+                    <span style="color: ${under400 ? 'var(--success)' : 'var(--danger)'}; font-weight: 700;">
                         ${under400 ? '+' : ''}${formatCurrency(aca.deltaTo400Fpl)}
                     </span>
                 </div>
                 <div class="tax-lever-row">
                     <span>${aca.deltaTo250Fpl >= 0 ? '▲ Room below 250% CSR Tier:' : '▼ To hit 250% CSR (' + formatCompact(aca.fpl250) + '):'}</span>
-                    <span style="color: #cbd5e1; font-weight: 600;">
+                    <span style="color: var(--text-main); font-weight: 600;">
                         ${aca.deltaTo250Fpl >= 0 ? '+' : ''}${formatCurrency(aca.deltaTo250Fpl)}
                     </span>
                 </div>
@@ -488,8 +488,8 @@ function renderLtcgAndMixCardHtml(vm) {
         <div class="tax-cockpit-card">
             <div>
                 <div class="tax-cockpit-card-header">
-                    <span class="tax-cockpit-card-title" style="color: #fcd34d;">3. 0% Capital Gains &amp; Tax-Free Mix</span>
-                    <span class="tax-cockpit-badge" style="background: rgba(245, 158, 11, 0.2); color: #fde68a;">
+                    <span class="tax-cockpit-card-title">3. 0% Capital Gains &amp; Tax-Free Mix</span>
+                    <span class="tax-cockpit-badge" style="background: var(--surface-hover); color: var(--warning); border: 1px solid var(--border);">
                         ${lt.currentLtcgRatePct}% LTCG Tier
                     </span>
                 </div>
@@ -505,11 +505,11 @@ function renderLtcgAndMixCardHtml(vm) {
             <div class="tax-cockpit-levers">
                 <div class="tax-lever-row">
                     <span>▲ Remaining 0% LTCG harvest room:</span>
-                    <span style="color: #fbbf24; font-weight: 700;">+${formatCurrency(lt.remainingZeroRoom)}</span>
+                    <span style="color: var(--warning); font-weight: 700;">+${formatCurrency(lt.remainingZeroRoom)}</span>
                 </div>
                 <div class="tax-lever-row">
                     <span>Tax-Free Draws (Roth + Brokerage Basis):</span>
-                    <span style="color: #34d399; font-weight: 600;">
+                    <span style="color: var(--success); font-weight: 600;">
                         ${formatCurrency(vm.sources.totalTaxFreeDraws)} (${lt.taxFreeSharePct}%)
                     </span>
                 </div>
@@ -540,9 +540,9 @@ export function renderTaxSteeringCockpit(snap, state, dataIndex = 0) {
                     </span>
                 </div>
                 <div class="tax-cockpit-meta">
-                    <span>Total Tax: <strong style="color: #fb7185;">${formatCurrency(vm.taxes.totalTaxBurden)}</strong> (${vm.taxes.effectiveRatePct}% Eff.)</span>
+                    <span>Total Tax: <strong style="color: var(--danger);">${formatCurrency(vm.taxes.totalTaxBurden)}</strong> (${vm.taxes.effectiveRatePct}% Eff.)</span>
                     <span>·</span>
-                    <span>MAGI: <strong style="color: #93c5fd;">${formatCurrency(vm.sources.acaMagi)}</strong></span>
+                    <span>MAGI: <strong style="color: var(--primary);">${formatCurrency(vm.sources.acaMagi)}</strong></span>
                     <span>·</span>
                     <span>${dollarModeLabel}</span>
                 </div>
@@ -556,7 +556,7 @@ export function renderTaxSteeringCockpit(snap, state, dataIndex = 0) {
     `;
 }
 
-function renderInspectorRowIfPositive(label, amount, dotColor, valueColor = '#f8fafc') {
+function renderInspectorRowIfPositive(label, amount, dotColor, valueColor = 'var(--text-main)') {
     if (!amount || amount <= 0) return '';
     return `
         <div class="inspector-row" style="font-size: 0.82rem;">
@@ -573,7 +573,7 @@ function renderTooltipMagiSection(vm) {
     const s = vm.sources;
     let html = `
         <div style="margin-bottom: 8px;">
-            <div style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 3px; border-bottom: 1px solid rgba(255,255,255,0.16); padding-bottom: 2px; text-transform: uppercase; font-weight: 700;">
+            <div style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 3px; border-bottom: 1px solid var(--border); padding-bottom: 2px; text-transform: uppercase; font-weight: 700;">
                 1. Taxable Income &amp; MAGI Stack
             </div>
     `;
@@ -587,13 +587,13 @@ function renderTooltipMagiSection(vm) {
     html += renderInspectorRowIfPositive('Untaxed SS (In ACA MAGI)', s.untaxedSsn, '#94a3b8');
 
     html += `
-            <div class="inspector-row" style="font-size: 0.83rem; font-weight: 700; margin-top: 3px; border-top: 1px dashed rgba(255,255,255,0.12); padding-top: 2px;">
+            <div class="inspector-row" style="font-size: 0.83rem; font-weight: 700; margin-top: 3px; border-top: 1px dashed var(--border); padding-top: 2px;">
                 <span class="inspector-label">Estimated MAGI (ACA Baseline)</span>
-                <span class="inspector-value" style="color: #93c5fd;">${formatCurrency(s.acaMagi)}</span>
+                <span class="inspector-value" style="color: var(--primary);">${formatCurrency(s.acaMagi)}</span>
             </div>
-            <div class="inspector-row" style="font-size: 0.8rem; color: #cbd5e1;">
+            <div class="inspector-row" style="font-size: 0.8rem; color: var(--text-muted);">
                 <span class="inspector-label">Taxable Ordinary (After ${formatCompact(vm.bracketThermo.stdDed)} Ded.)</span>
-                <span class="inspector-value" style="color: #a5b4fc;">${formatCurrency(vm.bracketThermo.agi)}</span>
+                <span class="inspector-value" style="color: var(--accent); font-weight: 600;">${formatCurrency(vm.bracketThermo.agi)}</span>
             </div>
         </div>
     `;
@@ -604,14 +604,19 @@ function renderTooltipTaxFreeSection(vm) {
     const s = vm.sources;
     if (s.totalTaxFreeDraws <= 0) return '';
     let html = `
-        <div style="margin-bottom: 8px; padding: 6px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25);">
-            <div style="color: #6ee7b7; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; margin-bottom: 2px;">
+        <div style="margin-bottom: 8px; padding: 6px 8px; border-radius: 6px; background: var(--surface-hover); border: 1px solid var(--border);">
+            <div style="color: var(--success); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; margin-bottom: 2px;">
                 2. Tax-Free Withdrawals (0% MAGI Impact)
             </div>
     `;
-    html += renderInspectorRowIfPositive('Brokerage Cost Basis Return', s.brokerageBasisDrawn, '#60a5fa', '#6ee7b7');
-    html += renderInspectorRowIfPositive('Roth IRA Tax-Free Draw', s.rothDraws, '#a78bfa', '#6ee7b7');
-    html += renderInspectorRowIfPositive('HSA / HYSA / Cash Cushion', s.hsaCashDraws, '#34d399', '#6ee7b7');
+    html += renderInspectorRowIfPositive(
+        'Brokerage Cost Basis Return',
+        s.brokerageBasisDrawn,
+        '#0284c7',
+        'var(--success)'
+    );
+    html += renderInspectorRowIfPositive('Roth IRA Tax-Free Draw', s.rothDraws, '#7c3aed', 'var(--success)');
+    html += renderInspectorRowIfPositive('HSA / HYSA / Cash Cushion', s.hsaCashDraws, '#059669', 'var(--success)');
     html += `</div>`;
     return html;
 }
@@ -620,22 +625,27 @@ function renderTooltipTaxBillSection(vm) {
     const t = vm.taxes;
     let html = `
         <div style="margin-bottom: 8px;">
-            <div style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 3px; border-bottom: 1px solid rgba(255,255,255,0.16); padding-bottom: 2px; text-transform: uppercase; font-weight: 700;">
+            <div style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 3px; border-bottom: 1px solid var(--border); padding-bottom: 2px; text-transform: uppercase; font-weight: 700;">
                 3. Itemized Tax Bill (${vm.filingStatus})
             </div>
     `;
     html += renderInspectorRowIfPositive('Federal Ordinary Income Tax', t.fedOrdinaryTax, '#f43f5e');
-    html += renderInspectorRowIfPositive('Long-Term Capital Gains Tax', t.ltcgTax, '#fbbf24');
-    html += renderInspectorRowIfPositive('3.8% Net Investment Tax (NIIT)', t.niitTax, '#f97316');
-    html += renderInspectorRowIfPositive('State Income Tax', t.stateTax, '#fb923c');
-    html += renderInspectorRowIfPositive('FICA Payroll Tax', t.ficaTax, '#38bdf8');
-    html += renderInspectorRowIfPositive('Medicare IRMAA Surcharge', t.irmaa, '#e879f9');
-    html += renderInspectorRowIfPositive('⚠️ 10% Early Penalty (Pre-59.5)', t.earlyPenalty, '#ef4444', '#fca5a5');
+    html += renderInspectorRowIfPositive('Long-Term Capital Gains Tax', t.ltcgTax, '#f59e0b');
+    html += renderInspectorRowIfPositive('3.8% Net Investment Tax (NIIT)', t.niitTax, '#ea580c');
+    html += renderInspectorRowIfPositive('State Income Tax', t.stateTax, '#d97706');
+    html += renderInspectorRowIfPositive('FICA Payroll Tax', t.ficaTax, '#0284c7');
+    html += renderInspectorRowIfPositive('Medicare IRMAA Surcharge', t.irmaa, '#c026d3');
+    html += renderInspectorRowIfPositive(
+        '⚠️ 10% Early Penalty (Pre-59.5)',
+        t.earlyPenalty,
+        'var(--danger)',
+        'var(--danger)'
+    );
 
     html += `
-            <div class="inspector-row" style="font-size: 0.84rem; font-weight: 700; margin-top: 3px; border-top: 1px dashed rgba(255,255,255,0.12); padding-top: 2px;">
+            <div class="inspector-row" style="font-size: 0.84rem; font-weight: 700; margin-top: 3px; border-top: 1px dashed var(--border); padding-top: 2px;">
                 <span class="inspector-label">Total Tax Burden (${t.effectiveRatePct}% Eff.)</span>
-                <span class="inspector-value" style="color: #fb7185;">${formatCurrency(t.totalTaxBurden)}</span>
+                <span class="inspector-value" style="color: var(--danger);">${formatCurrency(t.totalTaxBurden)}</span>
             </div>
         </div>
     `;
@@ -647,26 +657,26 @@ function renderTooltipSteeringSummarySection(vm) {
     const aca = vm.acaThermo;
     const lt = vm.ltcgThermo;
     const acaRow = aca.isMedicareAge
-        ? `<div class="inspector-row" style="font-size: 0.8rem;"><span class="inspector-label">IRMAA Cliff Room (${formatCompact(aca.irmaaThreshold)}):</span><span class="inspector-value" style="color: ${aca.deltaToIrmaa >= 0 ? '#34d399' : '#fb7185'};">${aca.deltaToIrmaa >= 0 ? '+' : ''}${formatCurrency(aca.deltaToIrmaa)}</span></div>`
-        : `<div class="inspector-row" style="font-size: 0.8rem;"><span class="inspector-label">ACA 400% FPL (${aca.fplRatioPct}% FPL):</span><span class="inspector-value" style="color: ${aca.deltaTo400Fpl >= 0 ? '#34d399' : '#fb7185'};">${aca.deltaTo400Fpl >= 0 ? '+' : ''}${formatCurrency(aca.deltaTo400Fpl)}</span></div>`;
+        ? `<div class="inspector-row" style="font-size: 0.8rem;"><span class="inspector-label">IRMAA Cliff Room (${formatCompact(aca.irmaaThreshold)}):</span><span class="inspector-value" style="color: ${aca.deltaToIrmaa >= 0 ? 'var(--success)' : 'var(--danger)'};">${aca.deltaToIrmaa >= 0 ? '+' : ''}${formatCurrency(aca.deltaToIrmaa)}</span></div>`
+        : `<div class="inspector-row" style="font-size: 0.8rem;"><span class="inspector-label">ACA 400% FPL (${aca.fplRatioPct}% FPL):</span><span class="inspector-value" style="color: ${aca.deltaTo400Fpl >= 0 ? 'var(--success)' : 'var(--danger)'};">${aca.deltaTo400Fpl >= 0 ? '+' : ''}${formatCurrency(aca.deltaTo400Fpl)}</span></div>`;
 
     return `
-        <div style="padding: 6px 8px; border-radius: 6px; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3);">
-            <div style="color: #a5b4fc; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; margin-bottom: 3px;">
+        <div style="padding: 6px 8px; border-radius: 6px; background: var(--surface-hover); border: 1px solid var(--border);">
+            <div style="color: var(--primary); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; margin-bottom: 3px;">
                 4. Bracket, Roth &amp; ACA Levers
             </div>
             <div class="inspector-row" style="font-size: 0.8rem;">
                 <span class="inspector-label">Fill ${vm.taxes.topBracketPct}% Bracket (Roth Conv):</span>
-                <span class="inspector-value" style="color: #34d399; font-weight: 700;">+${formatCurrency(bt.roomToFill)}</span>
+                <span class="inspector-value" style="color: var(--success); font-weight: 700;">+${formatCurrency(bt.roomToFill)}</span>
             </div>
             <div class="inspector-row" style="font-size: 0.8rem;">
                 <span class="inspector-label">Drop below ${vm.taxes.topBracketPct}% Bracket:</span>
-                <span class="inspector-value" style="color: #fbbf24;">-${formatCurrency(bt.dropDelta)}</span>
+                <span class="inspector-value" style="color: var(--warning); font-weight: 600;">-${formatCurrency(bt.dropDelta)}</span>
             </div>
             ${acaRow}
             <div class="inspector-row" style="font-size: 0.8rem;">
                 <span class="inspector-label">0% Capital Gains Room:</span>
-                <span class="inspector-value" style="color: #fcd34d;">+${formatCurrency(lt.remainingZeroRoom)}</span>
+                <span class="inspector-value" style="color: var(--warning); font-weight: 600;">+${formatCurrency(lt.remainingZeroRoom)}</span>
             </div>
         </div>
     `;

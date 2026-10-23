@@ -71,7 +71,7 @@ function renderColorDot(colorMap, labelText, fallbackColor) {
  */
 export function renderInflowSection(inflows, colorMap) {
     let html = `<div style="margin-bottom: 10px;">
-                    <div style="color: var(--text-muted); font-size: 0.78rem; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Cash Inflows</div>`;
+                    <div style="color: var(--text-muted); font-size: 0.78rem; margin-bottom: 4px; border-bottom: 1px solid var(--border); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Cash Inflows</div>`;
 
     if (inflows.s1TakeHome > 0) {
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, `${inflows.s1Name} Take-Home Pay`, '#27ae60')} ${inflows.s1Name} Take-Home Pay</span><span class="inspector-value">${formatCurrency(inflows.s1TakeHome)}</span></div>`;
@@ -89,13 +89,13 @@ export function renderInflowSection(inflows, colorMap) {
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, 'Reverse Mortgage', '#e67e22')} Standby Home Equity</span><span class="inspector-value">${formatCurrency(inflows.reverseMortgage)}</span></div>`;
     }
     if (inflows.totalDrawdowns > 0) {
-        html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, 'Portfolio Distributions', '#fdcb6e')} Portfolio Distributions</span><span class="inspector-value" style="color: #fdcb6e;">+${formatCurrency(inflows.totalDrawdowns)}</span></div>`;
+        html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, 'Portfolio Distributions', '#fdcb6e')} Portfolio Distributions</span><span class="inspector-value" style="color: var(--warning);">+${formatCurrency(inflows.totalDrawdowns)}</span></div>`;
     }
     if (!inflows.hasEarnedIncome && inflows.totalCashInflows === 0) {
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label"><em>No cash inflows</em></span></div>`;
     }
 
-    html += `<div class="inspector-row" style="font-size: 0.85rem; font-weight: bold; margin-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 2px;"><span class="inspector-label">Total Cash Inflows</span><span class="inspector-value" style="color: var(--success);">${formatCurrency(inflows.totalCashInflows)}</span></div>`;
+    html += `<div class="inspector-row" style="font-size: 0.85rem; font-weight: bold; margin-top: 4px; border-top: 1px dashed var(--border); padding-top: 2px;"><span class="inspector-label">Total Cash Inflows</span><span class="inspector-value" style="color: var(--success);">${formatCurrency(inflows.totalCashInflows)}</span></div>`;
     html += `</div>`;
     return html;
 }
@@ -108,7 +108,7 @@ export function renderInflowSection(inflows, colorMap) {
  */
 export function renderOutflowSection(outflows, colorMap) {
     let html = `<div style="margin-bottom: 12px;">
-                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Cash Expenses & Outflows</div>`;
+                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px solid var(--border); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Cash Expenses & Outflows</div>`;
     html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, 'Lifestyle Expenses', '#e74c3c')} Base Lifestyle</span><span class="inspector-value">${formatCurrency(outflows.base)}</span></div>`;
     if (outflows.mortgage > 0) {
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, 'Mortgage Payment', '#c0392b')} Mortgage Payment</span><span class="inspector-value">${formatCurrency(outflows.mortgage)}</span></div>`;
@@ -126,10 +126,10 @@ export function renderOutflowSection(outflows, colorMap) {
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${renderColorDot(colorMap, 'Non-W2 Taxes (Conversions/Portfolios)', '#ff7675')} Non-W2 Taxes (Conversions/Portfolios)</span><span class="inspector-value">${formatCurrency(outflows.nonW2Tax)}</span></div>`;
     }
     if (outflows.earlyWithdrawalPenalty > 0) {
-        html += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; color: #ff7675;"><span class="inspector-label">↳ ⚠️ Includes 10% Early Withdrawal Penalty (Pre-59.5)</span><span class="inspector-value" style="color: #ff7675;">${formatCurrency(outflows.earlyWithdrawalPenalty)}</span></div>`;
+        html += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px; color: var(--danger);"><span class="inspector-label">↳ ⚠️ Includes 10% Early Withdrawal Penalty (Pre-59.5)</span><span class="inspector-value" style="color: var(--danger);">${formatCurrency(outflows.earlyWithdrawalPenalty)}</span></div>`;
     }
     const totalOutflowsWithTaxes = (outflows.totalExpenses || 0) + (outflows.nonW2Tax || 0);
-    html += `<div class="inspector-row" style="font-size: 0.85rem; font-weight: bold; margin-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 2px;"><span class="inspector-label">Total Cash Expenses${outflows.nonW2Tax > 0 ? ' + Non-W2 Taxes' : ''}</span><span class="inspector-value" style="color: var(--danger);">${formatCurrency(totalOutflowsWithTaxes)}</span></div>`;
+    html += `<div class="inspector-row" style="font-size: 0.85rem; font-weight: bold; margin-top: 4px; border-top: 1px dashed var(--border); padding-top: 2px;"><span class="inspector-label">Total Cash Expenses${outflows.nonW2Tax > 0 ? ' + Non-W2 Taxes' : ''}</span><span class="inspector-value" style="color: var(--danger);">${formatCurrency(totalOutflowsWithTaxes)}</span></div>`;
     html += `</div>`;
     return html;
 }
@@ -141,7 +141,7 @@ export function renderOutflowSection(outflows, colorMap) {
  */
 export function renderSurplusSection(surplus) {
     let html = `<div style="margin-bottom: 12px;">
-                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Net Cash Surplus & Reinvestment</div>`;
+                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px solid var(--border); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Net Cash Surplus & Reinvestment</div>`;
     if (surplus.isSurplus) {
         html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Net Cash Surplus</span><span class="inspector-value" style="color: var(--success);">+${formatCurrency(surplus.surplusAmount)}</span></div>`;
         html += `<div class="inspector-row" style="font-size: 0.8rem; padding-left: 12px;"><span class="inspector-label">↳ Reinvested (${surplus.sweepAccountName})</span><span class="inspector-value" style="color: var(--success);">+${formatCurrency(surplus.surplusAmount)}</span></div>`;
@@ -173,13 +173,13 @@ export function renderAdditionsSection(additions, state) {
     ];
 
     let html = `<div style="margin-bottom: 12px;">
-                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Portfolio Contributions & Savings</div>`;
+                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px solid var(--border); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Portfolio Contributions & Savings</div>`;
     additionRows.forEach((rowItem) => {
         if (rowItem.amount > 0) {
             html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">${rowItem.label}</span><span class="inspector-value" style="color: ${rowItem.color};">+${formatCurrency(rowItem.amount)}</span></div>`;
         }
     });
-    html += `<div class="inspector-row" style="font-size: 0.85rem; font-weight: bold; margin-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 2px;"><span class="inspector-label">Total Portfolio Additions</span><span class="inspector-value" style="color: var(--success);">${formatCurrency(additions.totalPortfolioAdditions)}</span></div>`;
+    html += `<div class="inspector-row" style="font-size: 0.85rem; font-weight: bold; margin-top: 4px; border-top: 1px dashed var(--border); padding-top: 2px;"><span class="inspector-label">Total Portfolio Additions</span><span class="inspector-value" style="color: var(--success);">${formatCurrency(additions.totalPortfolioAdditions)}</span></div>`;
     html += `</div>`;
     return html;
 }
@@ -192,7 +192,7 @@ export function renderAdditionsSection(additions, state) {
 export function renderTaxSection(tax) {
     if (!tax) return '';
     let html = `<div style="margin-bottom: 12px;">
-                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Federal Tax Profile (${tax.filingStatus})</div>`;
+                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px solid var(--border); padding-bottom: 2px; text-transform: uppercase; font-weight: bold;">Federal Tax Profile (${tax.filingStatus})</div>`;
     html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Top Bracket Hit</span><span class="inspector-value">${tax.topBracketPct}%</span></div>`;
     html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Remaining Room</span><span class="inspector-value" style="color: var(--success);">${formatCurrency(tax.bracketRoom)}</span></div>`;
     html += `<div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Effective Fed Rate</span><span class="inspector-value">${tax.effectiveRate}%</span></div>`;
@@ -288,7 +288,7 @@ export function renderCashflowInspector(snap, state, points) {
     html += renderInflowSection(inflows, colorMap);
     html += renderOutflowSection(outflows, colorMap);
     html += renderSurplusSection(surplus);
-    html += `<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.12); text-align: center;">💡 Click any year bar to inspect full tax &amp; account details below</div>`;
+    html += `<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px; padding-top: 6px; border-top: 1px dashed var(--border); text-align: center;">💡 Click any year bar to inspect full tax &amp; account details below</div>`;
     return html;
 }
 
@@ -343,7 +343,7 @@ function renderGenericTotalsFooter(total, chart, tooltip, state) {
     `;
     if (state?.assumptions) {
         footerHtml += `
-            <div class="inspector-total" style="font-size: 0.85rem; color: #64B5F6; border-top: none; padding-top: 0; font-style: italic;">
+            <div class="inspector-total" style="font-size: 0.85rem; color: var(--primary); border-top: none; padding-top: 0; font-style: italic;">
                 <span>${isRealDisplayed ? 'Nominal:' : "Today's Dollars (Real):"}</span>
                 <span>${isRealDisplayed ? formatCurrency(totalNominal) : formatCurrency(totalReal)}</span>
             </div>
@@ -357,10 +357,10 @@ function renderTaxChartDetailsFooter(chart, snap) {
     const earlyPenalty = snap.taxDetails.earlyWithdrawalPenalty ?? snap.earlyWithdrawalPenalty ?? 0;
     const penaltyRow =
         earlyPenalty > 0
-            ? `<div class="inspector-row" style="font-size: 0.85rem; color: #ff7675;"><span class="inspector-label">⚠️ 10% Early Penalty (Pre-59.5)</span><span class="inspector-value" style="color: #ff7675;">${formatCurrency(earlyPenalty)}</span></div>`
+            ? `<div class="inspector-row" style="font-size: 0.85rem; color: var(--danger);"><span class="inspector-label">⚠️ 10% Early Penalty (Pre-59.5)</span><span class="inspector-value" style="color: var(--danger);">${formatCurrency(earlyPenalty)}</span></div>`
             : '';
     return `
-        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2);">
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
             <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px;">Federal Tax Profile (MFJ)</div>
             ${penaltyRow}
             <div class="inspector-row" style="font-size: 0.85rem;"><span class="inspector-label">Top Bracket Hit</span><span class="inspector-value">${(snap.taxDetails.topBracketRate * 100).toFixed(1)}%</span></div>
