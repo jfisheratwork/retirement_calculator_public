@@ -2,9 +2,9 @@ import { Trad401k, Trad403b, StandardIra, TaxableBrokerage, Hysa, CdAccount, Rot
 import { RolloverEvent, RothConversionSchedule } from './FinancialEvent.js';
 import { parseDateParts } from '../utils/date.js';
 
-// MODEL_VERSION: 7
+// MODEL_VERSION: 8
 // IMPORTANT: Update this MODEL_VERSION whenever you change the properties or structure of Person or Account classes.
-export const MODEL_VERSION = 7;
+export const MODEL_VERSION = 8;
 
 function isConfiguredJob(job) {
     if (!job) return false;
@@ -289,7 +289,11 @@ export class Person {
         const defineGetter = (propKey, type) => {
             Object.defineProperty(this.accounts, propKey, {
                 get: function () {
-                    const found = this.find((a) => a.type === type);
+                    const found =
+                        this.find((a) => a.type === type && !a._is72tDedicated && a.balance > 0) ||
+                        this.find((a) => a.type === type && !a._is72tDedicated) ||
+                        this.find((a) => a.type === type && a.balance > 0) ||
+                        this.find((a) => a.type === type);
                     if (found) return found;
                     return {
                         type: type,
@@ -305,10 +309,7 @@ export class Person {
                         withdraw: () => 0,
                         cohorts: [],
                         addConversion: (amount, year) => {
-                            const newRoth = new RothIra(`roth-${personRef.key}`, `${personRef.name} Roth IRA`, 0, 7, 0);
-                            newRoth.type = 'rothIra';
-                            newRoth.addConversion(amount, year);
-                            personRef.accounts.push(newRoth);
+                            personRef.getOrCreateRothIra().addConversion(amount, year);
                         }
                     };
                 }
@@ -334,7 +335,79 @@ export class Person {
 
     getAccount(identifier) {
         if (!identifier) return null;
-        return this.accounts.find((a) => a.id === identifier || a.name === identifier || a.type === identifier) || null;
+        return (
+            this.accounts.find((a) => a.id === identifier || a.name === identifier) ||
+            this.accounts.find((a) => a.type === identifier && !a._is72tDedicated && a.balance > 0) ||
+            this.accounts.find((a) => a.type === identifier && !a._is72tDedicated) ||
+            this.accounts.find((a) => a.type === identifier) ||
+            null
+        );
+    }
+
+    /**
+     * Returns true when the given account is locked by an active IRS Rule 72(t) SEPP schedule
+     * at the specified simulation year and month (SPEC-087).
+     * Once the 5-year and age 59.5 period finishes, returns false so the account is unlocked.
+     */
+    is72tLockedAccount(account, currentYear, currentMonth = 12) {
+        if (!account || !this.is72tActive(currentYear, currentMonth)) return false;
+        return Boolean(account._is72tDedicated || (account.id && account.id === this.rule72t?.activeAccountId));
+    }
+
+    /**
+     * Explicitly retrieves all matching accounts of `type` for this person (SPEC-087).
+     * Standard accounts (!a._is72tDedicated) are ordered ahead of dedicated 72(t) accounts
+     * so regular IRAs are drawn or converted before formerly-dedicated 72(t) IRAs.
+     */
+    getAccountsByType(type, options = {}) {
+        const {
+            includeDisabled = false,
+            exclude72tDedicated = false,
+            excludeLocked72tInYear = null,
+            month = 12
+        } = options;
+        return (this.accounts || [])
+            .filter((acc) => {
+                if (!acc || acc.type !== type) return false;
+                if (!includeDisabled && acc.enabled === false) return false;
+                if (exclude72tDedicated && acc._is72tDedicated) return false;
+                if (excludeLocked72tInYear !== null && this.is72tLockedAccount(acc, excludeLocked72tInYear, month)) {
+                    return false;
+                }
+                return true;
+            })
+            .sort((a, b) => Number(Boolean(a._is72tDedicated)) - Number(Boolean(b._is72tDedicated)));
+    }
+
+    /**
+     * Explicitly sums balances across all accounts of `type` (SPEC-087).
+     */
+    getAccountBalanceByType(type, { exclude72tDedicated = false } = {}) {
+        return this.getAccountsByType(type, { includeDisabled: true, exclude72tDedicated }).reduce(
+            (sum, acc) => sum + (Number(acc.balance) || 0),
+            0
+        );
+    }
+
+    /**
+     * Explicitly sums balances across all dedicated Rule 72(t) SEPP IRA accounts (SPEC-077 / SPEC-087).
+     */
+    getSeppIraBalance() {
+        return (this.accounts || [])
+            .filter((acc) => acc && acc.type === 'standardIra' && acc._is72tDedicated)
+            .reduce((sum, acc) => sum + (Number(acc.balance) || 0), 0);
+    }
+
+    /**
+     * Explicitly returns the person's existing RothIRA account or creates and registers a new one (SPEC-087).
+     */
+    getOrCreateRothIra() {
+        const existing = this.getAccountsByType('rothIra', { includeDisabled: true })[0];
+        if (existing) return existing;
+        const newRoth = new RothIra(`roth-${this.key}`, `${this.name || 'Spouse'} Roth IRA`, 0, 7, 0);
+        newRoth.type = 'rothIra';
+        this.accounts.push(newRoth);
+        return newRoth;
     }
 
     getAge(currentYear) {

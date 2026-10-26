@@ -254,7 +254,7 @@ export class SimulationEngine {
     }
 
     _getAccountBalancesDictionary() {
-        const getAccBal = (spouse, key) => spouse.accounts[key]?.balance || 0;
+        const getAccBal = (spouse, key) => this._getAccountTypeBalance(spouse, key);
         const dict = {
             s1Trad401k: getAccBal(this.s1, 'traditional401k'),
             s2Trad401k: getAccBal(this.s2, 'traditional401k'),
@@ -362,7 +362,8 @@ export class SimulationEngine {
 
     _applyDownsizingCashProceeds(downsizeResult, year, snapshot) {
         const sweepAcc =
-            this.s1.accounts.taxableBrokerage ||
+            this.s1.getAccountsByType?.('taxableBrokerage')?.[0] ||
+            this.s2.getAccountsByType?.('taxableBrokerage')?.[0] ||
             Object.values(this.s1.accounts).find((acc) => acc.type === 'taxableBrokerage') ||
             Object.values(this.s2.accounts).find((acc) => acc.type === 'taxableBrokerage');
         if (sweepAcc && downsizeResult.netCashProceeds > 0) {
@@ -632,7 +633,7 @@ export class SimulationEngine {
     }
 
     _find72tSourceAccount(spouse, sourceId) {
-        const accounts = spouse.accounts || [];
+        const accounts = (spouse.accounts || []).filter((a) => a.type !== 'trad403b');
         return (
             (sourceId ? accounts.find((a) => a.id === sourceId || a.name === sourceId || a.type === sourceId) : null) ||
             accounts.find((a) => a.type === 'standardIra' || a.type === 'traditional401k')
@@ -736,9 +737,8 @@ export class SimulationEngine {
 
     _fallbackDraw72t(spouse, monthlyAmount, age, snapshot) {
         let drawn = 0;
-        const preTaxAccounts = spouse.accounts.filter((a) =>
-            ['trad403b', 'traditional401k', 'standardIra'].includes(a.type)
-        );
+        // 403(b) accounts (trad403b) can never be drawn early or used for 72(t) SEPP (SPEC-087)
+        const preTaxAccounts = spouse.accounts.filter((a) => ['traditional401k', 'standardIra'].includes(a.type));
         for (const acc of preTaxAccounts) {
             if (drawn >= monthlyAmount || acc.balance <= 0) continue;
             const need = monthlyAmount - drawn;
@@ -750,6 +750,8 @@ export class SimulationEngine {
     _processAccountRollovers(spouse, year, month) {
         if (!spouse.accounts || !Array.isArray(spouse.accounts)) return;
         spouse.accounts.forEach((acc) => {
+            // 403(b) accounts (trad403b) can never be rolled over into an IRA (SPEC-087)
+            if (acc.type === 'trad403b') return;
             if (!acc.rollover || !acc.rollover.enabled || acc._rolloverExecuted || Number(acc.balance || 0) <= 0)
                 return;
             if (!this._isAccountRolloverDue(acc, spouse, year, month)) return;
@@ -814,7 +816,7 @@ export class SimulationEngine {
             return this._getOrCreateStandardIra(spouse, iraName, 'ira-');
         }
         const tgtId = rolloverCfg?.targetAccount || rolloverCfg?.targetAccountId || rolloverCfg?.targetIraId;
-        const accounts = spouse.accounts || [];
+        const accounts = (spouse.accounts || []).filter((a) => !a._is72tDedicated);
         if (tgtId) {
             const found = accounts.find(
                 (a) => a.type === 'standardIra' && (a.id === tgtId || a.name === tgtId || a.type === tgtId)
@@ -825,23 +827,27 @@ export class SimulationEngine {
     }
 
     _executeAccountRollover(acc, spouse, year, month) {
+        if (acc.type === 'trad403b') return;
         const targetAcc = this._resolveTargetIra(spouse, acc.rollover, `${acc.name || '401k'} Rollover IRA`);
         if (!targetAcc || acc === targetAcc) return;
 
         const isFull = acc.rollover.isFullBalance !== false;
         const transferAmount = isFull ? acc.balance : Math.min(acc.balance, Number(acc.rollover.amount) || 0);
-        if (transferAmount <= 0) return;
+        this._applyRolloverTransfer(acc, targetAcc, transferAmount, spouse, { year, month });
+    }
 
-        acc.balance -= transferAmount;
-        acc.yearRolloverOut = (acc.yearRolloverOut || 0) + transferAmount;
-        acc.yearWithdrawals = (acc.yearWithdrawals || 0) + transferAmount;
+    _applyRolloverTransfer(sourceAcc, targetAcc, transferAmount, spouse, { year, month }) {
+        if (transferAmount <= 0) return;
+        sourceAcc.balance -= transferAmount;
+        sourceAcc.yearRolloverOut = (sourceAcc.yearRolloverOut || 0) + transferAmount;
+        sourceAcc.yearWithdrawals = (sourceAcc.yearWithdrawals || 0) + transferAmount;
         targetAcc.balance += transferAmount;
         targetAcc.yearRolloverIn = (targetAcc.yearRolloverIn || 0) + transferAmount;
-        acc._rolloverExecuted = true;
+        sourceAcc._rolloverExecuted = true;
         this.events.push({
             year,
             month,
-            label: `${spouse.name || 'Spouse'} Rollover`,
+            label: `${spouse.name || (spouse.key === 's1' ? 'S1' : 'S2')} Rollover`,
             type: 'rollover'
         });
     }
@@ -851,40 +857,24 @@ export class SimulationEngine {
         if (!evt || !evt.enabled || !evt.occursIn(year, month)) return;
 
         const { sourceAcc, targetAcc } = this._findLegacyRolloverAccounts(spouse, evt);
-        if (!sourceAcc || !targetAcc || sourceAcc === targetAcc) return;
+        if (!sourceAcc || sourceAcc.type === 'trad403b' || !targetAcc || sourceAcc === targetAcc) return;
 
         const transferAmount =
             evt.isFullBalance !== false ? sourceAcc.balance : Math.min(sourceAcc.balance, Number(evt.amount) || 0);
-
-        if (transferAmount > 0) {
-            sourceAcc.balance -= transferAmount;
-            sourceAcc.yearRolloverOut = (sourceAcc.yearRolloverOut || 0) + transferAmount;
-            sourceAcc.yearWithdrawals = (sourceAcc.yearWithdrawals || 0) + transferAmount;
-            targetAcc.balance += transferAmount;
-            targetAcc.yearRolloverIn = (targetAcc.yearRolloverIn || 0) + transferAmount;
-            sourceAcc._rolloverExecuted = true;
-            this.events.push({
-                year,
-                month,
-                label: `${spouse.name || (spouse.key === 's1' ? 'S1' : 'S2')} Rollover`,
-                type: 'rollover'
-            });
-        }
+        this._applyRolloverTransfer(sourceAcc, targetAcc, transferAmount, spouse, { year, month });
     }
 
     _findLegacyRolloverAccounts(spouse, evt) {
-        const accounts = spouse.accounts || [];
+        const accounts = (spouse.accounts || []).filter((a) => a.type !== 'trad403b');
         const matchId = (id) => (id ? accounts.find((a) => a.id === id || a.name === id || a.type === id) : null);
         const sourceAcc =
-            spouse.getAccount?.(evt.sourceAccount) ||
             matchId(evt.sourceAccount) ||
-            accounts.find((a) => a.type === 'traditional401k' || a.type === 'trad403b') ||
-            spouse.accounts.traditional401k;
+            spouse.getAccountsByType?.('traditional401k')?.[0] ||
+            accounts.find((a) => a.type === 'traditional401k');
         const targetAcc =
-            spouse.getAccount?.(evt.targetAccount) ||
             matchId(evt.targetAccount) ||
-            accounts.find((a) => a.type === 'standardIra') ||
-            spouse.accounts.standardIra;
+            spouse.getAccountsByType?.('standardIra', { exclude72tDedicated: true })?.[0] ||
+            accounts.find((a) => a.type === 'standardIra' && !a._is72tDedicated);
         return { sourceAcc, targetAcc };
     }
 
@@ -1297,7 +1287,8 @@ export class SimulationEngine {
 
     _buildSpouse72tMeta(spouse, year) {
         const isActive = Boolean(spouse.is72tActive?.(year) && (spouse.rule72tMonthlyPayment || 0) > 0);
-        const drawAcc = isActive ? this._find72tDrawAccount(spouse) : null;
+        const has72tAccount = isActive || Boolean(spouse._72tInceptionDone);
+        const drawAcc = has72tAccount ? this._find72tDrawAccount(spouse) : null;
         return {
             active: isActive,
             inceptionBalance: spouse.rule72tInceptionBalance || 0,
@@ -1321,13 +1312,19 @@ export class SimulationEngine {
     }
 
     _getAccountTypeBalance(spouse, type) {
-        return (spouse.accounts || [])
+        if (typeof spouse?.getAccountBalanceByType === 'function') {
+            return spouse.getAccountBalanceByType(type, { exclude72tDedicated: true });
+        }
+        return (spouse?.accounts || [])
             .filter((a) => a.type === type && !a._is72tDedicated)
             .reduce((sum, a) => sum + (a.balance || 0), 0);
     }
 
     _getSeppIraBalance(spouse) {
-        return (spouse.accounts || [])
+        if (typeof spouse?.getSeppIraBalance === 'function') {
+            return spouse.getSeppIraBalance();
+        }
+        return (spouse?.accounts || [])
             .filter((a) => a.type === 'standardIra' && a._is72tDedicated)
             .reduce((sum, a) => sum + (a.balance || 0), 0);
     }

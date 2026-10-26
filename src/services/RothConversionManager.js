@@ -68,38 +68,57 @@ export class RothConversionManager {
     }
 
     static _is72tLockedAccount(spouse, acc, year) {
-        if (!acc || !spouse?.is72tActive?.(year)) return false;
+        if (!acc || !spouse) return false;
+        if (typeof spouse.is72tLockedAccount === 'function') {
+            return spouse.is72tLockedAccount(acc, year, 12);
+        }
+        if (!spouse.is72tActive?.(year)) return false;
         return Boolean(acc._is72tDedicated || (acc.id && acc.id === spouse.rule72t?.activeAccountId));
     }
 
+    static _addRothConversion(spouse, amount, year) {
+        if (typeof spouse?.getOrCreateRothIra === 'function') {
+            spouse.getOrCreateRothIra().addConversion(amount, year);
+            return;
+        }
+        spouse?.accounts?.rothIra?.addConversion?.(amount, year);
+    }
+
+    static _getUnlockedAccountsByType(spouse, type, year) {
+        if (typeof spouse?.getAccountsByType === 'function') {
+            return spouse.getAccountsByType(type, { excludeLocked72tInYear: year });
+        }
+        return (spouse?.accounts || []).filter((a) => a.type === type && !this._is72tLockedAccount(spouse, a, year));
+    }
+
+    static _pullConversionFromAccounts(spouse, accounts, amountNeeded, year) {
+        let remaining = amountNeeded;
+        let totalConverted = 0;
+        for (const acc of accounts) {
+            if (remaining <= 0) break;
+            if (!acc || acc.type === 'trad403b' || acc.balance <= 0) continue;
+            const pull = Math.min(acc.balance, remaining);
+            acc.balance -= pull;
+            acc.yearConversionsOut = (acc.yearConversionsOut || 0) + pull;
+            acc.yearWithdrawals = (acc.yearWithdrawals || 0) + pull;
+            this._addRothConversion(spouse, pull, year);
+            remaining -= pull;
+            totalConverted += pull;
+        }
+        return totalConverted;
+    }
+
     /**
-     * Execute conversion from a single spouse's pre-tax accounts (Standard IRA -> 401k -> 403b)
+     * Execute conversion from a single spouse's pre-tax accounts (Standard IRA -> 401k).
+     * 403(b) accounts (trad403b) are strictly excluded from rollovers and conversions (SPEC-087).
      */
     static convertPreTax(spouse, amountNeeded, year, snapshot) {
         if (amountNeeded <= 0) return 0;
-        let remaining = amountNeeded;
-        let totalConverted = 0;
-
-        const preTaxTypes = ['standardIra', 'traditional401k', 'trad403b'];
-        for (const type of preTaxTypes) {
-            if (remaining <= 0) break;
-            const matchingAccounts = (spouse.accounts || []).filter(
-                (a) => a.type === type && !this._is72tLockedAccount(spouse, a, year)
-            );
-            for (const acc of matchingAccounts) {
-                if (remaining <= 0) break;
-                if (acc && acc.balance > 0) {
-                    const pull = Math.min(acc.balance, remaining);
-                    acc.balance -= pull;
-                    acc.yearConversionsOut = (acc.yearConversionsOut || 0) + pull;
-                    acc.yearWithdrawals = (acc.yearWithdrawals || 0) + pull;
-                    spouse.accounts.rothIra.addConversion(pull, year);
-                    remaining -= pull;
-                    totalConverted += pull;
-                }
-            }
-        }
-
+        const candidateAccounts = [
+            ...this._getUnlockedAccountsByType(spouse, 'standardIra', year),
+            ...this._getUnlockedAccountsByType(spouse, 'traditional401k', year)
+        ];
+        const totalConverted = this._pullConversionFromAccounts(spouse, candidateAccounts, amountNeeded, year);
         if (totalConverted > 0) {
             snapshot.income[spouse.key].rothConversion =
                 (snapshot.income[spouse.key].rothConversion || 0) + totalConverted;
@@ -138,16 +157,19 @@ export class RothConversionManager {
         return pulledFirst + pulledSecond;
     }
 
-    static _findStandardConversionSource(spouse, sourceKey) {
-        const accounts = (spouse.accounts || []).filter((a) => !a._is72tDedicated);
-        return (
-            spouse.getAccount?.(sourceKey) ||
-            (sourceKey
-                ? accounts.find((a) => a.id === sourceKey || a.name === sourceKey || a.type === sourceKey)
-                : null) ||
-            accounts.find((a) => a.type === 'standardIra') ||
-            spouse.accounts.standardIra
-        );
+    static _resolveStandardConversionSources(spouse, sourceKey, year) {
+        const unlockedAccounts = (spouse.accounts || [])
+            .filter((a) => a && a.type !== 'trad403b' && !this._is72tLockedAccount(spouse, a, year))
+            .sort((a, b) => Number(Boolean(a._is72tDedicated)) - Number(Boolean(b._is72tDedicated)));
+
+        if (sourceKey) {
+            const matched = unlockedAccounts.filter(
+                (a) => a.id === sourceKey || a.name === sourceKey || a.type === sourceKey
+            );
+            if (matched.length > 0) return matched;
+        }
+        const iraAccounts = unlockedAccounts.filter((a) => a.type === 'standardIra');
+        return iraAccounts.length > 0 ? iraAccounts : [];
     }
 
     /**
@@ -159,20 +181,16 @@ export class RothConversionManager {
         const currentYear = year - yearsFromStart;
         if (!conv.isActiveInYear(year, currentYear)) return 0;
 
-        const sourceAcc = this._findStandardConversionSource(spouse, conv.sourceAccount);
-        if (!sourceAcc || sourceAcc.balance <= 0) return 0;
+        const sources = this._resolveStandardConversionSources(spouse, conv.sourceAccount, year);
+        if (sources.length === 0) return 0;
 
         const inflatedAmount = Number(conv.amountPerYear) * inflationMultiplier;
-        const amount = Math.min(sourceAcc.balance, inflatedAmount);
+        const totalConverted = this._pullConversionFromAccounts(spouse, sources, inflatedAmount, year);
 
-        if (amount > 0) {
-            sourceAcc.balance -= amount;
-            sourceAcc.yearConversionsOut = (sourceAcc.yearConversionsOut || 0) + amount;
-            sourceAcc.yearWithdrawals = (sourceAcc.yearWithdrawals || 0) + amount;
-            spouse.accounts.rothIra.addConversion(amount, year);
-            snapshot.income[spouse.key].rothConversion = (snapshot.income[spouse.key].rothConversion || 0) + amount;
-            return amount;
+        if (totalConverted > 0) {
+            snapshot.income[spouse.key].rothConversion =
+                (snapshot.income[spouse.key].rothConversion || 0) + totalConverted;
         }
-        return 0;
+        return totalConverted;
     }
 }

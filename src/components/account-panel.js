@@ -153,9 +153,13 @@ export class AccountPanel extends BaseComponent {
         } else if (acc.type === 'cd') {
             out += this._renderCdFields(acc, accPrefix);
         }
-        if (['traditional401k', 'trad403b'].includes(acc.type)) {
+        if (acc.type === 'traditional401k') {
             out += `<div></div></div>`;
             out += this._render401kRollover(acc, accPrefix, spouseObj);
+            out += `<div class="tab-stop-grid-2">`;
+        } else if (acc.type === 'trad403b') {
+            out += `<div></div></div>`;
+            out += `<div style="grid-column: span 2; padding: 0.5rem 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 4px; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">🔒 <strong>403(b) Institutional Lock:</strong> 403(b) accounts cannot be rolled over into an IRA or withdrawn prior to age 59½/60.</div>`;
             out += `<div class="tab-stop-grid-2">`;
         }
         if (acc.type === 'hsa') out += this._renderHsaFields(acc, accPrefix);

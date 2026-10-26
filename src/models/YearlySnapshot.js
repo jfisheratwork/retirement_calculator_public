@@ -69,8 +69,34 @@ function createInitialIncome() {
 }
 
 function getAccountBalance(person, accountKey) {
+    if (typeof person?.getAccountBalanceByType === 'function') {
+        return person.getAccountBalanceByType(accountKey, { exclude72tDedicated: accountKey === 'standardIra' });
+    }
+    if (Array.isArray(person?.accounts)) {
+        return person.accounts
+            .filter((a) => a && a.type === accountKey && (accountKey !== 'standardIra' || !a._is72tDedicated))
+            .reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+    }
     const acc = person?.accounts?.[accountKey];
     return acc ? acc.balance : 0;
+}
+
+function getSeppIraBalance(person) {
+    if (typeof person?.getSeppIraBalance === 'function') {
+        return person.getSeppIraBalance();
+    }
+    if (!Array.isArray(person?.accounts)) return 0;
+    return person.accounts
+        .filter((a) => a && a.type === 'standardIra' && a._is72tDedicated)
+        .reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+}
+
+function getPersonRothCohorts(person) {
+    const rothAcc =
+        typeof person?.getAccountsByType === 'function'
+            ? person.getAccountsByType('rothIra', { includeDisabled: true })[0]
+            : person?.accounts?.rothIra;
+    return rothAcc?.cohorts ? JSON.parse(JSON.stringify(rothAcc.cohorts)) : [];
 }
 
 function createInitialBalances(p1, p2, { cushion, equity, homeValue, mortgage }) {
@@ -81,8 +107,8 @@ function createInitialBalances(p1, p2, { cushion, equity, homeValue, mortgage })
         s2Trad403b: getAccountBalance(p2, 'trad403b'),
         s1StandardIra: getAccountBalance(p1, 'standardIra'),
         s2StandardIra: getAccountBalance(p2, 'standardIra'),
-        s1SeppIra: 0,
-        s2SeppIra: 0,
+        s1SeppIra: getSeppIraBalance(p1),
+        s2SeppIra: getSeppIraBalance(p2),
         s1Hysa: getAccountBalance(p1, 'hysa'),
         s2Hysa: getAccountBalance(p2, 'hysa'),
         s1Cd: getAccountBalance(p1, 'cd'),
@@ -132,8 +158,8 @@ export class YearlySnapshot {
         this.balances = createInitialBalances(p1, p2, { cushion, equity, homeValue, mortgage });
 
         this.rothCohorts = {
-            s1: p1?.accounts?.rothIra ? JSON.parse(JSON.stringify(p1.accounts.rothIra.cohorts)) : [],
-            s2: p2?.accounts?.rothIra ? JSON.parse(JSON.stringify(p2.accounts.rothIra.cohorts)) : []
+            s1: getPersonRothCohorts(p1),
+            s2: getPersonRothCohorts(p2)
         };
 
         this.events = [];

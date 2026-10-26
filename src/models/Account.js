@@ -92,7 +92,7 @@ export class PreTaxAccount extends Account {
     }
 
     _isRuleOf55Exempt(ownerAge, isRuleOf55Eligible) {
-        const isWorkplacePlan = this.type === 'traditional401k' || this.type === 'trad403b';
+        const isWorkplacePlan = this.type === 'traditional401k';
         return (
             isRuleOf55Eligible &&
             ownerAge >= RULE_OF_55_MIN_AGE &&
@@ -105,8 +105,21 @@ export class PreTaxAccount extends Account {
     /**
      * Withdraws from a pre-tax retirement account.
      * Supports IRC § 72(t)(2)(A)(v) Rule of 55 and IRC § 72(t)(1) 10% early withdrawal penalty fallback.
+     * Note: 403(b) accounts (trad403b) are strictly locked before age 59.5 under all circumstances (SPEC-087).
      */
     withdraw(amount, ownerAge = 0, is72tOrOptions = false, events = null, accountName = '') {
+        if (this.type === 'trad403b' && ownerAge < STATUTORY_PENALTY_FREE_AGE) {
+            if (events) {
+                events.push({
+                    type: 'withdrawal_blocked',
+                    account: accountName || this.name,
+                    requested: amount,
+                    fulfilled: 0,
+                    reason: `Blocked by strict 403(b) lockup (Age ${Math.floor(ownerAge)} < 59.5). 403(b) cannot be withdrawn early.`
+                });
+            }
+            return 0;
+        }
         const { is72tActive, isRuleOf55Eligible, allowEarlyPenalty } = parsePreTaxWithdrawOptions(is72tOrOptions);
         const isRuleOf55Exempt = this._isRuleOf55Exempt(ownerAge, isRuleOf55Eligible);
         const isPermitted =

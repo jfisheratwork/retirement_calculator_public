@@ -51,10 +51,22 @@ export class CashFlowManager {
         }
     }
 
-    static _tryPullPreTax(ctx, spouse, type, maxDraw = Infinity, allowEarlyPenalty = false) {
-        const account = spouse?.accounts?.[type];
-        if (ctx.amountLeft <= 0 || maxDraw <= 0 || !account || account.enabled === false) return 0;
+    static _resolveAccountsForType(spouse, type, options = {}) {
+        if (!spouse) return [];
+        if (typeof spouse.getAccountsByType === 'function') {
+            return spouse.getAccountsByType(type, options);
+        }
+        if (Array.isArray(spouse.accounts)) {
+            return spouse.accounts
+                .filter((a) => a && a.type === type && a.enabled !== false)
+                .sort((a, b) => Number(Boolean(a._is72tDedicated)) - Number(Boolean(b._is72tDedicated)));
+        }
+        const fallback = spouse.accounts?.[type];
+        return fallback && fallback.enabled !== false ? [fallback] : [];
+    }
 
+    static _withdrawSinglePreTaxAccount(ctx, spouse, account, maxDraw, allowEarlyPenalty) {
+        const type = account.type;
         const age = spouse.getAge(ctx.year);
         const isRuleOf55Eligible =
             typeof spouse.isRuleOf55Eligible === 'function' ? spouse.isRuleOf55Eligible(ctx.year) : false;
@@ -81,11 +93,32 @@ export class CashFlowManager {
         return netProvided;
     }
 
-    static _tryPullLiquid(ctx, spouse, type) {
-        if (ctx.amountLeft <= 0 || !spouse?.accounts) return;
-        const account = spouse.accounts[type];
-        if (!account || account.enabled === false) return;
+    static _tryPullPreTax(ctx, spouse, type, maxDraw = Infinity, allowEarlyPenalty = false) {
+        if (ctx.amountLeft <= 0 || maxDraw <= 0 || !spouse) return 0;
+        if (allowEarlyPenalty && type === 'trad403b') return 0;
 
+        const accounts = CashFlowManager._resolveAccountsForType(spouse, type, {
+            excludeLocked72tInYear: allowEarlyPenalty ? null : ctx.year
+        });
+        let totalNetProvided = 0;
+        let remainingMaxDraw = maxDraw;
+
+        for (const account of accounts) {
+            if (ctx.amountLeft <= 0 || remainingMaxDraw <= 0) break;
+            const netProvided = CashFlowManager._withdrawSinglePreTaxAccount(
+                ctx,
+                spouse,
+                account,
+                remainingMaxDraw,
+                allowEarlyPenalty
+            );
+            remainingMaxDraw -= netProvided;
+            totalNetProvided += netProvided;
+        }
+        return totalNetProvided;
+    }
+
+    static _withdrawSingleLiquidAccount(ctx, spouse, account, type) {
         if (type === 'taxableBrokerage' && typeof account.withdrawWithGains === 'function') {
             const res = account.withdrawWithGains(
                 ctx.amountLeft,
@@ -109,36 +142,47 @@ export class CashFlowManager {
         }
     }
 
+    static _tryPullLiquid(ctx, spouse, type) {
+        if (ctx.amountLeft <= 0 || !spouse) return;
+        const accounts = CashFlowManager._resolveAccountsForType(spouse, type);
+        for (const account of accounts) {
+            if (ctx.amountLeft <= 0) break;
+            CashFlowManager._withdrawSingleLiquidAccount(ctx, spouse, account, type);
+        }
+    }
+
     static _pullRothPrincipal(ctx, spouse) {
-        if (ctx.amountLeft <= 0 || !spouse?.accounts?.rothIra || spouse.accounts.rothIra.enabled === false) return;
-        const d = spouse.accounts.rothIra.withdraw(
-            ctx.amountLeft,
-            0,
-            ctx.year,
-            ctx.snapshot.events,
-            `${spouse.name} Roth IRA`
-        );
-        if (d > 0) {
-            ctx.amountLeft -= d;
-            ctx.snapshot.recordDrawdown(spouse.key, 'rothIra', d);
+        if (ctx.amountLeft <= 0 || !spouse) return;
+        const rothAccounts = CashFlowManager._resolveAccountsForType(spouse, 'rothIra');
+        for (const account of rothAccounts) {
+            if (ctx.amountLeft <= 0) break;
+            const d = account.withdraw(ctx.amountLeft, 0, ctx.year, ctx.snapshot.events, `${spouse.name} Roth IRA`);
+            if (d > 0) {
+                ctx.amountLeft -= d;
+                ctx.snapshot.recordDrawdown(spouse.key, 'rothIra', d);
+            }
         }
     }
 
     static _pullRothEarnings(ctx, spouse) {
-        if (ctx.amountLeft <= 0 || !spouse?.accounts?.rothIra || spouse.accounts.rothIra.enabled === false) return;
+        if (ctx.amountLeft <= 0 || !spouse) return;
         const age = spouse.getAge(ctx.year);
         if (age < STATUTORY_PENALTY_FREE_AGE) return;
 
-        const d = spouse.accounts.rothIra.withdraw(
-            ctx.amountLeft,
-            age,
-            ctx.year,
-            ctx.snapshot.events,
-            `${spouse.name} Roth IRA Earnings`
-        );
-        if (d > 0) {
-            ctx.amountLeft -= d;
-            ctx.snapshot.recordDrawdown(spouse.key, 'rothIra', d);
+        const rothAccounts = CashFlowManager._resolveAccountsForType(spouse, 'rothIra');
+        for (const account of rothAccounts) {
+            if (ctx.amountLeft <= 0) break;
+            const d = account.withdraw(
+                ctx.amountLeft,
+                age,
+                ctx.year,
+                ctx.snapshot.events,
+                `${spouse.name} Roth IRA Earnings`
+            );
+            if (d > 0) {
+                ctx.amountLeft -= d;
+                ctx.snapshot.recordDrawdown(spouse.key, 'rothIra', d);
+            }
         }
     }
 
@@ -164,7 +208,8 @@ export class CashFlowManager {
 
     static _executePenalizedPreTaxFallback(ctx, s1, s2) {
         if ((ctx.snapshot?.expenses || 0) <= 0) return;
-        const preTaxTypes = ['trad403b', 'traditional401k', 'standardIra'];
+        // 403(b) accounts (trad403b) are strictly excluded from early penalized withdrawals (SPEC-087)
+        const preTaxTypes = ['traditional401k', 'standardIra'];
         for (const type of preTaxTypes) {
             if (ctx.amountLeft <= 0) break;
             ctx.tryPullPreTax(s1, type, Infinity, true);
@@ -213,7 +258,8 @@ export class CashFlowManager {
     }
 
     static _executeRuleOf55WorkplaceFallback(ctx, s1, s2) {
-        const workplaceTypes = ['traditional401k', 'trad403b'];
+        // 403(b) accounts (trad403b) are strictly excluded from early withdrawals (SPEC-087)
+        const workplaceTypes = ['traditional401k'];
         for (const type of workplaceTypes) {
             if (ctx.amountLeft <= 0) break;
             if (s1 && typeof s1.isRuleOf55Eligible === 'function' && s1.isRuleOf55Eligible(ctx.year)) {

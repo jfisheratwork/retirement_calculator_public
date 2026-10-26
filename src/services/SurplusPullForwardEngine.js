@@ -171,11 +171,10 @@ export class SurplusPullForwardEngine {
     static _getPreTaxBalanceInSnapshot(snap) {
         if (!snap?.balances) return 0;
         const b = snap.balances;
+        // 403(b) accounts (s1Trad403b / s2Trad403b) are strictly excluded from pre-59.5 rollovers and bridge draws (SPEC-087)
         return (
             Number(b.s1Trad401k || 0) +
             Number(b.s2Trad401k || 0) +
-            Number(b.s1Trad403b || 0) +
-            Number(b.s2Trad403b || 0) +
             Number(b.s1StandardIra || 0) +
             Number(b.s2StandardIra || 0) +
             Number(b.s1SeppIra || 0) +
@@ -187,7 +186,7 @@ export class SurplusPullForwardEngine {
         const s1 = state?.primarySpouse || {};
         const retireAge = Number(s1.targetRetirementAge) || 55;
         const workAcc = (s1.accounts || []).find(
-            (a) => (a.type === 'traditional401k' || a.type === 'trad403b') && a.isActiveContributor !== false
+            (a) => a.type === 'traditional401k' && a.isActiveContributor !== false
         );
         const hasRolloverPoison = Boolean(s1.rolloverEvent?.enabled || workAcc?.rollover?.enabled);
         let feasibility = 'ineligible';

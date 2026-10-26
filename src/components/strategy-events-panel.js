@@ -162,7 +162,7 @@ export class StrategyEventsPanel extends BaseComponent {
 
     _get72tSourceOptions(prefix, spouseObj, targetYear, targetMonth) {
         const sourceCandidates = (spouseObj.accounts || []).filter((a) =>
-            ['traditional401k', 'trad403b', 'standardIra'].includes(a.type)
+            ['traditional401k', 'standardIra'].includes(a.type)
         );
         const srcOpts = sourceCandidates.map((a) => {
             const projected = this._getProjectedAccountBalance(prefix, a, targetYear, targetMonth);
@@ -250,7 +250,7 @@ export class StrategyEventsPanel extends BaseComponent {
                 `${prefix}.rule72t.sourceAccount`,
                 srcOpts,
                 r72t.sourceAccount || srcOpts[0].value,
-                'The retirement account (401k, 403b, or IRA) supplying funds for the 72(t) schedule.'
+                'The retirement account (401k or IRA) supplying funds for the 72(t) schedule. 403(b) accounts cannot be rolled over or drawn early.'
             ) +
             `</div>`;
         out +=
